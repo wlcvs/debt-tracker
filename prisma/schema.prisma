@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  people      Person[]
+  creditCards CreditCard[]
+}
+
+model Person {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  accessCode String   @unique
+  createdAt  DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debts    Debt[]
+  payments Payment[]
+}
+
+model CreditCard {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String
+  createdAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debts Debt[]
+}
+
+model Debt {
+  id           String   @id @default(cuid())
+  personId     String
+  creditCardId String?
+  amount       Decimal  @db.Decimal(10, 2)
+  description  String
+  date         DateTime
+  createdAt    DateTime @default(now())
+
+  person     Person      @relation(fields: [personId], references: [id], onDelete: Cascade)
+  creditCard CreditCard? @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  personId  String
+  amount    Decimal  @db.Decimal(10, 2)
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
