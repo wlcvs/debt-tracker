@@ -31,8 +31,9 @@ export async function requestPasswordReset(
 
   const user = await prisma.user.findUnique({ where: { email: email.data } });
 
+  // Return success even when user doesn't exist — avoids leaking which emails are registered.
   if (!user) {
-    return { status: "error", message: "Este e-mail não está cadastrado." };
+    return { status: "success" };
   }
 
   // Invalidate existing tokens for this user
