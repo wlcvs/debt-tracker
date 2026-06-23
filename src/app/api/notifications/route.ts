@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendPaymentNotification, sendDebtNotification } from "@/lib/email-notifications";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 
-// Simple shared secret — prevents unauthorized callers without full auth setup
+// Timing-safe comparison via SHA-256 digests to avoid length/character leakage.
 function isAuthorized(req: NextRequest) {
   const secret = process.env.NOTIFICATIONS_SECRET;
   if (!secret) return false;
-  return req.headers.get("x-notifications-secret") === secret;
+  const incoming = req.headers.get("x-notifications-secret") ?? "";
+  try {
+    const a = createHash("sha256").update(incoming).digest();
+    const b = createHash("sha256").update(secret).digest();
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
 }
 
 // POST /api/notifications

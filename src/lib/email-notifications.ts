@@ -10,6 +10,15 @@ function getResend() {
 const fmt = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function baseLayout(title: string, body: string) {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -60,11 +69,11 @@ export async function sendPaymentNotification(data: PaymentNotificationData) {
   const consultarUrl = `${process.env.NEXT_PUBLIC_APP_URL}/consultar/${data.accessCode}`;
 
   const body = `
-    <p class="label">Olá, ${data.personName}</p>
+    <p class="label">Olá, ${esc(data.personName)}</p>
     <p style="margin: 12px 0 4px; color: #a1a1aa; font-size: 13px;">Um pagamento foi registrado na sua conta.</p>
 
     <div class="amount">${fmt(data.paymentAmount)}</div>
-    <p class="label">via ${methodLabel}</p>
+    <p class="label">via ${esc(methodLabel)}</p>
 
     <div style="margin-top: 20px; border-top: 1px solid #27272a; padding-top: 16px;">
       <div class="row">
@@ -109,12 +118,12 @@ export async function sendDebtNotification(data: DebtNotificationData) {
   const dateStr = data.debtDate.toLocaleDateString("pt-BR");
 
   const body = `
-    <p class="label">Olá, ${data.personName}</p>
+    <p class="label">Olá, ${esc(data.personName)}</p>
     <p style="margin: 12px 0 4px; color: #a1a1aa; font-size: 13px;">Uma nova dívida foi adicionada à sua conta.</p>
 
     <div class="amount">${fmt(data.debtAmount)}</div>
-    <p style="color: #a1a1aa; font-size: 13px; margin: 4px 0;">${data.debtDescription}</p>
-    <p class="label">${dateStr}</p>
+    <p style="color: #a1a1aa; font-size: 13px; margin: 4px 0;">${esc(data.debtDescription)}</p>
+    <p class="label">${esc(dateStr)}</p>
 
     <div style="margin-top: 20px; border-top: 1px solid #27272a; padding-top: 16px;">
       <div class="row">

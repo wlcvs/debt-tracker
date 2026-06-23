@@ -7,6 +7,10 @@ vi.mock("resend", () => ({
     emails = { send: vi.fn().mockResolvedValue({ data: {}, error: null }) };
   },
 }));
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn(() => ({ allowed: true, remaining: 10 })),
+  getClientIp: vi.fn(async () => "127.0.0.1"),
+}));
 
 const extended = prismaMock as typeof prismaMock & {
   user: {

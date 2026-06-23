@@ -6,6 +6,10 @@ vi.mock("@/auth", () => ({
   auth: vi.fn(),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn(() => ({ allowed: true, remaining: 10 })),
+  getClientIp: vi.fn(async () => "127.0.0.1"),
+}));
 
 import { auth } from "@/auth";
 import {

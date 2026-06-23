@@ -7,13 +7,14 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
 import { calculateCoveredDebtIds } from "@/lib/debt-allocation";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const createPersonSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
 });
 
 function generateAccessCode(): string {
-  return randomBytes(6).toString("hex"); // 12 caracteres, ex: "a1b2c3d4e5f6"
+  return randomBytes(8).toString("hex"); // 16 caracteres, 64 bits de entropia
 }
 
 export async function createPerson(formData: FormData) {
@@ -87,6 +88,12 @@ export async function getPersonByAccessCode(
   _prevState: ConsultState,
   formData: FormData
 ): Promise<ConsultState> {
+  const ip = await getClientIp();
+  const { allowed } = checkRateLimit(`consultar:${ip}`, 20, 60 * 1000);
+  if (!allowed) {
+    return { status: "error", message: "Muitas tentativas. Aguarde um momento." };
+  }
+
   const code = (formData.get("accessCode") as string | null)?.trim();
 
   if (!code) {

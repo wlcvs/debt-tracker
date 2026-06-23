@@ -5,6 +5,7 @@ import { z } from "zod";
 import { hash } from "bcryptjs";
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -24,6 +25,12 @@ export async function requestPasswordReset(
   _prev: ResetRequestState,
   formData: FormData
 ): Promise<ResetRequestState> {
+  const ip = await getClientIp();
+  const { allowed } = checkRateLimit(`pwd-reset:${ip}`, 3, 60 * 60 * 1000);
+  if (!allowed) {
+    return { status: "error", message: "Muitas tentativas. Aguarde 1 hora e tente novamente." };
+  }
+
   const email = z.string().email().safeParse(formData.get("email"));
   if (!email.success) {
     return { status: "error", message: "E-mail inválido." };
