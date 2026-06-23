@@ -22,14 +22,16 @@ export default async function PersonPage({
   if (!person) notFound();
 
   return (
-    <div className="px-8 py-8 h-full flex flex-col gap-8">
+    <div className="px-4 sm:px-8 py-6 sm:py-8 h-full flex flex-col gap-6 sm:gap-8">
       {/* Person header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-6">
+      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4 sm:pb-6 flex flex-col gap-3">
         <EditablePersonHeader person={person} />
-        <ShareButton accessCode={person.accessCode} />
+        <div>
+          <ShareButton accessCode={person.accessCode} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 overflow-y-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 flex-1 overflow-y-auto">
         {/* Debts */}
         <section className="flex flex-col gap-4">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">

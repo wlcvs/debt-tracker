@@ -23,9 +23,10 @@ export function LeftSidebar({ people }: Props) {
     : people;
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    /* min-h-0 is required for the inner flex children to scroll correctly */
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Search */}
-      <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
         <input
           type="text"
           value={query}
@@ -35,8 +36,8 @@ export function LeftSidebar({ people }: Props) {
         />
       </div>
 
-      {/* People list */}
-      <nav className="flex-1 overflow-y-auto py-2">
+      {/* People list — scrolls independently */}
+      <nav className="flex-1 overflow-y-auto min-h-0 py-1">
         {filtered.length === 0 ? (
           <p className="px-4 py-3 text-xs text-zinc-400 dark:text-zinc-600">
             Nenhum resultado.
@@ -67,7 +68,7 @@ export function LeftSidebar({ people }: Props) {
                     >
                       {person.totalOwed <= 0
                         ? "QUITADO"
-                        : `R$ ${person.totalOwed.toFixed(2)}`}
+                        : `R$ ${person.totalOwed.toFixed(2)}`}
                     </span>
                   </Link>
                 </li>
@@ -77,19 +78,19 @@ export function LeftSidebar({ people }: Props) {
         )}
       </nav>
 
-      {/* Add person */}
-      <div className="border-t border-zinc-200 dark:border-zinc-800 px-4 py-3">
+      {/* Add person — always visible at bottom */}
+      <div className="border-t border-zinc-200 dark:border-zinc-800 px-4 py-3 shrink-0">
         <form action={createPerson} className="flex gap-2">
           <input
             type="text"
             name="name"
             placeholder="NOVA PESSOA"
             required
-            className="flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
+            className="min-w-0 flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
           />
           <button
             type="submit"
-            className="border border-zinc-400 dark:border-zinc-600 px-3 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+            className="shrink-0 border border-zinc-400 dark:border-zinc-600 px-3 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
           >
             +
           </button>
