@@ -14,76 +14,221 @@ export default async function Home() {
   const totalToReceive = people.reduce((sum, p) => sum + p.totalOwed, 0);
 
   return (
-    <main>
-      <header>
-        <h1>Debt Tracker</h1>
+    <main className="max-w-4xl mx-auto px-6 py-10">
+      {/* Header */}
+      <header className="flex items-baseline justify-between mb-12 border-b border-zinc-800 pb-6">
+        <div>
+          <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase mb-1">
+            Sistema
+          </p>
+          <h1 className="text-2xl tracking-widest uppercase text-white">
+            Debt Tracker
+          </h1>
+        </div>
         <form action={signOutAction}>
-          <button type="submit">Sign out</button>
+          <button
+            type="submit"
+            className="text-xs tracking-[0.2em] uppercase text-zinc-500 hover:text-white transition-colors cursor-pointer"
+          >
+            Sair
+          </button>
         </form>
       </header>
 
-      <section>
-        <h2>Total to receive: {totalToReceive.toFixed(2)}</h2>
+      {/* Total */}
+      <section className="mb-12">
+        <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase mb-1">
+          Total a receber
+        </p>
+        <p className="text-4xl tracking-tight text-white">
+          R$ {totalToReceive.toFixed(2)}
+        </p>
       </section>
 
-      <section>
-        <h3>Add new person</h3>
-        <form action={createPerson}>
-          <input type="text" name="name" placeholder="Name" required />
-          <button type="submit">Add person</button>
-        </form>
+      {/* Actions */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-14">
+        <div className="border border-zinc-800 p-5">
+          <p className="text-xs tracking-[0.25em] uppercase text-zinc-500 mb-4">
+            Nova pessoa
+          </p>
+          <form action={createPerson} className="flex gap-2">
+            <input
+              type="text"
+              name="name"
+              placeholder="NOME"
+              required
+              className="flex-1 bg-transparent border border-zinc-700 px-3 py-2 text-sm tracking-wider placeholder:text-zinc-600 focus:outline-none focus:border-zinc-400 transition-colors"
+            />
+            <button
+              type="submit"
+              className="border border-zinc-600 px-4 py-2 text-xs tracking-widest uppercase text-zinc-400 hover:border-white hover:text-white transition-colors cursor-pointer"
+            >
+              Adicionar
+            </button>
+          </form>
+        </div>
+
+        <div className="border border-zinc-800 p-5">
+          <p className="text-xs tracking-[0.25em] uppercase text-zinc-500 mb-4">
+            Novo cartão
+          </p>
+          <form action={createCreditCard} className="flex gap-2">
+            <input
+              type="text"
+              name="label"
+              placeholder="EX: NUBANK"
+              required
+              className="flex-1 bg-transparent border border-zinc-700 px-3 py-2 text-sm tracking-wider placeholder:text-zinc-600 focus:outline-none focus:border-zinc-400 transition-colors"
+            />
+            <button
+              type="submit"
+              className="border border-zinc-600 px-4 py-2 text-xs tracking-widest uppercase text-zinc-400 hover:border-white hover:text-white transition-colors cursor-pointer"
+            >
+              Adicionar
+            </button>
+          </form>
+        </div>
       </section>
 
+      {/* People */}
       <section>
-        <h3>Add new credit card</h3>
-        <form action={createCreditCard}>
-          <input type="text" name="label" placeholder="Card label (ex: Nubank)" required />
-          <button type="submit">Add card</button>
-        </form>
-      </section>
+        <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase mb-6">
+          Pessoas — {people.length}
+        </p>
 
-      <section>
-        <h3>People</h3>
-        {people.map((person) => (
-          <div key={person.id}>
-            <h4>{person.name}</h4>
-            <p>Owes: {person.totalOwed.toFixed(2)}</p>
-            <p>Access code: {person.accessCode}</p>
+        <div className="flex flex-col gap-8">
+          {people.map((person) => (
+            <div key={person.id} className="border border-zinc-800">
+              {/* Person header */}
+              <div className="flex items-baseline justify-between px-5 py-4 border-b border-zinc-800">
+                <div className="flex items-baseline gap-4">
+                  <h2 className="text-sm tracking-widest uppercase text-white">
+                    {person.name}
+                  </h2>
+                  {person.totalOwed <= 0 && (
+                    <span className="text-xs tracking-widest text-zinc-500">
+                      QUITADO
+                    </span>
+                  )}
+                </div>
+                <p className="text-lg tracking-tight text-white">
+                  R$ {person.totalOwed.toFixed(2)}
+                </p>
+              </div>
 
-            <ul>
-              {person.debts.map((debt) => (
-                <li key={debt.id} style={{ opacity: debt.isCovered ? 0.5 : 1 }}>
-                  {debt.description} — {debt.amount.toFixed(2)} —{" "}
-                  {debt.date.toLocaleDateString()}{" "}
-                  {debt.isCovered ? "(covered)" : ""}
-                </li>
-              ))}
-            </ul>
+              <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Debts */}
+                <div>
+                  <p className="text-xs tracking-[0.25em] uppercase text-zinc-500 mb-3">
+                    Dívidas
+                  </p>
+                  {person.debts.length === 0 ? (
+                    <p className="text-xs text-zinc-600">Nenhuma dívida.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-1 mb-4">
+                      {person.debts.map((debt) => (
+                        <li
+                          key={debt.id}
+                          className={`flex justify-between text-xs py-1 border-b border-zinc-900 ${
+                            debt.isCovered ? "text-zinc-600" : "text-zinc-300"
+                          }`}
+                        >
+                          <span className="truncate mr-4">
+                            {debt.description}
+                          </span>
+                          <span className="shrink-0 tracking-tight">
+                            R$ {debt.amount.toFixed(2)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
-            <form action={createDebt}>
-              <input type="hidden" name="personId" value={person.id} />
-              <input type="number" name="amount" step="0.01" placeholder="Amount" required />
-              <input type="text" name="description" placeholder="Description" required />
-              <input type="date" name="date" required />
-              <select name="creditCardId">
-                <option value="">No card</option>
-                {creditCards.map((card) => (
-                  <option key={card.id} value={card.id}>
-                    {card.label}
-                  </option>
-                ))}
-              </select>
-              <button type="submit">Add debt</button>
-            </form>
+                  <form action={createDebt} className="flex flex-col gap-2">
+                    <input type="hidden" name="personId" value={person.id} />
+                    <input
+                      type="number"
+                      name="amount"
+                      step="0.01"
+                      placeholder="VALOR"
+                      required
+                      className="bg-transparent border border-zinc-800 px-3 py-2 text-xs tracking-wider placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+                    />
+                    <input
+                      type="text"
+                      name="description"
+                      placeholder="DESCRIÇÃO"
+                      required
+                      className="bg-transparent border border-zinc-800 px-3 py-2 text-xs tracking-wider placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+                    />
+                    <input
+                      type="date"
+                      name="date"
+                      required
+                      className="bg-transparent border border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-400 focus:outline-none focus:border-zinc-600 transition-colors"
+                    />
+                    <select
+                      name="creditCardId"
+                      className="bg-zinc-950 border border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-400 focus:outline-none focus:border-zinc-600 transition-colors"
+                    >
+                      <option value="">SEM CARTÃO</option>
+                      {creditCards.map((card) => (
+                        <option key={card.id} value={card.id}>
+                          {card.label.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="submit"
+                      className="border border-zinc-800 py-2 text-xs tracking-widest uppercase text-zinc-500 hover:border-zinc-600 hover:text-zinc-300 transition-colors cursor-pointer"
+                    >
+                      + Dívida
+                    </button>
+                  </form>
+                </div>
 
-            <form action={createPayment}>
-              <input type="hidden" name="personId" value={person.id} />
-              <input type="number" name="amount" step="0.01" placeholder="Amount" required />
-              <input type="date" name="date" required />
-              <button type="submit">Add payment</button>
-            </form>
-          </div>
-        ))}
+                {/* Payments */}
+                <div>
+                  <p className="text-xs tracking-[0.25em] uppercase text-zinc-500 mb-3">
+                    Pagamentos
+                  </p>
+
+                  <form action={createPayment} className="flex flex-col gap-2">
+                    <input type="hidden" name="personId" value={person.id} />
+                    <input
+                      type="number"
+                      name="amount"
+                      step="0.01"
+                      placeholder="VALOR"
+                      required
+                      className="bg-transparent border border-zinc-800 px-3 py-2 text-xs tracking-wider placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+                    />
+                    <input
+                      type="date"
+                      name="date"
+                      required
+                      className="bg-transparent border border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-400 focus:outline-none focus:border-zinc-600 transition-colors"
+                    />
+                    <button
+                      type="submit"
+                      className="border border-zinc-800 py-2 text-xs tracking-widest uppercase text-zinc-500 hover:border-zinc-600 hover:text-zinc-300 transition-colors cursor-pointer"
+                    >
+                      + Pagamento
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {/* Access code */}
+              <div className="px-5 py-3 border-t border-zinc-900">
+                <p className="text-xs text-zinc-700 tracking-widest">
+                  CÓDIGO{" "}
+                  <span className="text-zinc-500">{person.accessCode}</span>
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     </main>
   );

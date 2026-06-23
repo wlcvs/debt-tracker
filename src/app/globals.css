@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+@theme inline {
+  --font-mono: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #0a0a0a;
+  color: #e4e4e7;
+  font-family: var(--font-mono);
+  min-height: 100dvh;
+}
+
+::selection {
+  background: #e4e4e7;
+  color: #0a0a0a;
+}
+
+input,
+select,
+button {
+  font-family: inherit;
+}
