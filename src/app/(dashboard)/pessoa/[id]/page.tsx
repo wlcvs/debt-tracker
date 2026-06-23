@@ -30,8 +30,22 @@ export default async function PersonPage({
       {/* Person header */}
       <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4 sm:pb-6 flex flex-col gap-3">
         <EditablePersonHeader person={person} />
-        <div>
+        <div className="flex items-center gap-3 flex-wrap">
           <ShareButton accessCode={person.accessCode} />
+          <span
+            className={`text-[10px] tracking-widest uppercase px-2 py-1 border ${
+              person.isRegistered
+                ? "border-zinc-400 dark:border-zinc-600 text-zinc-600 dark:text-zinc-400"
+                : "border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600"
+            }`}
+          >
+            {person.isRegistered ? "Cadastrado" : "Sem cadastro"}
+          </span>
+          {person.phone && (
+            <span className="text-xs tracking-widest text-zinc-400 dark:text-zinc-600">
+              {person.phone}
+            </span>
+          )}
         </div>
       </div>
 

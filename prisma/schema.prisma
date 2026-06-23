@@ -34,12 +34,14 @@ model PasswordResetToken {
 }
 
 model Person {
-  id         String   @id @default(cuid())
-  userId     String
-  name       String
-  email      String?
-  accessCode String   @unique
-  createdAt  DateTime @default(now())
+  id           String    @id @default(cuid())
+  userId       String
+  name         String
+  email        String?   @unique
+  passwordHash String?
+  phone        String?
+  accessCode   String    @unique
+  createdAt    DateTime  @default(now())
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   debts    Debt[]

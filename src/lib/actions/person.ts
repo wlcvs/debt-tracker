@@ -42,6 +42,8 @@ export interface PersonWithBalance {
   id: string;
   name: string;
   email: string | null;
+  phone: string | null;
+  isRegistered: boolean;
   accessCode: string;
   totalOwed: number;
   debts: {
@@ -198,6 +200,8 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
       id: person.id,
       name: person.name,
       email: person.email,
+      phone: person.phone ?? null,
+      isRegistered: !!person.passwordHash,
       accessCode: person.accessCode,
       totalOwed,
       debts: debts.map((debt) => ({
@@ -241,6 +245,8 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
     id: person.id,
     name: person.name,
     email: person.email,
+    phone: person.phone ?? null,
+    isRegistered: !!person.passwordHash,
     accessCode: person.accessCode,
     totalOwed,
     debts: debts.map((d) => ({ ...d, isCovered: coveredIds.has(d.id) })),

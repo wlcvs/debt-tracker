@@ -22,7 +22,7 @@ export async function signInAction(
   }
 
   try {
-    await signIn("credentials", {
+    await signIn("admin", {
       email: formData.get("email"),
       password: formData.get("password"),
       redirectTo: "/",

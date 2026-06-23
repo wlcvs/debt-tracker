@@ -10,7 +10,7 @@ export function ShareButton({ accessCode }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    const url = `${window.location.origin}/consultar/${accessCode}`;
+    const url = `${window.location.origin}/debtor/register?code=${accessCode}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
