@@ -14,24 +14,29 @@ export default function ResetPasswordPage({
   const action = resetPassword.bind(null, token);
   const [state, formAction, pending] = useActionState(action, { status: "idle" });
 
+  const inputClass =
+    "bg-transparent border border-zinc-300 dark:border-zinc-700 px-4 py-3 text-sm tracking-widest text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors";
+
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
+    <main className="min-h-dvh flex items-center justify-center px-4 bg-white dark:bg-zinc-950">
       <div className="w-full max-w-sm">
-        <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase mb-1">
-          Sistema
-        </p>
-        <h1 className="text-2xl tracking-widest uppercase text-white mb-10">
-          Nova Senha
-        </h1>
+        <div className="mb-10">
+          <p className="text-xs tracking-[0.3em] text-zinc-400 dark:text-zinc-500 uppercase mb-2">
+            Sistema
+          </p>
+          <h1 className="text-2xl tracking-widest uppercase text-zinc-900 dark:text-white">
+            Nova Senha
+          </h1>
+        </div>
 
         {state.status === "success" ? (
-          <div className="border border-zinc-800 p-6">
-            <p className="text-sm text-zinc-400 tracking-wide mb-4">
+          <div className="border border-zinc-200 dark:border-zinc-800 p-6">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 tracking-wide mb-4">
               Senha redefinida com sucesso.
             </p>
             <Link
               href="/login"
-              className="text-xs tracking-widest uppercase text-zinc-500 hover:text-white transition-colors"
+              className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               Fazer login
             </Link>
@@ -39,33 +44,40 @@ export default function ResetPasswordPage({
         ) : (
           <form action={formAction} className="flex flex-col gap-4">
             {state.status === "error" && (
-              <p className="text-xs tracking-wider text-red-500 border border-red-900 px-3 py-2">
+              <p className="text-xs tracking-wider text-red-500 border border-red-200 dark:border-red-900 px-3 py-2">
                 {state.message}
               </p>
             )}
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs tracking-[0.2em] uppercase text-zinc-500">
-                Nova senha
-              </label>
+            <div className="flex flex-col gap-1.5">
               <input
                 type="password"
                 name="password"
+                placeholder="NOVA SENHA"
                 required
                 minLength={8}
                 autoComplete="new-password"
-                className="bg-transparent border border-zinc-700 px-3 py-2 text-sm tracking-wider text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-400 transition-colors"
+                className={inputClass}
               />
-              <p className="text-xs text-zinc-600">Mínimo 8 caracteres</p>
+              <p className="text-xs tracking-wider text-zinc-400 dark:text-zinc-600">
+                Mínimo 8 caracteres
+              </p>
             </div>
 
             <button
               type="submit"
               disabled={pending}
-              className="border border-zinc-600 py-2 text-xs tracking-widest uppercase text-zinc-400 hover:border-white hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+              className="border border-zinc-400 dark:border-zinc-600 px-4 py-3 text-sm tracking-[0.2em] uppercase text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer disabled:opacity-40"
             >
               {pending ? "Salvando..." : "Redefinir senha"}
             </button>
+
+            <Link
+              href="/login"
+              className="text-center text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors"
+            >
+              Voltar ao login
+            </Link>
           </form>
         )}
       </div>
