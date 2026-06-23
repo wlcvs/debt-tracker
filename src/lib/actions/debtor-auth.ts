@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { hash } from "bcryptjs";
 import { signIn, signOut, auth } from "@/auth";
+import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { calculateCoveredDebtIds } from "@/lib/debt-allocation";
@@ -104,10 +106,12 @@ export async function debtorSignInAction(
       redirectTo: "/minha-conta",
     });
   } catch (err) {
-    if ((err as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw err;
-    return { status: "error", message: "E-mail ou senha incorretos." };
+    if (err instanceof AuthError) {
+      return { status: "error", message: "E-mail ou senha incorretos." };
+    }
+    throw err;
   }
-  return { status: "idle" };
+  redirect("/minha-conta");
 }
 
 export async function debtorSignOutAction() {

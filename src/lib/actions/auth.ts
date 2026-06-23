@@ -1,6 +1,8 @@
 "use server";
 
 import { signIn, signOut } from "@/auth";
+import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function signOutAction() {
@@ -28,9 +30,10 @@ export async function signInAction(
       redirectTo: "/",
     });
   } catch (err) {
-    // Auth.js redirects by throwing — let that propagate normally
-    if ((err as { digest?: string }).digest?.startsWith("NEXT_REDIRECT")) throw err;
-    return { status: "error", message: "E-mail ou senha incorretos." };
+    if (err instanceof AuthError) {
+      return { status: "error", message: "E-mail ou senha incorretos." };
+    }
+    throw err;
   }
-  return { status: "idle" };
+  redirect("/");
 }
