@@ -51,6 +51,77 @@ export interface PersonWithBalance {
   }[]
 }
 
+export interface DebtorView {
+  name: string;
+  totalOwed: number;
+  debts: {
+    id: string;
+    amount: number;
+    description: string;
+    date: Date;
+    isCovered: boolean;
+  }[];
+  payments: {
+    id: string;
+    amount: number;
+    date: Date;
+  }[];
+}
+
+export type ConsultState =
+  | { status: "idle" }
+  | { status: "error"; message: string }
+  | { status: "success"; debtor: DebtorView };
+
+export async function getPersonByAccessCode(
+  _prevState: ConsultState,
+  formData: FormData
+): Promise<ConsultState> {
+  const code = (formData.get("accessCode") as string | null)?.trim();
+
+  if (!code) {
+    return { status: "error", message: "Digite o código de acesso." };
+  }
+
+  const person = await prisma.person.findUnique({
+    where: { accessCode: code },
+    include: { debts: true, payments: true },
+  });
+
+  if (!person) {
+    return { status: "error", message: "Código não encontrado." };
+  }
+
+  const debts = person.debts.map((d) => ({
+    id: d.id,
+    amount: Number(d.amount),
+    description: d.description,
+    date: d.date,
+  }));
+
+  const totalPaid = person.payments.reduce(
+    (sum, p) => sum + Number(p.amount),
+    0
+  );
+
+  const coveredIds = calculateCoveredDebtIds(debts, totalPaid);
+  const totalOwed = debts.reduce((sum, d) => sum + d.amount, 0) - totalPaid;
+
+  return {
+    status: "success",
+    debtor: {
+      name: person.name,
+      totalOwed,
+      debts: debts.map((d) => ({ ...d, isCovered: coveredIds.has(d.id) })),
+      payments: person.payments.map((p) => ({
+        id: p.id,
+        amount: Number(p.amount),
+        date: p.date,
+      })),
+    },
+  };
+}
+
 export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
   const session = await auth();
   if (!session?.user?.id) {
