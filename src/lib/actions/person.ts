@@ -81,7 +81,7 @@ export interface DebtorView {
 export type ConsultState =
   | { status: "idle" }
   | { status: "error"; message: string }
-  | { status: "success"; debtor: DebtorView };
+  | { status: "success"; debtor: DebtorView; accessCode: string };
 
 export async function getPersonByAccessCode(
   _prevState: ConsultState,
@@ -119,6 +119,7 @@ export async function getPersonByAccessCode(
 
   return {
     status: "success",
+    accessCode: code,
     debtor: {
       name: person.name,
       totalOwed,
@@ -319,4 +320,26 @@ export async function getDebtorViewByCode(code: string) {
       debtId: p.debtId ?? null,
     })),
   };
+}
+// Public — allows a debtor to register their own email for notifications
+export async function setDebtorEmail(
+  accessCode: string,
+  formData: FormData
+): Promise<{ ok: boolean; message: string }> {
+  const emailRaw = (formData.get("email") as string | null)?.trim() ?? "";
+  const parsed = z.string().email("Email inválido").safeParse(emailRaw);
+  if (!parsed.success) {
+    return { ok: false, message: "Email inválido." };
+  }
+
+  const updated = await prisma.person.updateMany({
+    where: { accessCode },
+    data: { email: parsed.data },
+  });
+
+  if (updated.count === 0) {
+    return { ok: false, message: "Código de acesso não encontrado." };
+  }
+
+  return { ok: true, message: "Email cadastrado com sucesso." };
 }

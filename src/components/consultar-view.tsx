@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
+import { setDebtorEmail } from "@/lib/actions/person";
 
 interface Debt {
   id: string;
@@ -28,15 +29,20 @@ interface Debtor {
 
 interface Props {
   debtor: Debtor;
+  accessCode?: string;
 }
 
 type DebtFilter = "all" | "open" | "covered";
 type MethodFilter = "all" | PaymentMethodKey;
 
-export function ConsultarView({ debtor }: Props) {
+export function ConsultarView({ debtor, accessCode }: Props) {
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [debtFilter, setDebtFilter] = useState<DebtFilter>("all");
   const [methodFilter, setMethodFilter] = useState<MethodFilter>("all");
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [emailSaved, setEmailSaved] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   const filteredDebts = debtor.debts.filter((d) => {
     if (debtFilter === "open") return !d.isCovered;
@@ -58,6 +64,21 @@ export function ConsultarView({ debtor }: Props) {
         ? "border-zinc-700 dark:border-zinc-400 text-zinc-900 dark:text-white"
         : "border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 hover:border-zinc-500 dark:hover:border-zinc-500"
     }`;
+
+  function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!accessCode) return;
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const result = await setDebtorEmail(accessCode, fd);
+      if (result.ok) {
+        setEmailSaved(true);
+        setEmailError("");
+      } else {
+        setEmailError(result.message);
+      }
+    });
+  }
 
   return (
     <section className="border border-zinc-200 dark:border-zinc-800">
@@ -87,13 +108,64 @@ export function ConsultarView({ debtor }: Props) {
         </div>
       </div>
 
+      {/* Notification banner */}
+      {accessCode && !bannerDismissed && (
+        <div className="px-5 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-[11px] tracking-wider text-zinc-600 dark:text-zinc-400 mb-1">
+                Cadastre seu email para receber avisos automáticos:
+              </p>
+              <ul className="text-[10px] tracking-wider text-zinc-500 dark:text-zinc-500 space-y-0.5 mb-3">
+                <li>· Nova dívida registrada</li>
+                <li>· Pagamento confirmado</li>
+                <li>· Saldo atualizado</li>
+              </ul>
+              {!emailSaved ? (
+                <form onSubmit={handleEmailSubmit} className="flex gap-2">
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="SEU EMAIL"
+                    required
+                    className="flex-1 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    className="shrink-0 border border-zinc-400 dark:border-zinc-600 px-3 py-1.5 text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
+                  >
+                    {isPending ? "..." : "Salvar"}
+                  </button>
+                </form>
+              ) : (
+                <p className="text-[11px] tracking-wider text-zinc-600 dark:text-zinc-400">
+                  Email cadastrado. Você receberá notificações.
+                </p>
+              )}
+              {emailError && (
+                <p className="text-[10px] tracking-wider text-red-500 mt-1">{emailError}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setBannerDismissed(true)}
+              className="shrink-0 text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400 text-xs transition-colors cursor-pointer mt-0.5"
+              title="Fechar"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="px-5 py-4">
         {/* Debts section */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">
             Dívidas
           </p>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             <button onClick={() => setDebtFilter("all")} className={chipClass(debtFilter === "all")}>Todas</button>
             <button onClick={() => setDebtFilter("open")} className={chipClass(debtFilter === "open")}>Em aberto</button>
             <button onClick={() => setDebtFilter("covered")} className={chipClass(debtFilter === "covered")}>Quitadas</button>
@@ -130,11 +202,11 @@ export function ConsultarView({ debtor }: Props) {
         )}
 
         {/* Payments section */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">
             Pagamentos
           </p>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             <button onClick={() => setMethodFilter("all")} className={chipClass(methodFilter === "all")}>Todos</button>
             {(Object.entries(PAYMENT_METHODS) as [PaymentMethodKey, string][]).map(([key, label]) => (
               <button key={key} onClick={() => setMethodFilter(key)} className={chipClass(methodFilter === key)}>

@@ -55,7 +55,7 @@ export default function ConsultarPage() {
         )}
 
         {state.status === "success" && (
-          <ConsultarView debtor={state.debtor} />
+          <ConsultarView debtor={state.debtor} accessCode={state.accessCode} />
         )}
       </div>
     </main>

@@ -27,7 +27,7 @@ export default async function ConsultarDirectPage({
           </div>
           <ThemeToggle />
         </div>
-        <ConsultarView debtor={debtor} />
+        <ConsultarView debtor={debtor} accessCode={code} />
       </div>
     </main>
   );
