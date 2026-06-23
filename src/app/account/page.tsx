@@ -1,8 +1,8 @@
 import { getMyAccount, debtorSignOutAction, updateEmailNotifications } from "@/lib/actions/debtor-auth";
-import { ConsultarView } from "@/components/consultar-view";
+import { PublicView } from "@/components/public-view";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export default async function MinhaContaPage() {
+export default async function AccountPage() {
   const account = await getMyAccount();
 
   return (
@@ -35,7 +35,7 @@ export default async function MinhaContaPage() {
           </div>
         </div>
 
-        <ConsultarView debtor={account} />
+        <PublicView debtor={account} />
 
         {/* Notification preference */}
         <form action={updateEmailNotifications} className="mt-6 border-t border-zinc-200 dark:border-zinc-800 pt-5">

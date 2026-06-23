@@ -35,7 +35,7 @@ interface Props {
 type DebtFilter = "all" | "open" | "covered";
 type MethodFilter = "all" | PaymentMethodKey;
 
-export function ConsultarView({ debtor, accessCode }: Props) {
+export function PublicView({ debtor, accessCode }: Props) {
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [debtFilter, setDebtFilter] = useState<DebtFilter>("all");
   const [methodFilter, setMethodFilter] = useState<MethodFilter>("all");
@@ -59,10 +59,9 @@ export function ConsultarView({ debtor, accessCode }: Props) {
     PAYMENT_METHODS[m as PaymentMethodKey] ?? m;
 
   const chipClass = (active: boolean) =>
-    `px-2 py-1 text-[10px] tracking-widest uppercase border transition-colors cursor-pointer ${
-      active
-        ? "border-zinc-700 dark:border-zinc-400 text-zinc-900 dark:text-white"
-        : "border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 hover:border-zinc-500 dark:hover:border-zinc-500"
+    `px-2 py-1 text-[10px] tracking-widest uppercase border transition-colors cursor-pointer ${active
+      ? "border-zinc-700 dark:border-zinc-400 text-zinc-900 dark:text-white"
+      : "border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 hover:border-zinc-500 dark:hover:border-zinc-500"
     }`;
 
   function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -179,11 +178,10 @@ export function ConsultarView({ debtor, accessCode }: Props) {
             {filteredDebts.map((debt) => (
               <li
                 key={debt.id}
-                className={`flex justify-between text-xs py-1.5 border-b border-zinc-100 dark:border-zinc-900 ${
-                  debt.isCovered
+                className={`flex justify-between text-xs py-1.5 border-b border-zinc-100 dark:border-zinc-900 ${debt.isCovered
                     ? "text-zinc-400 dark:text-zinc-600"
                     : "text-zinc-700 dark:text-zinc-300"
-                }`}
+                  }`}
               >
                 <span className="flex items-center gap-2 truncate mr-4">
                   {debt.isCovered && (

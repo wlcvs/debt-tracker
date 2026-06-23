@@ -91,7 +91,7 @@ export async function getPersonByAccessCode(
   formData: FormData
 ): Promise<ConsultState> {
   const ip = await getClientIp();
-  const { allowed } = checkRateLimit(`consultar:${ip}`, 20, 60 * 1000);
+  const { allowed } = checkRateLimit(`public:${ip}`, 20, 60 * 1000);
   if (!allowed) {
     return { status: "error", message: "Muitas tentativas. Aguarde um momento." };
   }
@@ -301,7 +301,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
   };
 }
 
-// Direct lookup by accessCode for the /consultar/[code] route
+// Direct lookup by accessCode for the /public/[code] route
 export async function getDebtorViewByCode(code: string) {
   const person = await prisma.person.findUnique({
     where: { accessCode: code },

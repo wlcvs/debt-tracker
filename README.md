@@ -61,9 +61,9 @@ npm run dev
 | Rota | Acesso | Descrição |
 |---|---|---|
 | `/` | Admin | Dashboard geral com estatísticas |
-| `/pessoa/[id]` | Admin | Detalhes de um devedor específico |
-| `/consultar` | Público | Formulário para consulta por código |
-| `/consultar/[code]` | Público | Acesso direto sem digitar código |
+| `/person/[id]` | Admin | Detalhes de um devedor específico |
+| `/public` | Público | Formulário para consulta por código |
+| `/public/[code]` | Público | Acesso direto sem digitar código |
 | `/login` | Público | Autenticação |
 | `/forgot-password` | Público | Recuperação de senha |
 | `/reset-password/[token]` | Público | Redefinição de senha |

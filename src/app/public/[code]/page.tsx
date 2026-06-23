@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { getDebtorViewByCode } from "@/lib/actions/person";
-import { ConsultarView } from "@/components/consultar-view";
+import { PublicView } from "@/components/public-view";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export default async function ConsultarDirectPage({
+export default async function PublicDirectPage({
   params,
 }: {
   params: Promise<{ code: string }>;
@@ -27,7 +27,7 @@ export default async function ConsultarDirectPage({
           </div>
           <ThemeToggle />
         </div>
-        <ConsultarView debtor={debtor} accessCode={code} />
+        <PublicView debtor={debtor} accessCode={code} />
       </div>
     </main>
   );

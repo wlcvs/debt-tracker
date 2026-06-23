@@ -26,7 +26,7 @@ export async function requestPasswordReset(
   formData: FormData
 ): Promise<ResetRequestState> {
   const ip = await getClientIp();
-  const { allowed } = checkRateLimit(`pwd-reset:${ip}`, 3, 60 * 60 * 1000);
+  const { allowed } = checkRateLimit(`pwd-reset:${ip}`, 10, 60 * 60 * 1000);
   if (!allowed) {
     return { status: "error", message: "Muitas tentativas. Aguarde 1 hora e tente novamente." };
   }

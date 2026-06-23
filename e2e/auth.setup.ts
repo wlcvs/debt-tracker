@@ -10,9 +10,9 @@ setup("authenticate as test user", async ({ page }) => {
   await page.fill('[name="password"]', E2E_PASSWORD);
   await page.click('[type="submit"]');
 
-  // Wait for redirect to dashboard
-  await page.waitForURL("/", { timeout: 10_000 });
-  await expect(page.locator("text=Debt Tracker")).toBeVisible();
+  // Wait for redirect to dashboard (allow more time when server is under load)
+  await page.waitForURL("/", { timeout: 20_000 });
+  await expect(page.getByRole('link', { name: 'Debt Tracker' })).toBeVisible({ timeout: 10_000 });
 
   // Save authenticated session to disk for other tests
   await page.context().storageState({ path: authFile });

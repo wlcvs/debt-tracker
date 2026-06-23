@@ -3,15 +3,16 @@ import path from "path";
 
 config({ path: path.resolve(process.cwd(), ".env") });
 
-import { PrismaClient } from "../src/generated/prisma";
+import { Client } from "pg";
 import { E2E_EMAIL } from "./global-setup";
 
 export default async function globalTeardown() {
-  const prisma = new PrismaClient();
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
   try {
     // Cascade deletes all associated data (people, debts, payments)
-    await prisma.user.deleteMany({ where: { email: E2E_EMAIL } });
+    await client.query('DELETE FROM "User" WHERE email = $1', [E2E_EMAIL]);
   } finally {
-    await prisma.$disconnect();
+    await client.end();
   }
 }

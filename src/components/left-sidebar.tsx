@@ -17,16 +17,16 @@ export function LeftSidebar({ people }: Props) {
 
   const filtered = query.trim()
     ? people.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query.toLowerCase()) ||
-          p.id.includes(query)
-      )
+      (p) =>
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        p.id.includes(query)
+    )
     : people;
 
   function copyId(e: React.MouseEvent, id: string) {
     e.preventDefault();
     e.stopPropagation();
-    navigator.clipboard.writeText(id).catch(() => {});
+    navigator.clipboard.writeText(id).catch(() => { });
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1500);
   }
@@ -53,16 +53,15 @@ export function LeftSidebar({ people }: Props) {
         ) : (
           <ul>
             {filtered.map((person) => {
-              const isActive = pathname === `/pessoa/${person.id}`;
+              const isActive = pathname === `/person/${person.id}`;
               return (
                 <li key={person.id} className="group relative">
                   <Link
-                    href={`/pessoa/${person.id}`}
-                    className={`flex items-baseline justify-between px-4 py-3 transition-colors ${
-                      isActive
+                    href={`/person/${person.id}`}
+                    className={`flex items-baseline justify-between px-4 py-3 transition-colors ${isActive
                         ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white"
                         : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-200"
-                    }`}
+                      }`}
                   >
                     <span className="flex items-center gap-1.5 min-w-0 mr-2">
                       <span className="text-xs tracking-widest uppercase truncate">
@@ -79,11 +78,10 @@ export function LeftSidebar({ people }: Props) {
                       </button>
                     </span>
                     <span
-                      className={`text-xs tracking-tight shrink-0 ${
-                        person.totalOwed <= 0
+                      className={`text-xs tracking-tight shrink-0 ${person.totalOwed <= 0
                           ? "text-zinc-400 dark:text-zinc-600"
                           : "text-zinc-900 dark:text-zinc-200"
-                      }`}
+                        }`}
                     >
                       {person.totalOwed <= 0
                         ? "QUITADO"

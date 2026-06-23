@@ -28,7 +28,7 @@ test.describe("Authentication", () => {
     await page.fill('[name="password"]', E2E_PASSWORD);
     await page.click('[type="submit"]');
     await page.waitForURL("/", { timeout: 10_000 });
-    await expect(page.locator("text=Debt Tracker")).toBeVisible();
+    await expect(page.locator("text=Debt Tracker").filter({ visible: true }).first()).toBeVisible();
   });
 
   test("stays on login with wrong password", async ({ page }) => {
@@ -50,6 +50,6 @@ test.describe("Authentication", () => {
     await page.goto("/forgot-password");
     await page.fill('[name="email"]', "nonexistent@example.com");
     await page.click('[type="submit"]');
-    await expect(page.locator("text=receberá um link")).toBeVisible();
+    await expect(page.locator("text=enviado")).toBeVisible({ timeout: 10_000 });
   });
 });

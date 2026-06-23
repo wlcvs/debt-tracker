@@ -66,7 +66,7 @@ export async function sendPaymentNotification(data: PaymentNotificationData) {
 
   const methodLabel =
     PAYMENT_METHODS[data.paymentMethod as PaymentMethodKey] ?? data.paymentMethod;
-  const consultarUrl = `${process.env.NEXT_PUBLIC_APP_URL}/consultar/${data.accessCode}`;
+  const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL}/public/${data.accessCode}`;
 
   const body = `
     <p class="label">Olá, ${esc(data.personName)}</p>
@@ -90,7 +90,7 @@ export async function sendPaymentNotification(data: PaymentNotificationData) {
       </div>
     </div>
 
-    <a class="link" href="${consultarUrl}">Ver extrato completo</a>
+    <a class="link" href="${publicUrl}">Ver extrato completo</a>
   `;
 
   await getResend().emails.send({
@@ -114,7 +114,7 @@ interface DebtNotificationData {
 export async function sendDebtNotification(data: DebtNotificationData) {
   if (!process.env.RESEND_API_KEY) return;
 
-  const consultarUrl = `${process.env.NEXT_PUBLIC_APP_URL}/consultar/${data.accessCode}`;
+  const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL}/public/${data.accessCode}`;
   const dateStr = data.debtDate.toLocaleDateString("pt-BR");
 
   const body = `
@@ -132,7 +132,7 @@ export async function sendDebtNotification(data: DebtNotificationData) {
       </div>
     </div>
 
-    <a class="link" href="${consultarUrl}">Ver extrato completo</a>
+    <a class="link" href="${publicUrl}">Ver extrato completo</a>
   `;
 
   await getResend().emails.send({

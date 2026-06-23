@@ -22,25 +22,21 @@ export const authConfig: NextAuthConfig = {
       const { pathname } = request.nextUrl;
       const role = (auth?.user as { role?: string } | undefined)?.role;
 
-      if (pathname === "/" || pathname.startsWith("/pessoa")) {
+      if (pathname === "/" || pathname.startsWith("/person")) {
         if (role === "admin") return true;
-        if (role === "debtor") return Response.redirect(new URL("/minha-conta", request.url));
+        if (role === "debtor") return Response.redirect(new URL("/account", request.url));
         return false;
       }
 
-      if (pathname === "/minha-conta") {
+      if (pathname === "/account") {
         if (role === "debtor") return true;
         if (role === "admin") return Response.redirect(new URL("/", request.url));
         return Response.redirect(new URL("/debtor/login", request.url));
       }
 
-      if (pathname.startsWith("/consultar/")) {
-        if (role === "admin") return true;
-        return Response.redirect(new URL("/debtor/login", request.url));
-      }
-
       const isPublic =
-        pathname === "/consultar" ||
+        pathname === "/public" ||
+        pathname.startsWith("/public/") ||
         pathname === "/login" ||
         pathname === "/debtor/login" ||
         pathname === "/debtor/register" ||

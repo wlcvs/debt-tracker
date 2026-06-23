@@ -103,7 +103,7 @@ export async function debtorSignInAction(
     await signIn("debtor", {
       email: formData.get("email"),
       password: formData.get("password"),
-      redirectTo: "/minha-conta",
+      redirectTo: "/account",
     });
   } catch (err) {
     if (err instanceof AuthError) {
@@ -111,7 +111,7 @@ export async function debtorSignInAction(
     }
     throw err;
   }
-  redirect("/minha-conta");
+  redirect("/account");
 }
 
 export async function debtorSignOutAction() {
