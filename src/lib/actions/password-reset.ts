@@ -31,8 +31,9 @@ export async function requestPasswordReset(
 
   const user = await prisma.user.findUnique({ where: { email: email.data } });
 
-  // Always return success to avoid user enumeration
-  if (!user) return { status: "success" };
+  if (!user) {
+    return { status: "error", message: "Este e-mail não está cadastrado." };
+  }
 
   // Invalidate existing tokens for this user
   await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });

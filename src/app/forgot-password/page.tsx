@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { requestPasswordReset } from "@/lib/actions/password-reset";
 import Link from "next/link";
 import { Suspense } from "react";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function ForgotPasswordForm() {
   const searchParams = useSearchParams();
@@ -13,16 +15,30 @@ function ForgotPasswordForm() {
   const [state, action, pending] = useActionState(requestPasswordReset, {
     status: "idle",
   });
+  const [clientError, setClientError] = useState("");
 
   const inputClass =
     "bg-transparent border border-zinc-300 dark:border-zinc-700 px-4 py-3 text-sm tracking-widest text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors";
+
+  const errorClass =
+    "text-xs tracking-wider text-red-500 border border-red-200 dark:border-red-900 px-3 py-2";
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const email = (e.currentTarget.elements.namedItem("email") as HTMLInputElement).value.trim();
+    if (!EMAIL_RE.test(email)) {
+      e.preventDefault();
+      setClientError("Digite um e-mail válido (ex: nome@dominio.com).");
+      return;
+    }
+    setClientError("");
+  }
 
   return (
     <>
       {state.status === "success" ? (
         <div className="border border-zinc-200 dark:border-zinc-800 p-6">
           <p className="text-sm text-zinc-600 dark:text-zinc-400 tracking-wide mb-4">
-            Se o e-mail estiver cadastrado, você receberá um link de redefinição em breve.
+            Link de redefinição enviado. Verifique sua caixa de entrada.
           </p>
           <Link
             href="/login"
@@ -32,20 +48,21 @@ function ForgotPasswordForm() {
           </Link>
         </div>
       ) : (
-        <form action={action} className="flex flex-col gap-4">
-          {state.status === "error" && (
-            <p className="text-xs tracking-wider text-red-500 border border-red-200 dark:border-red-900 px-3 py-2">
-              {state.message}
-            </p>
+        <form action={action} onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {clientError && <p className={errorClass}>{clientError}</p>}
+          {state.status === "error" && !clientError && (
+            <p className={errorClass}>{state.message}</p>
           )}
 
           <input
-            type="email"
+            type="text"
+            inputMode="email"
             name="email"
             placeholder="E-MAIL"
             required
             autoComplete="email"
             defaultValue={emailFromLogin}
+            onChange={() => setClientError("")}
             className={inputClass}
           />
 
