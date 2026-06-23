@@ -238,9 +238,10 @@ function aplicarFlagsPagamento(dividasNaoPagas, valorPago):
 
 ### 5.1 Status Atual (progresso até o momento)
 
-**Concluído:**
+**MVP completo. Todas as etapas planejadas concluídas, exceto deploy.**
+
 - ✅ Etapa 1 (Setup): projeto Next.js criado (`debt-tracker`, TypeScript, Tailwind, App Router,
-  `src/`, sem React Compiler, sem AGENTS.md), repositório GitHub conectado.
+  `src/`, sem React Compiler), repositório GitHub conectado.
 - ✅ Etapa 2 (Banco): PostgreSQL via Docker (`docker-compose.yml`), Prisma configurado
   (versão 7.x — usa `provider = "prisma-client"` com output em `src/generated/prisma`,
   exige driver adapter `@prisma/adapter-pg`), schema com os 5 modelos criado e migration
@@ -250,46 +251,76 @@ function aplicarFlagsPagamento(dividasNaoPagas, valorPago):
   `src/auth.ts` (config completa, usada nas Server Actions/API). Login funcionando.
   Script de seed do usuário admin (`prisma/seed.ts`, lê `ADMIN_EMAIL`/`ADMIN_PASSWORD`
   do `.env`, configurado via `prisma.config.ts` → `migrations.seed`).
-  **Correção aplicada:** callbacks `jwt`/`session` adicionados em `src/auth.ts` para propagar
-  `user.id` para a sessão (não vem por padrão), com type augmentation em
-  `src/types/next-auth.d.ts`.
-- 🔄 Etapa 4 (CRUD): em andamento.
+  Callbacks `jwt`/`session` em `src/auth.ts` propagam `user.id` para a sessão, com type
+  augmentation em `src/types/next-auth.d.ts`.
+  **Recuperação de senha por e-mail implementada** via Resend (`bc500d3`): páginas
+  `/forgot-password` e `/reset-password/[token]`, action `src/lib/actions/password-reset.ts`.
+- ✅ Etapa 4 (CRUD): completo para todas as entidades.
   - `src/lib/debt-allocation.ts` → função pura `calculateCoveredDebtIds` (algoritmo de
-    alocação visual, testável isoladamente, sem dependência de Prisma/banco).
-  - `src/lib/actions/person.ts` → `createPerson`, `getPeopleWithBalances` (usa a função de
-    alocação para marcar `isCovered` em cada dívida).
-  - `src/lib/actions/debt.ts` → `createDebt` (com validação Zod e checagem de
-    autorização — pessoa deve pertencer ao usuário logado).
-  - `src/lib/actions/payment.ts` → `createPayment` (mesmo padrão de `createDebt`).
-  - `src/lib/actions/credit-card.ts` → `createCreditCard`, `getCreditCards`.
+    alocação visual, sem dependência de Prisma/banco).
+  - `src/lib/actions/person.ts` → `createPerson`, `updatePerson`, `deletePerson`,
+    `getPeopleWithBalances`, `getPersonById`, `getOverviewStats`, `getDebtorViewByCode`,
+    `getPersonByAccessCode`, `setDebtorEmail`.
+  - `src/lib/actions/debt.ts` → `createDebt`, `updateDebt`, `deleteDebt`.
+  - `src/lib/actions/payment.ts` → `createPayment`, `updatePayment`, `deletePayment`.
+  - `src/lib/actions/credit-card.ts` → `createCreditCard`, `getCreditCards`, `deleteCreditCard`.
   - `src/lib/actions/auth.ts` → `signOutAction`.
-  - Ainda **faltam**: update/delete de Person, Debt, Payment, CreditCard (só "create" e
-    "list" foram feitos até agora, suficiente para o fluxo principal do MVP).
-- 🔄 Etapa 5 (Dashboard): versão inicial funcional em `src/app/page.tsx`, **sem estilização**
-  (HTML puro, sem Tailwind aplicado ainda) — serve para validar a lógica antes de aplicar
-  o visual definitivo. Inclui: total a receber, formulário de nova pessoa, formulário de
-  novo cartão, lista de pessoas com dívidas/pagamentos inline e indicador visual temporário
-  (`opacity: 0.5`) para dívidas cobertas.
+  - `src/lib/payment-methods.ts` → enum de meios de pagamento (Pix, Cartão, Dinheiro, etc.).
+  - Campo `email` opcional em `Person` (para notificações — o próprio devedor cadastra
+    na página `/consultar/[code]`).
+  - Pagamento pode ser vinculado a uma dívida específica via campo `debtId` opcional.
+- ✅ Etapa 5 (Dashboard): SPA split-panel com estilo HUD/monocromático aplicado.
+  - Layout: `src/app/(dashboard)/layout.tsx` com `DashboardShell` (sidebar esquerda fixa +
+    área de conteúdo rolável).
+  - Sidebar esquerda (`src/components/left-sidebar.tsx`): lista de pessoas com saldo devedor,
+    busca por nome ou ID, indicador "QUITADO", botão de copiar ID, formulário de nova pessoa.
+  - Overview page (`src/app/(dashboard)/page.tsx`): total a receber, grid de stats
+    (devedores ativos, total de pessoas, dívidas, pagamentos, total pago), CRUD de cartões.
+  - Página individual por pessoa (`src/app/(dashboard)/pessoa/[id]/page.tsx`): duas colunas
+    (dívidas | pagamentos), formulários inline de criação, edição inline de cada item.
+  - Componentes editáveis: `EditableDebt`, `EditablePayment`, `EditablePersonHeader`
+    (edição inline com toggle exibição/formulário).
+  - Tema claro/escuro (`ThemeToggle`) em todas as páginas.
+  - Layout responsivo para mobile.
+  - Botão de compartilhar link da página `/consultar/[code]` (`ShareButton`).
+- ✅ Etapa 6 (Consultar — acesso do devedor):
+  - `/consultar` → formulário para digitar o accessCode manualmente.
+  - `/consultar/[code]` → visão somente-leitura do devedor: saldo, lista de dívidas com
+    indicador de cobertura, histórico de pagamentos.
+  - Devedor pode cadastrar próprio e-mail na página para receber notificações
+    (`setDebtorEmail`).
+  - Tema claro/escuro disponível também na página pública.
+- ✅ Etapa 7 (Visual): estética HUD/monocromática aplicada em todo o app com Tailwind.
+  Paleta cinza/branco (zinc), tipografia monospace em caps, bordas finas, espaçamento
+  técnico. Dívidas cobertas exibidas com texto mais claro (zinc-400) em vez de opacity.
 
-**Pendente (próximos passos):**
-- Etapa 6: página `/consultar` (acesso do devedor via accessCode)
-- Etapa 7: refinamento visual completo com Tailwind, aplicando a estética HUD/monocromática
-  (ver seção 3.3) — incluindo trocar o indicador temporário de opacity por algo definitivo
-  em branco, conforme decidido
-- Recuperação de senha por e-mail (mencionada no requisito 1.12, ainda não implementada)
-- Etapa 8: Deploy (Vercel + Neon/Supabase)
-- CRUD completo (update/delete) de todas as entidades, se necessário além do MVP
+**✅ Além do MVP — features do backlog já implementadas:**
+- Notificações automáticas por e-mail via Resend (`src/lib/email-notifications.ts`):
+  `sendPaymentNotification` e `sendDebtNotification` disparados nas respectivas Server
+  Actions quando a pessoa tem e-mail cadastrado.
+- Testes unitários (Vitest) em `src/lib/__tests__/`: debt-allocation, e todas as actions
+  (person, debt, payment, credit-card, password-reset) com mocks do Prisma.
+- Testes E2E (Playwright) em `e2e/`.
+
+**Pendente:**
+- ⬜ Etapa 8: Deploy (Vercel + Neon ou Supabase).
 
 ### 5.2 Notas Técnicas Importantes (decisões/correções feitas durante a codificação)
 - Prisma 7 requer driver adapter (`@prisma/adapter-pg` + `pg`) — client não funciona só com
   `DATABASE_URL` no `.env` como em versões antigas.
-- `src/middleware.ts` usa apenas `src/auth.config.ts` (não importa `src/auth.ts` diretamente),
-  porque o middleware roda no Edge Runtime, que não suporta APIs Node usadas por
-  Prisma/bcryptjs (erro `node:path` se misturado).
+- O arquivo de middleware foi renomeado de `src/middleware.ts` para `src/proxy.ts` por
+  compatibilidade com Next.js 16, que detecta o nome `middleware` de forma diferente.
+  Ele importa apenas `src/auth.config.ts` (não `src/auth.ts`) pois o Edge Runtime não
+  suporta APIs Node usadas por Prisma/bcryptjs.
 - Validação de formulários via Zod, com `z.coerce` para converter strings de `FormData` em
   números/datas.
 - Toda Server Action que lida com dados de uma `Person` específica valida que
   `person.userId === session.user.id` antes de operar (autorização em nível de dados).
+- Notificações de e-mail são disparadas de forma silenciosa (sem await bloqueante no fluxo
+  principal, sem lançar erro se falhar) — o envio não impede o registro da dívida/pagamento.
+- Variáveis de ambiente adicionais necessárias: `RESEND_API_KEY` (envio de e-mails),
+  `NEXT_PUBLIC_APP_URL` (geração de links nos e-mails), além das já existentes
+  `DATABASE_URL`, `AUTH_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
 
 ## 6. Convenções de Desenvolvimento
 
