@@ -124,7 +124,7 @@ export function ConsultarView({ debtor, accessCode }: Props) {
               {!emailSaved ? (
                 <form onSubmit={handleEmailSubmit} className="flex gap-2">
                   <input
-                    type="email"
+                    type="text" inputMode="email"
                     name="email"
                     placeholder="SEU EMAIL"
                     required

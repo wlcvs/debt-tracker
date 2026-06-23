@@ -34,7 +34,7 @@ export function EditablePersonHeader({ person }: Props) {
               className="bg-transparent border border-zinc-400 dark:border-zinc-600 px-2 py-1 text-sm tracking-widest uppercase text-zinc-900 dark:text-white focus:outline-none focus:border-zinc-700 dark:focus:border-white"
             />
             <input
-              type="email"
+              type="text" inputMode="email"
               name="email"
               defaultValue={person.email ?? ""}
               placeholder="email@devedor.com"

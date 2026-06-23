@@ -15,7 +15,7 @@ export function LoginForm() {
     <>
       <form className="flex flex-col gap-4" action={signInAction}>
         <input
-          type="email"
+          type="text" inputMode="email"
           name="email"
           placeholder="E-MAIL"
           required
