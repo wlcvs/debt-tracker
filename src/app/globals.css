@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode — .dark on <html> activates dark: utilities */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-mono: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
 }
@@ -9,19 +12,31 @@
 }
 
 body {
+  background-color: #fafafa;
+  color: #18181b;
+  font-family: var(--font-mono);
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.dark body {
   background-color: #0a0a0a;
   color: #e4e4e7;
-  font-family: var(--font-mono);
-  min-height: 100dvh;
 }
 
 ::selection {
+  background: #18181b;
+  color: #fafafa;
+}
+
+.dark ::selection {
   background: #e4e4e7;
   color: #0a0a0a;
 }
 
 input,
 select,
-button {
+button,
+textarea {
   font-family: inherit;
 }

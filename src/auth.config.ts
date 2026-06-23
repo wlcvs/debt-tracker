@@ -8,10 +8,15 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     authorized({ auth, request }) {
       const isLoggedIn = !!auth?.user;
-      const isPublicConsultPage = request.nextUrl.pathname === "/consultar";
-      const isLoginPage = request.nextUrl.pathname === "/login";
+      const { pathname } = request.nextUrl;
+      const isPublic =
+        pathname === "/login" ||
+        pathname === "/consultar" ||
+        pathname.startsWith("/consultar/") ||
+        pathname === "/forgot-password" ||
+        pathname.startsWith("/reset-password/");
 
-      if (isLoggedIn || isPublicConsultPage || isLoginPage) return true;
+      if (isLoggedIn || isPublic) return true;
       return false;
     },
   },

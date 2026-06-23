@@ -194,3 +194,112 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
     };
   });
 }
+
+export async function getPersonById(id: string): Promise<PersonWithBalance | null> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const person = await prisma.person.findFirst({
+    where: { id, userId: session.user.id },
+    include: { debts: true, payments: true },
+  });
+
+  if (!person) return null;
+
+  const debts = person.debts.map((d) => ({
+    id: d.id,
+    amount: Number(d.amount),
+    description: d.description,
+    date: d.date,
+  }));
+
+  const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
+  const coveredIds = calculateCoveredDebtIds(debts, totalPaid);
+  const totalOwed = debts.reduce((s, d) => s + d.amount, 0) - totalPaid;
+
+  return {
+    id: person.id,
+    name: person.name,
+    accessCode: person.accessCode,
+    totalOwed,
+    debts: debts.map((d) => ({ ...d, isCovered: coveredIds.has(d.id) })),
+    payments: person.payments.map((p) => ({
+      id: p.id,
+      amount: Number(p.amount),
+      date: p.date,
+    })),
+  };
+}
+
+export interface OverviewStats {
+  totalToReceive: number;
+  activeDebtors: number;
+  totalDebtors: number;
+  totalDebts: number;
+  totalPayments: number;
+  totalPaid: number;
+}
+
+export async function getOverviewStats(): Promise<OverviewStats> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const people = await prisma.person.findMany({
+    where: { userId: session.user.id },
+    include: { debts: true, payments: true },
+  });
+
+  let totalToReceive = 0;
+  let activeDebtors = 0;
+  let totalPaid = 0;
+
+  for (const p of people) {
+    const debt = p.debts.reduce((s, d) => s + Number(d.amount), 0);
+    const paid = p.payments.reduce((s, pay) => s + Number(pay.amount), 0);
+    const owed = debt - paid;
+    totalToReceive += Math.max(0, owed);
+    totalPaid += paid;
+    if (owed > 0) activeDebtors++;
+  }
+
+  return {
+    totalToReceive,
+    activeDebtors,
+    totalDebtors: people.length,
+    totalDebts: people.reduce((s, p) => s + p.debts.length, 0),
+    totalPayments: people.reduce((s, p) => s + p.payments.length, 0),
+    totalPaid,
+  };
+}
+
+// Direct lookup by accessCode for the /consultar/[code] route
+export async function getDebtorViewByCode(code: string) {
+  const person = await prisma.person.findUnique({
+    where: { accessCode: code },
+    include: { debts: true, payments: true },
+  });
+
+  if (!person) return null;
+
+  const debts = person.debts.map((d) => ({
+    id: d.id,
+    amount: Number(d.amount),
+    description: d.description,
+    date: d.date,
+  }));
+
+  const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
+  const coveredIds = calculateCoveredDebtIds(debts, totalPaid);
+  const totalOwed = debts.reduce((s, d) => s + d.amount, 0) - totalPaid;
+
+  return {
+    name: person.name,
+    totalOwed,
+    debts: debts.map((d) => ({ ...d, isCovered: coveredIds.has(d.id) })),
+    payments: person.payments.map((p) => ({
+      id: p.id,
+      amount: Number(p.amount),
+      date: p.date,
+    })),
+  };
+}

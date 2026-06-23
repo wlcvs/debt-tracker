@@ -16,10 +16,10 @@ export function EditablePersonHeader({ person }: Props) {
 
   if (editing) {
     return (
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-800">
+      <div className="flex items-center gap-3 flex-1">
         <form
           action={async (fd) => { await updatePerson(fd); setEditing(false); }}
-          className="flex items-center gap-2 flex-1"
+          className="flex items-center gap-2"
         >
           <input type="hidden" name="id" value={person.id} />
           <input
@@ -28,23 +28,16 @@ export function EditablePersonHeader({ person }: Props) {
             defaultValue={person.name}
             required
             autoFocus
-            className="bg-transparent border border-zinc-600 px-2 py-1 text-sm tracking-widest uppercase text-white focus:outline-none focus:border-white"
+            className="bg-transparent border border-zinc-400 dark:border-zinc-600 px-2 py-1 text-sm tracking-widest uppercase text-zinc-900 dark:text-white focus:outline-none focus:border-zinc-700 dark:focus:border-white"
           />
-          <button
-            type="submit"
-            className="text-xs tracking-widest uppercase text-zinc-400 hover:text-white transition-colors cursor-pointer"
-          >
+          <button type="submit" className="text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
             Salvar
           </button>
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            className="text-xs tracking-widest uppercase text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer"
-          >
+          <button type="button" onClick={() => setEditing(false)} className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors cursor-pointer">
             Cancelar
           </button>
         </form>
-        <p className="text-lg tracking-tight text-white shrink-0">
+        <p className="text-xl tracking-tight text-zinc-900 dark:text-white ml-auto shrink-0">
           R$ {person.totalOwed.toFixed(2)}
         </p>
       </div>
@@ -52,35 +45,21 @@ export function EditablePersonHeader({ person }: Props) {
   }
 
   return (
-    <div className="flex items-baseline justify-between px-5 py-4 border-b border-zinc-800">
-      <div className="flex items-baseline gap-3">
-        <h2 className="text-sm tracking-widest uppercase text-white">
-          {person.name}
-        </h2>
-        {person.totalOwed <= 0 && (
-          <span className="text-xs tracking-widest text-zinc-500">QUITADO</span>
-        )}
-        <button
-          onClick={() => setEditing(true)}
-          className="text-xs text-zinc-700 hover:text-zinc-400 transition-colors cursor-pointer"
-          title="Renomear"
-        >
-          ✎
-        </button>
-        <form action={deletePerson}>
-          <input type="hidden" name="id" value={person.id} />
-          <button
-            type="submit"
-            className="text-xs text-zinc-700 hover:text-red-500 transition-colors cursor-pointer"
-            title="Remover pessoa"
-          >
-            ✕
-          </button>
-        </form>
-      </div>
-      <p className="text-lg tracking-tight text-white">
+    <div className="flex items-baseline gap-4 flex-1">
+      <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">
+        {person.name}
+      </h2>
+      {person.totalOwed <= 0 && (
+        <span className="text-xs tracking-widest text-zinc-400 dark:text-zinc-500">QUITADO</span>
+      )}
+      <p className="text-xl tracking-tight text-zinc-900 dark:text-white ml-auto">
         R$ {person.totalOwed.toFixed(2)}
       </p>
+      <button onClick={() => setEditing(true)} className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer" title="Renomear">✎</button>
+      <form action={deletePerson}>
+        <input type="hidden" name="id" value={person.id} />
+        <button type="submit" className="text-zinc-400 dark:text-zinc-600 hover:text-red-500 transition-colors cursor-pointer" title="Excluir pessoa">✕</button>
+      </form>
     </div>
   );
 }
