@@ -88,6 +88,18 @@ function RegisterForm() {
         />
       </div>
 
+      <label className="flex items-start gap-3 cursor-pointer group mt-1">
+        <input
+          type="checkbox"
+          name="emailNotifications"
+          defaultChecked={false}
+          className="mt-0.5 accent-zinc-700 dark:accent-zinc-300 cursor-pointer"
+        />
+        <span className="text-xs tracking-wide text-zinc-500 dark:text-zinc-400 leading-relaxed">
+          Quero receber notificações por e-mail quando novas dívidas ou pagamentos forem registrados.
+        </span>
+      </label>
+
       <button
         type="submit"
         disabled={pending}

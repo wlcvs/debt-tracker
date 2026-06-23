@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
     }
 
     const person = payment.person;
-    if (!person.email) {
-      return NextResponse.json({ skipped: true, reason: "No debtor email" });
+    if (!person.email || !person.emailNotifications) {
+      return NextResponse.json({ skipped: true, reason: "No email or notifications disabled" });
     }
 
     const totalOwed = person.debts.reduce((s, d) => s + Number(d.amount), 0);
@@ -83,8 +83,8 @@ export async function POST(req: NextRequest) {
     }
 
     const person = debt.person;
-    if (!person.email) {
-      return NextResponse.json({ skipped: true, reason: "No debtor email" });
+    if (!person.email || !person.emailNotifications) {
+      return NextResponse.json({ skipped: true, reason: "No email or notifications disabled" });
     }
 
     const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);

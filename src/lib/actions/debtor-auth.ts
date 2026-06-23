@@ -25,6 +25,7 @@ const registerSchema = z.object({
     .transform((s) => s.replace(/\D/g, ""))
     .refine((s) => s.length >= 10 && s.length <= 11, "Celular inválido"),
   password: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
+  emailNotifications: z.boolean().default(false),
 });
 
 export async function debtorRegisterAction(
@@ -42,6 +43,7 @@ export async function debtorRegisterAction(
     email: formData.get("email"),
     phone: formData.get("phone"),
     password: formData.get("password"),
+    emailNotifications: formData.get("emailNotifications") === "on",
   });
 
   if (!parsed.success) {
@@ -78,6 +80,7 @@ export async function debtorRegisterAction(
       email: parsed.data.email,
       phone: parsed.data.phone,
       passwordHash,
+      emailNotifications: parsed.data.emailNotifications,
     },
   });
 
@@ -136,6 +139,7 @@ export async function getMyAccount() {
   return {
     name: person.name,
     phone: person.phone,
+    emailNotifications: person.emailNotifications,
     totalOwed,
     debts: debts.map((d) => ({ ...d, isCovered: coveredIds.has(d.id) })),
     payments: person.payments.map((p) => ({
@@ -146,4 +150,16 @@ export async function getMyAccount() {
       debtId: p.debtId ?? null,
     })),
   };
+}
+
+export async function updateEmailNotifications(formData: FormData) {
+  const session = await auth();
+  if (session?.user?.role !== "debtor") throw new Error("Not authenticated as debtor");
+
+  const enabled = formData.get("emailNotifications") === "on";
+
+  await prisma.person.update({
+    where: { id: session.user.id },
+    data: { emailNotifications: enabled },
+  });
 }

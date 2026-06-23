@@ -49,8 +49,7 @@ export async function createDebt(formData: FormData) {
     },
   });
 
-  // Send email notification if person has an email address
-  if (person.email) {
+  if (person.email && person.emailNotifications) {
     const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
     const prevOwed = person.debts.reduce((s, d) => s + Number(d.amount), 0);
     const newBalance = Math.max(0, prevOwed + parsed.amount - totalPaid);
