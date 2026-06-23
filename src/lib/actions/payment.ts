@@ -4,11 +4,17 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { sendPaymentNotification } from "@/lib/email-notifications";
+
+const methodSchema = z
+  .enum(["PIX", "CASH", "CREDIT_CARD"])
+  .default("CASH");
 
 const createPaymentSchema = z.object({
   personId: z.string().min(1),
   amount: z.coerce.number().positive("Amount must be greater than zero"),
   date: z.coerce.date(),
+  method: methodSchema,
 });
 
 export async function createPayment(formData: FormData) {
@@ -21,10 +27,12 @@ export async function createPayment(formData: FormData) {
     personId: formData.get("personId"),
     amount: formData.get("amount"),
     date: formData.get("date"),
+    method: formData.get("method") || "CASH",
   });
 
   const person = await prisma.person.findFirst({
     where: { id: parsed.personId, userId: session.user.id },
+    include: { debts: true, payments: true },
   });
   if (!person) {
     throw new Error("Person not found");
@@ -35,8 +43,28 @@ export async function createPayment(formData: FormData) {
       personId: parsed.personId,
       amount: parsed.amount,
       date: parsed.date,
+      method: parsed.method,
     },
   });
+
+  // Send email notification if person has an email address
+  if (person.email) {
+    const totalOwed = person.debts.reduce((s, d) => s + Number(d.amount), 0);
+    const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0) + parsed.amount;
+    const remaining = Math.max(0, totalOwed - totalPaid);
+
+    // Fire-and-forget — don't block the response
+    sendPaymentNotification({
+      personName: person.name,
+      personEmail: person.email,
+      accessCode: person.accessCode,
+      paymentAmount: parsed.amount,
+      paymentMethod: parsed.method,
+      totalPaid,
+      totalOwed,
+      remaining,
+    }).catch(() => {});
+  }
 
   revalidatePath("/");
 }
@@ -56,6 +84,7 @@ const updatePaymentSchema = z.object({
   id: z.string().min(1),
   amount: z.coerce.number().positive(),
   date: z.coerce.date(),
+  method: methodSchema,
 });
 
 export async function updatePayment(formData: FormData) {
@@ -66,11 +95,12 @@ export async function updatePayment(formData: FormData) {
     id: formData.get("id"),
     amount: formData.get("amount"),
     date: formData.get("date"),
+    method: formData.get("method") || "CASH",
   });
 
   await prisma.payment.updateMany({
     where: { id: parsed.id, person: { userId: session.user.id } },
-    data: { amount: parsed.amount, date: parsed.date },
+    data: { amount: parsed.amount, date: parsed.date, method: parsed.method },
   });
   revalidatePath("/");
 }

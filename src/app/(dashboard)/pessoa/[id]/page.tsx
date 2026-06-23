@@ -3,6 +3,7 @@ import { getPersonById } from "@/lib/actions/person";
 import { getCreditCards } from "@/lib/actions/credit-card";
 import { createDebt } from "@/lib/actions/debt";
 import { createPayment } from "@/lib/actions/payment";
+import { PAYMENT_METHODS } from "@/lib/payment-methods";
 import { EditableDebt } from "@/components/editable-debt";
 import { EditablePayment } from "@/components/editable-payment";
 import { EditablePersonHeader } from "@/components/editable-person-header";
@@ -125,6 +126,14 @@ export default async function PersonPage({
               required
               className="bg-transparent border border-zinc-300 dark:border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-600 transition-colors"
             />
+            <select
+              name="method"
+              className="bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-600 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-600 transition-colors"
+            >
+              {Object.entries(PAYMENT_METHODS).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
             <button
               type="submit"
               className="border border-zinc-300 dark:border-zinc-800 py-2 text-xs tracking-widest uppercase text-zinc-500 hover:border-zinc-900 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-300 transition-colors cursor-pointer"

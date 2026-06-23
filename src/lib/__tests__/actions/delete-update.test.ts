@@ -67,7 +67,7 @@ describe("updatePerson", () => {
     await updatePerson(form);
     expect(extendedMock.person.updateMany).toHaveBeenCalledWith({
       where: { id: "person-1", userId: "user-1" },
-      data: { name: "Maria" },
+      data: { name: "Maria", email: null },
     });
   });
 

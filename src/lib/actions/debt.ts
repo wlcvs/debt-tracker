@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { sendDebtNotification } from "@/lib/email-notifications";
 
 const createDebtSchema = z.object({
   personId: z.string().min(1),
@@ -32,6 +33,7 @@ export async function createDebt(formData: FormData) {
   // Ensure the person belongs to the logged-in user (avoid cross-user data access)
   const person = await prisma.person.findFirst({
     where: { id: parsed.personId, userId: session.user.id },
+    include: { debts: true, payments: true },
   });
   if (!person) {
     throw new Error("Person not found");
@@ -46,6 +48,23 @@ export async function createDebt(formData: FormData) {
       creditCardId: parsed.creditCardId || null,
     },
   });
+
+  // Send email notification if person has an email address
+  if (person.email) {
+    const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
+    const prevOwed = person.debts.reduce((s, d) => s + Number(d.amount), 0);
+    const newBalance = Math.max(0, prevOwed + parsed.amount - totalPaid);
+
+    sendDebtNotification({
+      personName: person.name,
+      personEmail: person.email,
+      accessCode: person.accessCode,
+      debtAmount: parsed.amount,
+      debtDescription: parsed.description,
+      debtDate: parsed.date,
+      newBalance,
+    }).catch(() => {});
+  }
 
   revalidatePath("/");
 }

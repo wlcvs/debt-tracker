@@ -37,6 +37,7 @@ model Person {
   id         String   @id @default(cuid())
   userId     String
   name       String
+  email      String?
   accessCode String   @unique
   createdAt  DateTime @default(now())
 
@@ -68,12 +69,19 @@ model Debt {
   creditCard CreditCard? @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
 }
 
+enum PaymentMethod {
+  PIX
+  CASH
+  CREDIT_CARD
+}
+
 model Payment {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   personId  String
-  amount    Decimal  @db.Decimal(10, 2)
+  amount    Decimal       @db.Decimal(10, 2)
   date      DateTime
-  createdAt DateTime @default(now())
+  method    PaymentMethod @default(CASH)
+  createdAt DateTime      @default(now())
 
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
 }

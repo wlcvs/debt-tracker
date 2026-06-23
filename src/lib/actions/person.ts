@@ -40,6 +40,7 @@ export async function createPerson(formData: FormData) {
 export interface PersonWithBalance {
   id: string;
   name: string;
+  email: string | null;
   accessCode: string;
   totalOwed: number;
   debts: {
@@ -53,6 +54,7 @@ export interface PersonWithBalance {
     id: string;
     amount: number;
     date: Date;
+    method: string;
   }[];
 }
 
@@ -70,6 +72,7 @@ export interface DebtorView {
     id: string;
     amount: number;
     date: Date;
+    method: string;
   }[];
 }
 
@@ -122,6 +125,7 @@ export async function getPersonByAccessCode(
         id: p.id,
         amount: Number(p.amount),
         date: p.date,
+        method: p.method,
       })),
     },
   };
@@ -142,8 +146,10 @@ export async function updatePerson(formData: FormData) {
 
   const id = formData.get("id") as string;
   const name = z.string().trim().min(1).parse(formData.get("name"));
+  const emailRaw = (formData.get("email") as string | null)?.trim() || null;
+  const email = emailRaw ? z.string().email().parse(emailRaw) : null;
 
-  await prisma.person.updateMany({ where: { id, userId: session.user.id }, data: { name } });
+  await prisma.person.updateMany({ where: { id, userId: session.user.id }, data: { name, email } });
   revalidatePath("/");
 }
 
@@ -180,6 +186,7 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
     return {
       id: person.id,
       name: person.name,
+      email: person.email,
       accessCode: person.accessCode,
       totalOwed,
       debts: debts.map((debt) => ({
@@ -190,6 +197,7 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
         id: p.id,
         amount: Number(p.amount),
         date: p.date,
+        method: p.method,
       })),
     };
   });
@@ -220,6 +228,7 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
   return {
     id: person.id,
     name: person.name,
+    email: person.email,
     accessCode: person.accessCode,
     totalOwed,
     debts: debts.map((d) => ({ ...d, isCovered: coveredIds.has(d.id) })),
@@ -227,6 +236,7 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
       id: p.id,
       amount: Number(p.amount),
       date: p.date,
+      method: p.method,
     })),
   };
 }
