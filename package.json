@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently --kill-others \"next dev\" \"vitest --watch\"",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest",
+    "test": "vitest --watch",
+    "test:run": "vitest --run",
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
