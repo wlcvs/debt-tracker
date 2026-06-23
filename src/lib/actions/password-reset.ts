@@ -49,7 +49,7 @@ export async function requestPasswordReset(
   const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password/${token}`;
 
   await resend.emails.send({
-    from: "Debt Tracker <noreply@wallacy.dev>",
+    from: "Debt Tracker <noreply@wlcsv.dev>",
     to: email.data,
     subject: "Redefinição de senha",
     html: `
