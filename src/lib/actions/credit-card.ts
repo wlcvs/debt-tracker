@@ -29,6 +29,15 @@ export async function createCreditCard(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function deleteCreditCard(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const id = formData.get("id") as string;
+  await prisma.creditCard.deleteMany({ where: { id, userId: session.user.id } });
+  revalidatePath("/");
+}
+
 export async function getCreditCards() {
   const session = await auth();
   if (!session?.user?.id) {

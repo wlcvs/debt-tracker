@@ -40,3 +40,37 @@ export async function createPayment(formData: FormData) {
 
   revalidatePath("/");
 }
+
+export async function deletePayment(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const id = formData.get("id") as string;
+  await prisma.payment.deleteMany({
+    where: { id, person: { userId: session.user.id } },
+  });
+  revalidatePath("/");
+}
+
+const updatePaymentSchema = z.object({
+  id: z.string().min(1),
+  amount: z.coerce.number().positive(),
+  date: z.coerce.date(),
+});
+
+export async function updatePayment(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const parsed = updatePaymentSchema.parse({
+    id: formData.get("id"),
+    amount: formData.get("amount"),
+    date: formData.get("date"),
+  });
+
+  await prisma.payment.updateMany({
+    where: { id: parsed.id, person: { userId: session.user.id } },
+    data: { amount: parsed.amount, date: parsed.date },
+  });
+  revalidatePath("/");
+}

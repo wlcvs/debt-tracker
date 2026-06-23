@@ -2,8 +2,11 @@ import { getPeopleWithBalances } from "@/lib/actions/person";
 import { createPerson } from "@/lib/actions/person";
 import { createDebt } from "@/lib/actions/debt";
 import { createPayment } from "@/lib/actions/payment";
-import { createCreditCard, getCreditCards } from "@/lib/actions/credit-card";
+import { createCreditCard, getCreditCards, deleteCreditCard } from "@/lib/actions/credit-card";
 import { signOutAction } from "@/lib/actions/auth";
+import { EditableDebt } from "@/components/editable-debt";
+import { EditablePayment } from "@/components/editable-payment";
+import { EditablePersonHeader } from "@/components/editable-person-header";
 
 export default async function Home() {
   const [people, creditCards] = await Promise.all([
@@ -70,9 +73,9 @@ export default async function Home() {
 
         <div className="border border-zinc-800 p-5">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-500 mb-4">
-            Novo cartão
+            Cartões
           </p>
-          <form action={createCreditCard} className="flex gap-2">
+          <form action={createCreditCard} className="flex gap-2 mb-3">
             <input
               type="text"
               name="label"
@@ -87,6 +90,24 @@ export default async function Home() {
               Adicionar
             </button>
           </form>
+          {creditCards.length > 0 && (
+            <ul className="flex flex-col gap-1">
+              {creditCards.map((card) => (
+                <li key={card.id} className="flex items-center justify-between text-xs text-zinc-500 py-1 border-b border-zinc-900">
+                  <span className="tracking-widest uppercase">{card.label}</span>
+                  <form action={deleteCreditCard}>
+                    <input type="hidden" name="id" value={card.id} />
+                    <button
+                      type="submit"
+                      className="text-zinc-700 hover:text-red-500 transition-colors cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
 
@@ -99,22 +120,7 @@ export default async function Home() {
         <div className="flex flex-col gap-8">
           {people.map((person) => (
             <div key={person.id} className="border border-zinc-800">
-              {/* Person header */}
-              <div className="flex items-baseline justify-between px-5 py-4 border-b border-zinc-800">
-                <div className="flex items-baseline gap-4">
-                  <h2 className="text-sm tracking-widest uppercase text-white">
-                    {person.name}
-                  </h2>
-                  {person.totalOwed <= 0 && (
-                    <span className="text-xs tracking-widest text-zinc-500">
-                      QUITADO
-                    </span>
-                  )}
-                </div>
-                <p className="text-lg tracking-tight text-white">
-                  R$ {person.totalOwed.toFixed(2)}
-                </p>
-              </div>
+              <EditablePersonHeader person={person} />
 
               <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Debts */}
@@ -123,23 +129,11 @@ export default async function Home() {
                     Dívidas
                   </p>
                   {person.debts.length === 0 ? (
-                    <p className="text-xs text-zinc-600">Nenhuma dívida.</p>
+                    <p className="text-xs text-zinc-600 mb-4">Nenhuma dívida.</p>
                   ) : (
-                    <ul className="flex flex-col gap-1 mb-4">
+                    <ul className="flex flex-col mb-4">
                       {person.debts.map((debt) => (
-                        <li
-                          key={debt.id}
-                          className={`flex justify-between text-xs py-1 border-b border-zinc-900 ${
-                            debt.isCovered ? "text-zinc-600" : "text-zinc-300"
-                          }`}
-                        >
-                          <span className="truncate mr-4">
-                            {debt.description}
-                          </span>
-                          <span className="shrink-0 tracking-tight">
-                            R$ {debt.amount.toFixed(2)}
-                          </span>
-                        </li>
+                        <EditableDebt key={debt.id} debt={debt} />
                       ))}
                     </ul>
                   )}
@@ -192,6 +186,14 @@ export default async function Home() {
                   <p className="text-xs tracking-[0.25em] uppercase text-zinc-500 mb-3">
                     Pagamentos
                   </p>
+
+                  {person.payments && person.payments.length > 0 && (
+                    <ul className="flex flex-col mb-4">
+                      {person.payments.map((payment) => (
+                        <EditablePayment key={payment.id} payment={payment} />
+                      ))}
+                    </ul>
+                  )}
 
                   <form action={createPayment} className="flex flex-col gap-2">
                     <input type="hidden" name="personId" value={person.id} />

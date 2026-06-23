@@ -48,7 +48,12 @@ export interface PersonWithBalance {
     description: string;
     date: Date;
     isCovered: boolean;
-  }[]
+  }[];
+  payments: {
+    id: string;
+    amount: number;
+    date: Date;
+  }[];
 }
 
 export interface DebtorView {
@@ -122,6 +127,26 @@ export async function getPersonByAccessCode(
   };
 }
 
+export async function deletePerson(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const id = formData.get("id") as string;
+  await prisma.person.deleteMany({ where: { id, userId: session.user.id } });
+  revalidatePath("/");
+}
+
+export async function updatePerson(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const id = formData.get("id") as string;
+  const name = z.string().trim().min(1).parse(formData.get("name"));
+
+  await prisma.person.updateMany({ where: { id, userId: session.user.id }, data: { name } });
+  revalidatePath("/");
+}
+
 export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -160,6 +185,11 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
       debts: debts.map((debt) => ({
         ...debt,
         isCovered: coveredIds.has(debt.id),
+      })),
+      payments: person.payments.map((p) => ({
+        id: p.id,
+        amount: Number(p.amount),
+        date: p.date,
       })),
     };
   });
