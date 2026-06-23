@@ -1,4 +1,5 @@
 import { signIn } from "@/auth";
+import Link from "next/link";
 
 export default function LoginPage() {
   return (
@@ -45,6 +46,13 @@ export default function LoginPage() {
             Entrar
           </button>
         </form>
+
+        <Link
+          href="/forgot-password"
+          className="block text-center text-xs tracking-widest uppercase text-zinc-600 hover:text-zinc-400 transition-colors mt-6"
+        >
+          Esqueceu a senha?
+        </Link>
       </div>
     </main>
   );
