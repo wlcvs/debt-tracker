@@ -5,6 +5,8 @@ import {
   getPersonByAccessCode,
   type ConsultState,
 } from "@/lib/actions/person";
+import { ConsultarView } from "@/components/consultar-view";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const initialState: ConsultState = { status: "idle" };
 
@@ -15,15 +17,18 @@ export default function ConsultarPage() {
   );
 
   return (
-    <main className="min-h-dvh flex items-center justify-center px-4">
+    <main className="min-h-dvh flex items-center justify-center px-4 bg-white dark:bg-zinc-950">
       <div className="w-full max-w-md">
-        <div className="mb-10">
-          <p className="text-xs tracking-[0.3em] text-zinc-500 uppercase mb-2">
-            Consulta
-          </p>
-          <h1 className="text-2xl tracking-widest uppercase text-white">
-            Minha Dívida
-          </h1>
+        <div className="mb-10 flex items-start justify-between">
+          <div>
+            <p className="text-xs tracking-[0.3em] text-zinc-400 dark:text-zinc-500 uppercase mb-2">
+              Consulta
+            </p>
+            <h1 className="text-2xl tracking-widest uppercase text-zinc-900 dark:text-white">
+              Minha Dívida
+            </h1>
+          </div>
+          <ThemeToggle />
         </div>
 
         <form action={action} className="flex gap-2 mb-8">
@@ -32,12 +37,12 @@ export default function ConsultarPage() {
             name="accessCode"
             placeholder="CÓDIGO DE ACESSO"
             required
-            className="flex-1 bg-transparent border border-zinc-700 px-4 py-3 text-sm tracking-widest placeholder:text-zinc-600 focus:outline-none focus:border-zinc-400 transition-colors"
+            className="flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-4 py-3 text-sm tracking-widest text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
           />
           <button
             type="submit"
             disabled={isPending}
-            className="border border-zinc-600 px-5 py-3 text-xs tracking-[0.2em] uppercase text-zinc-400 hover:border-white hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
+            className="border border-zinc-400 dark:border-zinc-600 px-5 py-3 text-xs tracking-[0.2em] uppercase text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
           >
             {isPending ? "..." : "Ver"}
           </button>
@@ -50,66 +55,7 @@ export default function ConsultarPage() {
         )}
 
         {state.status === "success" && (
-          <section className="border border-zinc-800">
-            <div className="px-5 py-4 border-b border-zinc-800 flex items-baseline justify-between">
-              <h2 className="text-sm tracking-widest uppercase text-white">
-                {state.debtor.name}
-              </h2>
-              <p className="text-lg tracking-tight text-white">
-                R$ {state.debtor.totalOwed.toFixed(2)}
-              </p>
-            </div>
-
-            <div className="px-5 py-4">
-              <p className="text-xs tracking-[0.25em] uppercase text-zinc-500 mb-3">
-                Dívidas
-              </p>
-              {state.debtor.debts.length === 0 ? (
-                <p className="text-xs text-zinc-600">Nenhuma dívida.</p>
-              ) : (
-                <ul className="flex flex-col gap-1 mb-6">
-                  {state.debtor.debts.map((debt) => (
-                    <li
-                      key={debt.id}
-                      className={`flex justify-between text-xs py-1 border-b border-zinc-900 ${
-                        debt.isCovered ? "text-zinc-600" : "text-zinc-300"
-                      }`}
-                    >
-                      <span className="truncate mr-4">{debt.description}</span>
-                      <span className="shrink-0 tracking-tight">
-                        R$ {debt.amount.toFixed(2)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <p className="text-xs tracking-[0.25em] uppercase text-zinc-500 mb-3">
-                Pagamentos
-              </p>
-              {state.debtor.payments.length === 0 ? (
-                <p className="text-xs text-zinc-600">
-                  Nenhum pagamento registrado.
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-1">
-                  {state.debtor.payments.map((payment) => (
-                    <li
-                      key={payment.id}
-                      className="flex justify-between text-xs py-1 border-b border-zinc-900 text-zinc-300"
-                    >
-                      <span>
-                        {payment.date.toLocaleDateString("pt-BR")}
-                      </span>
-                      <span className="tracking-tight">
-                        R$ {payment.amount.toFixed(2)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
+          <ConsultarView debtor={state.debtor} />
         )}
       </div>
     </main>

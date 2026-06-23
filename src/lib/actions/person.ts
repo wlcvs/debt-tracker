@@ -55,6 +55,7 @@ export interface PersonWithBalance {
     amount: number;
     date: Date;
     method: string;
+    debtId: string | null;
   }[];
 }
 
@@ -73,6 +74,7 @@ export interface DebtorView {
     amount: number;
     date: Date;
     method: string;
+    debtId: string | null;
   }[];
 }
 
@@ -126,6 +128,7 @@ export async function getPersonByAccessCode(
         amount: Number(p.amount),
         date: p.date,
         method: p.method,
+        debtId: p.debtId ?? null,
       })),
     },
   };
@@ -198,6 +201,7 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
         amount: Number(p.amount),
         date: p.date,
         method: p.method,
+        debtId: p.debtId ?? null,
       })),
     };
   });
@@ -237,6 +241,7 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
       amount: Number(p.amount),
       date: p.date,
       method: p.method,
+      debtId: p.debtId ?? null,
     })),
   };
 }
@@ -310,6 +315,8 @@ export async function getDebtorViewByCode(code: string) {
       id: p.id,
       amount: Number(p.amount),
       date: p.date,
+      method: p.method,
+      debtId: p.debtId ?? null,
     })),
   };
 }

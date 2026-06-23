@@ -67,21 +67,23 @@ model Debt {
 
   person     Person      @relation(fields: [personId], references: [id], onDelete: Cascade)
   creditCard CreditCard? @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+  payments   Payment[]
 }
 
 enum PaymentMethod {
   PIX
   CASH
-  CREDIT_CARD
 }
 
 model Payment {
   id        String        @id @default(cuid())
   personId  String
+  debtId    String?
   amount    Decimal       @db.Decimal(10, 2)
   date      DateTime
   method    PaymentMethod @default(CASH)
   createdAt DateTime      @default(now())
 
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  debt   Debt?  @relation(fields: [debtId], references: [id], onDelete: SetNull)
 }

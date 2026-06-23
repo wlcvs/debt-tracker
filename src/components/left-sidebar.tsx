@@ -13,6 +13,7 @@ interface Props {
 export function LeftSidebar({ people }: Props) {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const filtered = query.trim()
     ? people.filter(
@@ -22,8 +23,15 @@ export function LeftSidebar({ people }: Props) {
       )
     : people;
 
+  function copyId(e: React.MouseEvent, id: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText(id).catch(() => {});
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  }
+
   return (
-    /* min-h-0 is required for the inner flex children to scroll correctly */
     <div className="flex flex-col flex-1 min-h-0">
       {/* Search */}
       <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
@@ -36,7 +44,7 @@ export function LeftSidebar({ people }: Props) {
         />
       </div>
 
-      {/* People list — scrolls independently */}
+      {/* People list */}
       <nav className="flex-1 overflow-y-auto min-h-0 py-1">
         {filtered.length === 0 ? (
           <p className="px-4 py-3 text-xs text-zinc-400 dark:text-zinc-600">
@@ -47,7 +55,7 @@ export function LeftSidebar({ people }: Props) {
             {filtered.map((person) => {
               const isActive = pathname === `/pessoa/${person.id}`;
               return (
-                <li key={person.id}>
+                <li key={person.id} className="group relative">
                   <Link
                     href={`/pessoa/${person.id}`}
                     className={`flex items-baseline justify-between px-4 py-3 transition-colors ${
@@ -56,8 +64,19 @@ export function LeftSidebar({ people }: Props) {
                         : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-200"
                     }`}
                   >
-                    <span className="text-xs tracking-widest uppercase truncate mr-3">
-                      {person.name}
+                    <span className="flex items-center gap-1.5 min-w-0 mr-2">
+                      <span className="text-xs tracking-widest uppercase truncate">
+                        {person.name}
+                      </span>
+                      {/* Copy ID button — visible on hover/active */}
+                      <button
+                        type="button"
+                        onClick={(e) => copyId(e, person.id)}
+                        title="Copiar ID"
+                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 text-[9px] tracking-wider leading-none"
+                      >
+                        {copiedId === person.id ? "✓" : "ID"}
+                      </button>
                     </span>
                     <span
                       className={`text-xs tracking-tight shrink-0 ${
@@ -78,7 +97,7 @@ export function LeftSidebar({ people }: Props) {
         )}
       </nav>
 
-      {/* Add person — always visible at bottom */}
+      {/* Add person */}
       <div className="border-t border-zinc-200 dark:border-zinc-800 px-4 py-3 shrink-0">
         <form action={createPerson} className="flex gap-2">
           <input

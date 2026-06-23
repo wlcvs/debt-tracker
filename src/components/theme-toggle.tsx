@@ -22,7 +22,7 @@ export function ThemeToggle() {
       title={dark ? "Modo claro" : "Modo escuro"}
       className="text-xs tracking-widest uppercase text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
     >
-      {dark ? "☀" : "☾"}
+      {dark ? "CLARO" : "ESCURO"}
     </button>
   );
 }

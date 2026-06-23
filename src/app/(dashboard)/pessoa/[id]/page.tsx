@@ -9,6 +9,9 @@ import { EditablePayment } from "@/components/editable-payment";
 import { EditablePersonHeader } from "@/components/editable-person-header";
 import { ShareButton } from "@/components/share-button";
 
+const selectClass =
+  "bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-600 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-600 transition-colors";
+
 export default async function PersonPage({
   params,
 }: {
@@ -73,17 +76,17 @@ export default async function PersonPage({
               required
               className="bg-transparent border border-zinc-300 dark:border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-600 transition-colors"
             />
-            <select
-              name="creditCardId"
-              className="bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-600 transition-colors"
-            >
-              <option value="">SEM CARTÃO</option>
-              {creditCards.map((card) => (
-                <option key={card.id} value={card.id}>
-                  {card.label.toUpperCase()}
-                </option>
-              ))}
-            </select>
+            {/* Cartão associado à dívida (opcional) */}
+            {creditCards.length > 0 && (
+              <select name="creditCardId" className={selectClass}>
+                <option value="">SEM CARTÃO</option>
+                {creditCards.map((card) => (
+                  <option key={card.id} value={card.id}>
+                    {card.label.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="submit"
               className="border border-zinc-300 dark:border-zinc-800 py-2 text-xs tracking-widest uppercase text-zinc-500 hover:border-zinc-900 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-300 transition-colors cursor-pointer"
@@ -126,14 +129,24 @@ export default async function PersonPage({
               required
               className="bg-transparent border border-zinc-300 dark:border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-600 transition-colors"
             />
-            <select
-              name="method"
-              className="bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-600 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-600 transition-colors"
-            >
+            {/* Meio de pagamento */}
+            <select name="method" className={selectClass}>
               {Object.entries(PAYMENT_METHODS).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
               ))}
             </select>
+            {/* Vincular a uma dívida específica (opcional) */}
+            {person.debts.length > 0 && (
+              <select name="debtId" className={selectClass}>
+                <option value="">SEM VÍNCULO ESPECÍFICO</option>
+                {person.debts.map((debt) => (
+                  <option key={debt.id} value={debt.id}>
+                    {debt.description} — R$ {debt.amount.toFixed(2)}
+                    {debt.isCovered ? " (QUITADA)" : ""}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="submit"
               className="border border-zinc-300 dark:border-zinc-800 py-2 text-xs tracking-widest uppercase text-zinc-500 hover:border-zinc-900 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-300 transition-colors cursor-pointer"

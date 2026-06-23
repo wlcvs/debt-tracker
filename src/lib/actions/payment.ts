@@ -6,12 +6,11 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { sendPaymentNotification } from "@/lib/email-notifications";
 
-const methodSchema = z
-  .enum(["PIX", "CASH", "CREDIT_CARD"])
-  .default("CASH");
+const methodSchema = z.enum(["PIX", "CASH"]).default("CASH");
 
 const createPaymentSchema = z.object({
   personId: z.string().min(1),
+  debtId: z.string().optional(),
   amount: z.coerce.number().positive("Amount must be greater than zero"),
   date: z.coerce.date(),
   method: methodSchema,
@@ -23,8 +22,10 @@ export async function createPayment(formData: FormData) {
     throw new Error("Not authenticated");
   }
 
+  const rawDebtId = formData.get("debtId") as string | null;
   const parsed = createPaymentSchema.parse({
     personId: formData.get("personId"),
+    debtId: rawDebtId || undefined,
     amount: formData.get("amount"),
     date: formData.get("date"),
     method: formData.get("method") || "CASH",
@@ -41,6 +42,7 @@ export async function createPayment(formData: FormData) {
   await prisma.payment.create({
     data: {
       personId: parsed.personId,
+      debtId: parsed.debtId || null,
       amount: parsed.amount,
       date: parsed.date,
       method: parsed.method,
