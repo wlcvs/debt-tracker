@@ -9,7 +9,7 @@ export default async function OverviewPage() {
   ]);
 
   return (
-    <div className="px-8 py-10 h-full flex flex-col gap-10">
+    <div className="px-4 sm:px-8 py-10 flex flex-col gap-10 pb-16">
       {/* Total */}
       <TotalDisplay total={stats.totalToReceive} />
 
