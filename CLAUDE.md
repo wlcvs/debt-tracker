@@ -106,6 +106,7 @@ PasswordResetToken — unique token, expiresAt, cascades with User
 - `src/lib/prisma.ts` — singleton PrismaClient.
 - `src/lib/email-notifications.ts` — Resend email sender (`noreply@wlcsv.dev`).
 - `src/lib/rate-limit.ts` — in-memory rate limiter for auth routes.
+- `src/lib/payment-methods.ts` — maps `PaymentMethod` enum values to display labels (`PIX → "Pix"`, `CASH → "Dinheiro"`).
 
 ### Testing conventions
 
