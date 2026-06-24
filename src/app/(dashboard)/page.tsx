@@ -40,7 +40,7 @@ export default async function OverviewPage() {
       </section>
 
       {/* Credit cards */}
-      <section className="max-w-xs">
+      <section className="max-w-sm">
         <p className="text-xs tracking-[0.3em] text-zinc-400 dark:text-zinc-500 uppercase mb-4">
           Cartões
         </p>
