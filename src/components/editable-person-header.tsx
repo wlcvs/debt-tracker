@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deletePerson, updatePerson } from "@/lib/actions/person";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 interface Props {
   person: {
@@ -15,6 +16,7 @@ interface Props {
 
 export function EditablePersonHeader({ person }: Props) {
   const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   if (editing) {
     return (
@@ -57,9 +59,9 @@ export function EditablePersonHeader({ person }: Props) {
   }
 
   return (
-    <div className="flex items-baseline gap-4 flex-1 flex-wrap">
-      <div className="flex flex-col gap-0.5">
-        <div className="flex items-baseline gap-3">
+    <div className="flex items-start justify-between gap-4 flex-1">
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <div className="flex items-baseline gap-3 flex-wrap">
           <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">
             {person.name}
           </h2>
@@ -71,17 +73,32 @@ export function EditablePersonHeader({ person }: Props) {
           <p className="text-xs tracking-wider text-zinc-500 dark:text-zinc-500">{person.email}</p>
         )}
       </div>
-      {person.totalOwed <= 0 && (
-        <span className="text-xs tracking-widest text-zinc-400 dark:text-zinc-500">QUITADO</span>
+      <div className="flex items-center gap-3 shrink-0">
+        <p className="text-xl tracking-tight text-zinc-900 dark:text-white">
+          R$ {person.totalOwed.toFixed(2)}
+        </p>
+        <button onClick={() => setEditing(true)} className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer" title="Renomear">✎</button>
+        <button
+          onClick={() => setConfirming(true)}
+          className="text-zinc-400 dark:text-zinc-600 hover:text-red-500 transition-colors cursor-pointer"
+          title="Excluir pessoa"
+        >
+          ✕
+        </button>
+      </div>
+      {confirming && (
+        <ConfirmDialog
+          title={`Excluir ${person.name}?`}
+          description="Esta ação não pode ser desfeita. Todas as dívidas e pagamentos serão removidos."
+          confirmLabel="EXCLUIR"
+          onCancel={() => setConfirming(false)}
+          onConfirm={async () => {
+            const fd = new FormData();
+            fd.append("id", person.id);
+            await deletePerson(fd);
+          }}
+        />
       )}
-      <p className="text-xl tracking-tight text-zinc-900 dark:text-white ml-auto">
-        R$ {person.totalOwed.toFixed(2)}
-      </p>
-      <button onClick={() => setEditing(true)} className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer" title="Renomear">✎</button>
-      <form action={deletePerson}>
-        <input type="hidden" name="id" value={person.id} />
-        <button type="submit" className="text-zinc-400 dark:text-zinc-600 hover:text-red-500 transition-colors cursor-pointer" title="Excluir pessoa">✕</button>
-      </form>
     </div>
   );
 }

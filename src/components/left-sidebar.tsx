@@ -63,29 +63,8 @@ export function LeftSidebar({ people }: Props) {
                         : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-200"
                       }`}
                   >
-                    <span className="flex items-center gap-1.5 min-w-0 mr-2">
-                      <span className="text-xs tracking-widest uppercase truncate">
-                        {person.name}
-                      </span>
-                      {/* Copy ID button — visible on hover/active */}
-                      <button
-                        type="button"
-                        onClick={(e) => copyId(e, person.id)}
-                        title="Copiar ID"
-                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 text-[9px] tracking-wider leading-none"
-                      >
-                        {copiedId === person.id ? "✓" : "ID"}
-                      </button>
-                    </span>
-                    <span
-                      className={`text-xs tracking-tight shrink-0 ${person.totalOwed <= 0
-                          ? "text-zinc-400 dark:text-zinc-600"
-                          : "text-zinc-900 dark:text-zinc-200"
-                        }`}
-                    >
-                      {person.totalOwed <= 0
-                        ? "QUITADO"
-                        : `R$ ${person.totalOwed.toFixed(2)}`}
+                    <span className="text-xs tracking-widest uppercase truncate">
+                      {person.name}
                     </span>
                   </Link>
                 </li>
