@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 interface Props {
   sidebar: React.ReactNode;
@@ -48,9 +49,9 @@ export function DashboardShell({ sidebar, children }: Props) {
           >
             ☰
           </button>
-          <span className="text-sm tracking-widest uppercase text-zinc-900 dark:text-white">
+          <Link href="/" className="text-sm tracking-widest uppercase text-zinc-900 dark:text-white">
             Debt Tracker
-          </span>
+          </Link>
         </div>
 
         <main className="flex-1 overflow-y-auto">{children}</main>
