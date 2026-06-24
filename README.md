@@ -1,86 +1,86 @@
 # Debt Tracker
 
-Aplicação pessoal para controlar dívidas de terceiros. Cada devedor recebe um código de acesso e pode consultar o próprio saldo de forma independente.
+Personal application to track debts owed by third parties. Each debtor receives an access code and can check their own balance independently.
 
 ## Stack
 
 - **Next.js 16** (App Router, TypeScript, Server Actions)
-- **PostgreSQL** (Docker local / Neon em produção)
-- **Prisma 7** — ORM com migrations
-- **Auth.js v5** — autenticação por credenciais
-- **Tailwind CSS 4** — design HUD/monocromático, dark/light mode
-- **Resend** — envio de e-mails (recuperação de senha)
-- **Vitest** — testes unitários
-- **Playwright** — testes E2E
+- **PostgreSQL** (Docker locally / Neon in production)
+- **Prisma 7** — ORM with migrations
+- **Auth.js v5** — credentials-based authentication
+- **Tailwind CSS 4** — HUD/monochromatic design, dark/light mode
+- **Resend** — email sending (password recovery)
+- **Vitest** — unit tests
+- **Playwright** — E2E tests
 
-## Pré-requisitos
+## Prerequisites
 
 - Node.js 20+
-- Docker (para o PostgreSQL local)
-- Conta no [Resend](https://resend.com) com domínio verificado
+- Docker (for local PostgreSQL)
+- [Resend](https://resend.com) account with a verified domain
 
-## Setup local
+## Local Setup
 
 ```bash
-# 1. Instalar dependências
+# 1. Install dependencies
 npm install
 
-# 2. Copiar variáveis de ambiente
+# 2. Copy environment variables
 cp .env.example .env
-# Preencher DATABASE_URL, AUTH_SECRET, RESEND_API_KEY, etc.
+# Fill in DATABASE_URL, AUTH_SECRET, RESEND_API_KEY, etc.
 
-# 3. Subir o banco de dados
+# 3. Start the database
 docker compose up -d
 
-# 4. Rodar migrations e gerar o client Prisma
+# 4. Run migrations and generate the Prisma client
 npx prisma migrate dev
 npx prisma generate
 
-# 5. Criar o usuário admin
+# 5. Create the admin user
 npx tsx prisma/seed.ts
 
-# 6. Iniciar o servidor de desenvolvimento
+# 6. Start the development server
 npm run dev
 ```
 
 ## Scripts
 
-| Script | Descrição |
+| Script | Description |
 |---|---|
-| `npm run dev` | Servidor Next.js em modo desenvolvimento |
-| `npm test` | Vitest em watch mode |
-| `npm run test:run` | Vitest execução única |
-| `npm run test:coverage` | Cobertura de testes |
-| `npm run test:e2e` | Playwright E2E (requer `npm run dev` rodando) |
-| `npm run test:e2e:ui` | Playwright com interface visual |
-| `npm run test:all` | Vitest + Playwright em sequência |
-| `npm run build` | Build de produção |
+| `npm run dev` | Next.js server in development mode |
+| `npm test` | Vitest in watch mode |
+| `npm run test:run` | Vitest single run |
+| `npm run test:coverage` | Test coverage |
+| `npm run test:e2e` | Playwright E2E (requires `npm run dev` running) |
+| `npm run test:e2e:ui` | Playwright with visual UI |
+| `npm run test:all` | Vitest + Playwright in sequence |
+| `npm run build` | Production build |
 
-## Rotas
+## Routes
 
-| Rota | Acesso | Descrição |
+| Route | Access | Description |
 |---|---|---|
-| `/` | Admin | Dashboard geral com estatísticas |
-| `/person/[id]` | Admin | Detalhes de um devedor específico |
-| `/public` | Público | Formulário para consulta por código |
-| `/public/[code]` | Público | Acesso direto sem digitar código |
-| `/login` | Público | Autenticação |
-| `/forgot-password` | Público | Recuperação de senha |
-| `/reset-password/[token]` | Público | Redefinição de senha |
+| `/` | Admin | General dashboard with statistics |
+| `/person/[id]` | Admin | Details for a specific debtor |
+| `/public` | Public | Form to look up by access code |
+| `/public/[code]` | Public | Direct access without typing a code |
+| `/login` | Public | Authentication |
+| `/forgot-password` | Public | Password recovery |
+| `/reset-password/[token]` | Public | Password reset |
 
-## Testes
+## Tests
 
 ```bash
-# Unitários (Vitest) — sem banco, tudo mockado
+# Unit tests (Vitest) — no database, everything mocked
 npm run test:run
 
-# E2E (Playwright) — requer dev server rodando em outra aba
-npm run dev          # aba 1
-npm run test:e2e     # aba 2
+# E2E (Playwright) — requires dev server running in another tab
+npm run dev          # tab 1
+npm run test:e2e     # tab 2
 ```
 
-Os testes E2E criam um usuário de teste isolado (`e2e@debt-tracker.test`) e removem todos os dados ao final.
+E2E tests create an isolated test user (`e2e@debt-tracker.test`) and remove all data at the end.
 
-## Variáveis de ambiente
+## Environment Variables
 
-Veja `.env.example` para todas as variáveis necessárias.
+See `.env.example` for all required variables.
