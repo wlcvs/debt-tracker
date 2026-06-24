@@ -1,6 +1,6 @@
 import { getOverviewStats } from "@/lib/actions/person";
 import { getCreditCards, deleteCreditCard, createCreditCard } from "@/lib/actions/credit-card";
-import { TotalDisplay } from "./TotalDisplay";
+import { TotalDisplay } from "@/components/total-display";
 
 export default async function OverviewPage() {
   const [stats, creditCards] = await Promise.all([
