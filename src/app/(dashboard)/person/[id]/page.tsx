@@ -174,13 +174,6 @@ export default async function PersonPage({
         </section>
       </div>
 
-      {/* Access code */}
-      <div className="border-t border-zinc-200 dark:border-zinc-900 pt-4 shrink-0">
-        <p className="text-xs text-zinc-400 dark:text-zinc-700 tracking-widest">
-          CÓDIGO{" "}
-          <span className="text-zinc-500 dark:text-zinc-500">{person.accessCode}</span>
-        </p>
-      </div>
     </div>
   );
 }

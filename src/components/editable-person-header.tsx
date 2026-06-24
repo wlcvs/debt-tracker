@@ -9,6 +9,7 @@ interface Props {
     name: string;
     email: string | null;
     totalOwed: number;
+    accessCode: string;
   };
 }
 
@@ -58,9 +59,14 @@ export function EditablePersonHeader({ person }: Props) {
   return (
     <div className="flex items-baseline gap-4 flex-1 flex-wrap">
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">
-          {person.name}
-        </h2>
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">
+            {person.name}
+          </h2>
+          <span className="text-[10px] tracking-widest text-zinc-400 dark:text-zinc-600 uppercase">
+            {person.accessCode}
+          </span>
+        </div>
         {person.email && (
           <p className="text-xs tracking-wider text-zinc-500 dark:text-zinc-500">{person.email}</p>
         )}

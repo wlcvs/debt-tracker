@@ -30,7 +30,10 @@ export default async function DashboardLayout({
 
       {/* Theme + sign out */}
       <div className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-        <ThemeToggle />
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-500">tema:</span>
+          <ThemeToggle />
+        </div>
         <form action={signOutAction}>
           <button
             type="submit"
