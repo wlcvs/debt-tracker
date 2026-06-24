@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface Props {
   sidebar: React.ReactNode;
@@ -10,6 +11,11 @@ interface Props {
 
 export function DashboardShell({ sidebar, children }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[#e8e8ed] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
