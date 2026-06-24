@@ -97,20 +97,28 @@ export function LeftSidebar({ people }: Props) {
 
       {/* Add person */}
       <div className="border-t border-zinc-200 dark:border-zinc-800 px-4 py-3 shrink-0">
-        <form action={createPerson} className="flex gap-2">
+        <form action={createPerson} className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              name="name"
+              placeholder="NOME"
+              required
+              className="min-w-0 flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
+            />
+            <button
+              type="submit"
+              className="shrink-0 border border-zinc-400 dark:border-zinc-600 px-3 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              +
+            </button>
+          </div>
           <input
-            type="text"
-            name="name"
-            placeholder="NOVA PESSOA"
-            required
-            className="min-w-0 flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
+            type="email"
+            name="email"
+            placeholder="E-MAIL (OPCIONAL)"
+            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
           />
-          <button
-            type="submit"
-            className="shrink-0 border border-zinc-400 dark:border-zinc-600 px-3 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-          >
-            +
-          </button>
         </form>
       </div>
     </div>

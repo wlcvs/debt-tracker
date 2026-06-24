@@ -11,6 +11,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const createPersonSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
+  email: z.string().email("E-mail inválido").optional().or(z.literal("")),
 });
 
 function generateAccessCode(): string {
@@ -23,13 +24,18 @@ export async function createPerson(formData: FormData) {
     throw new Error("Not authenticated");
   }
 
+  const emailRaw = (formData.get("email") as string | null)?.trim() || "";
   const parsed = createPersonSchema.parse({
     name: formData.get("name"),
+    email: emailRaw,
   });
+
+  const email = parsed.email || null;
 
   await prisma.person.create({
     data: {
       name: parsed.name,
+      email,
       userId: session.user.id,
       accessCode: generateAccessCode(),
     },
