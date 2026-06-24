@@ -97,6 +97,9 @@ export function LeftSidebar({ people }: Props) {
 
       {/* Add person */}
       <div className="border-t border-zinc-200 dark:border-zinc-800 px-4 py-3 shrink-0">
+        <p className="text-sm tracking-widest text-zinc-400 dark:text-zinc-600 uppercase mb-2">
+          Adicionar nova pessoa
+        </p>
         <form action={createPerson} className="flex flex-col gap-2">
           <div className="flex gap-2">
             <input
