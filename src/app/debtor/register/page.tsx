@@ -1,11 +1,26 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
 import { debtorRegisterAction } from "@/lib/actions/debtor-auth";
 import { ThemeToggle } from "@/components/theme-toggle";
+
+function getPasswordStrength(password: string): { score: number; label: string; color: string } {
+  if (!password) return { score: 0, label: "", color: "" };
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 1) return { score, label: "FRACA", color: "bg-red-500" };
+  if (score <= 2) return { score, label: "RAZOÁVEL", color: "bg-yellow-500" };
+  if (score <= 3) return { score, label: "BOA", color: "bg-blue-500" };
+  return { score, label: "FORTE", color: "bg-green-500" };
+}
 
 const inputClass =
   "bg-transparent border border-zinc-300 dark:border-zinc-700 px-4 py-3 text-sm tracking-widest text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors";
@@ -14,8 +29,10 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const codeFromUrl = searchParams.get("code") ?? "";
   const router = useRouter();
+  const [password, setPassword] = useState("");
 
   const [state, action, pending] = useActionState(debtorRegisterAction, { status: "idle" });
+  const strength = getPasswordStrength(password);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -84,8 +101,30 @@ function RegisterForm() {
           placeholder="MÍN. 8 CARACTERES"
           required
           autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           className={inputClass}
         />
+        {password.length > 0 && (
+          <div className="flex flex-col gap-1 mt-1">
+            <div className="flex gap-1">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className={`h-0.5 flex-1 transition-colors ${strength.score >= i ? strength.color : "bg-zinc-200 dark:bg-zinc-800"}`}
+                />
+              ))}
+            </div>
+            <p className="text-[10px] tracking-widest text-zinc-400 dark:text-zinc-600">
+              {strength.label}
+              {strength.score <= 2 && (
+                <span className="ml-2 text-zinc-300 dark:text-zinc-700">
+                  USE MAIÚSCULAS, NÚMEROS E SÍMBOLOS
+                </span>
+              )}
+            </p>
+          </div>
+        )}
       </div>
 
       <label className="flex items-start gap-3 cursor-pointer group mt-1">

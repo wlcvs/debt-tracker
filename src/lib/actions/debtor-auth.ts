@@ -26,7 +26,13 @@ const registerSchema = z.object({
     .trim()
     .transform((s) => s.replace(/\D/g, ""))
     .refine((s) => s.length >= 10 && s.length <= 11, "Celular inválido"),
-  password: z.string().min(8, "Senha deve ter no mínimo 8 caracteres"),
+  password: z
+    .string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .refine(
+      (p) => /[A-Z]/.test(p) || /[0-9]/.test(p) || /[^A-Za-z0-9]/.test(p),
+      "Senha muito fraca. Use letras maiúsculas, números ou símbolos."
+    ),
   emailNotifications: z.boolean().default(false),
 });
 
