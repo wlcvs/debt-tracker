@@ -1,5 +1,6 @@
 import { getOverviewStats } from "@/lib/actions/person";
 import { getCreditCards, deleteCreditCard, createCreditCard } from "@/lib/actions/credit-card";
+import { TotalDisplay } from "./TotalDisplay";
 
 export default async function OverviewPage() {
   const [stats, creditCards] = await Promise.all([
@@ -10,14 +11,7 @@ export default async function OverviewPage() {
   return (
     <div className="px-8 py-10 h-full flex flex-col gap-10">
       {/* Total */}
-      <section>
-        <p className="text-xs tracking-[0.3em] text-zinc-400 dark:text-zinc-500 uppercase mb-1">
-          Total a receber
-        </p>
-        <p className="text-5xl tracking-tight text-zinc-900 dark:text-white">
-          R$ {stats.totalToReceive.toFixed(2)}
-        </p>
-      </section>
+      <TotalDisplay total={stats.totalToReceive} />
 
       {/* Stats grid */}
       <section className="grid grid-cols-2 sm:grid-cols-3 gap-4">
