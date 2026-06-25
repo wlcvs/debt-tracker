@@ -90,6 +90,11 @@ describe("deleteDebt", () => {
       where: { id: "debt-1", person: { userId: "user-1" } },
     });
   });
+
+  it("throws when id is missing", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    await expect(deleteDebt(new FormData())).rejects.toThrow();
+  });
 });
 
 // ── updateDebt ────────────────────────────────────────────────────────────────

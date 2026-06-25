@@ -46,7 +46,7 @@ export async function deletePayment(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Not authenticated");
 
-  const id = formData.get("id") as string;
+  const id = z.string().min(1).parse(formData.get("id"));
   await prisma.payment.deleteMany({
     where: { id, person: { userId: session.user.id } },
   });

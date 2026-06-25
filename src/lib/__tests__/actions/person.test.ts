@@ -79,6 +79,11 @@ describe("deletePerson", () => {
       where: { id: "person-1", userId: "user-1" },
     });
   });
+
+  it("throws when id is missing", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    await expect(deletePerson(new FormData())).rejects.toThrow();
+  });
 });
 
 // ── updatePerson ──────────────────────────────────────────────────────────────

@@ -109,7 +109,7 @@ export async function deletePerson(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Not authenticated");
 
-  const id = formData.get("id") as string;
+  const id = z.string().min(1).parse(formData.get("id"));
   await prisma.person.deleteMany({ where: { id, userId: session.user.id } });
   revalidatePath("/");
 }
@@ -118,7 +118,7 @@ export async function updatePerson(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Not authenticated");
 
-  const id = formData.get("id") as string;
+  const id = z.string().min(1).parse(formData.get("id"));
   const name = z.string().trim().min(1).parse(formData.get("name"));
 
   await prisma.person.updateMany({ where: { id, userId: session.user.id }, data: { name } });

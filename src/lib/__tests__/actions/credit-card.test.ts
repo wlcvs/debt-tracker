@@ -61,6 +61,11 @@ describe("deleteCreditCard", () => {
       where: { id: "card-1", userId: "user-1" },
     });
   });
+
+  it("throws when id is missing", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    await expect(deleteCreditCard(new FormData())).rejects.toThrow();
+  });
 });
 
 // ── getCreditCards ────────────────────────────────────────────────────────────
