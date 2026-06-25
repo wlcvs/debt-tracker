@@ -12,11 +12,9 @@
 }
 
 body {
-  background-color: #c8c8d0;
+  background-color: #a8a8b4;
   color: #18181b;
   font-family: var(--font-mono);
-  height: 100dvh;
-  overflow: hidden;
 }
 
 .dark body {

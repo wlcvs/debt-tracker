@@ -9,6 +9,7 @@ export const prismaMock = {
   },
   debt: {
     create: vi.fn(),
+    count: vi.fn(),
   },
   payment: {
     create: vi.fn(),

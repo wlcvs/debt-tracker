@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import type { PersonWithBalance } from "@/lib/actions/person";
 
@@ -10,37 +7,19 @@ interface Props {
   debtor: DebtorView;
 }
 
+const methodLabel = (m: string) => PAYMENT_METHODS[m as PaymentMethodKey] ?? m;
+
 export function PublicView({ debtor }: Props) {
-  const [balanceVisible, setBalanceVisible] = useState(true);
-
-  const methodLabel = (m: string) =>
-    PAYMENT_METHODS[m as PaymentMethodKey] ?? m;
-
   return (
     <section className="border border-zinc-200 dark:border-zinc-800">
       {/* Header */}
       <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-baseline justify-between gap-4">
-        <h2 className="text-sm tracking-widest uppercase text-zinc-900 dark:text-white">
+        <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">
           {debtor.name}
         </h2>
-        <div className="flex items-center gap-2 shrink-0">
-          {balanceVisible ? (
-            <p className="text-lg tracking-tight text-zinc-900 dark:text-white">
-              R$ {debtor.totalOwed.toFixed(2)}
-            </p>
-          ) : (
-            <p className="text-lg tracking-widest text-zinc-400 dark:text-zinc-600">
-              ••••••
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={() => setBalanceVisible((v) => !v)}
-            className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer"
-          >
-            {balanceVisible ? "OCULTAR" : "MOSTRAR"}
-          </button>
-        </div>
+        <p className="text-lg tracking-tight text-zinc-900 dark:text-white shrink-0">
+          R$ {debtor.totalOwed.toFixed(2)}
+        </p>
       </div>
 
       <div className="px-5 py-4">
@@ -58,7 +37,14 @@ export function PublicView({ debtor }: Props) {
                 key={debt.id}
                 className="flex justify-between text-xs py-1.5 border-b border-zinc-100 dark:border-zinc-900 text-zinc-700 dark:text-zinc-300"
               >
-                <span className="truncate mr-4">{debt.description}</span>
+                <span className="truncate mr-4">
+                  {debt.description}
+                  {(debt.creditCardLabel || debt.method) && (
+                    <span className="ml-2 text-zinc-400 dark:text-zinc-600">
+                      {debt.creditCardLabel ?? methodLabel(debt.method!)}
+                    </span>
+                  )}
+                </span>
                 <span className="shrink-0 tracking-tight">
                   R$ {debt.amount.toFixed(2)}
                 </span>

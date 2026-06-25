@@ -114,7 +114,7 @@ NEXT_PUBLIC_APP_URL=
 - **Never persist derived data** — balances are always computed at runtime.
 - **PaymentMethod enum** is `PIX | CASH` only — never `CREDIT_CARD`.
 - **Every new env var** must also be added to `.env.example`.
-- **Design:** HUD/monochromatic (grayscale, no accent colors, no emojis). Use uppercase text instead of icons (`"HIDE"` not `👁`). Light bg is `#e8e8ed`, not white. Dark/light toggle exists.
+- **Design:** HUD/monochromatic (grayscale, no accent colors, no emojis). Use uppercase text instead of icons (`"HIDE"` not `👁`). Light bg is `#e8e8ed`, not white. Dark/light toggle exists. **The UI is in Brazilian Portuguese** — all labels, placeholders, buttons, and messages must be in pt-BR.
 - **Commits:** Conventional Commits in English (`feat:`, `fix:`, `chore:`, etc.).
 - **Never deploy** without Wallacy reviewing the feature first.
 - **Keep it simple** — this is a single-admin personal app; avoid overengineering.

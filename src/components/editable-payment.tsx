@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { deletePayment, updatePayment } from "@/lib/actions/payment";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 interface Props {
   payment: {
@@ -15,6 +16,7 @@ interface Props {
 
 export function EditablePayment({ payment }: Props) {
   const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const methodLabel = PAYMENT_METHODS[payment.method as PaymentMethodKey] ?? payment.method;
 
@@ -68,11 +70,21 @@ export function EditablePayment({ payment }: Props) {
       <span className="shrink-0 tracking-tight">R$ {payment.amount.toFixed(2)}</span>
       <div className="flex gap-2 shrink-0">
         <button onClick={() => setEditing(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer" title="Editar">✎</button>
-        <form action={deletePayment}>
-          <input type="hidden" name="id" value={payment.id} />
-          <button type="submit" className="text-zinc-400 dark:text-zinc-700 hover:text-red-500 transition-colors cursor-pointer" title="Remover">✕</button>
-        </form>
+        <button onClick={() => setConfirming(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-red-500 transition-colors cursor-pointer" title="Remover">✕</button>
       </div>
+      {confirming && (
+        <ConfirmDialog
+          title="Excluir pagamento?"
+          description={`Pagamento de R$ ${payment.amount.toFixed(2)} será removido permanentemente.`}
+          confirmLabel="EXCLUIR"
+          onCancel={() => setConfirming(false)}
+          onConfirm={async () => {
+            const fd = new FormData();
+            fd.append("id", payment.id);
+            await deletePayment(fd);
+          }}
+        />
+      )}
     </li>
   );
 }

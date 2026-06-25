@@ -34,6 +34,12 @@ export async function deleteCreditCard(formData: FormData) {
   if (!session?.user?.id) throw new Error("Not authenticated");
 
   const id = z.string().min(1).parse(formData.get("id"));
+
+  const debtCount = await prisma.debt.count({ where: { creditCardId: id } });
+  if (debtCount > 0) {
+    throw new Error("Este cartão possui dívidas registradas e não pode ser excluído.");
+  }
+
   await prisma.creditCard.deleteMany({ where: { id, userId: session.user.id } });
   revalidatePath("/");
 }

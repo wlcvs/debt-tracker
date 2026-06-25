@@ -39,13 +39,14 @@ model CreditCard {
 }
 
 model Debt {
-  id           String   @id @default(cuid())
+  id           String         @id @default(cuid())
   personId     String
   creditCardId String?
-  amount       Decimal  @db.Decimal(10, 2)
+  method       PaymentMethod?
+  amount       Decimal        @db.Decimal(10, 2)
   description  String
   date         DateTime
-  createdAt    DateTime @default(now())
+  createdAt    DateTime       @default(now())
 
   person     Person      @relation(fields: [personId], references: [id], onDelete: Cascade)
   creditCard CreditCard? @relation(fields: [creditCardId], references: [id], onDelete: SetNull)

@@ -1,6 +1,6 @@
 # Debt Tracker
 
-Personal application to track debts owed by third parties. Each debtor gets a shareable link to check their own balance.
+Personal application to track debts owed by third parties. Each debtor gets a shareable link to check their own balance. The UI is in Brazilian Portuguese.
 
 ## Stack
 

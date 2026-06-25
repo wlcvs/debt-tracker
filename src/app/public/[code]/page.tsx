@@ -17,14 +17,9 @@ export default async function PublicDirectPage({
     <main className="min-h-dvh flex items-center justify-center px-4 bg-white dark:bg-zinc-950">
       <div className="w-full max-w-md">
         <div className="mb-10 flex items-start justify-between">
-          <div>
-            <p className="text-xs tracking-[0.3em] text-zinc-400 dark:text-zinc-500 uppercase mb-2">
-              Consulta
-            </p>
-            <h1 className="text-2xl tracking-widest uppercase text-zinc-900 dark:text-white">
-              Minha Dívida
-            </h1>
-          </div>
+          <h1 className="text-2xl tracking-widest uppercase text-zinc-900 dark:text-white">
+            Minha Dívida
+          </h1>
           <ThemeToggle />
         </div>
         <PublicView debtor={debtor} />

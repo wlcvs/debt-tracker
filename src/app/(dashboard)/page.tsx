@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getOverviewStats, getPeopleWithBalances, createPerson } from "@/lib/actions/person";
-import { getCreditCards, deleteCreditCard, createCreditCard } from "@/lib/actions/credit-card";
+import { getCreditCards, createCreditCard } from "@/lib/actions/credit-card";
 import { TotalDisplay } from "@/components/total-display";
+import { CreditCardList } from "@/components/credit-card-list";
 
 export default async function OverviewPage() {
   const [stats, people, creditCards] = await Promise.all([
@@ -11,7 +12,7 @@ export default async function OverviewPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-10 pb-16">
+    <div className="flex flex-col gap-10">
       <TotalDisplay total={stats.totalToReceive} />
 
       {/* Stats grid */}
@@ -40,8 +41,11 @@ export default async function OverviewPage() {
         ))}
       </section>
 
+      {/* People + Credit cards */}
+      <div className="flex flex-col sm:flex-row gap-10">
+
       {/* People */}
-      <section className="max-w-sm">
+      <section className="max-w-sm flex-1">
         <p className="text-xs tracking-[0.3em] text-zinc-400 dark:text-zinc-500 uppercase mb-4">
           Devedores
         </p>
@@ -90,32 +94,12 @@ export default async function OverviewPage() {
       </section>
 
       {/* Credit cards */}
-      <section className="max-w-sm">
+      <section className="max-w-sm flex-1">
         <p className="text-xs tracking-[0.3em] text-zinc-400 dark:text-zinc-500 uppercase mb-4">
           Cartões
         </p>
 
-        {creditCards.length > 0 && (
-          <ul className="flex flex-col mb-4">
-            {creditCards.map((card) => (
-              <li
-                key={card.id}
-                className="flex items-center justify-between text-xs tracking-widest uppercase py-2 border-b border-zinc-200 dark:border-zinc-900 text-zinc-600 dark:text-zinc-400"
-              >
-                <span>{card.label}</span>
-                <form action={deleteCreditCard}>
-                  <input type="hidden" name="id" value={card.id} />
-                  <button
-                    type="submit"
-                    className="text-zinc-400 dark:text-zinc-700 hover:text-red-500 transition-colors cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        )}
+        {creditCards.length > 0 && <CreditCardList cards={creditCards} />}
 
         <form action={createCreditCard} className="flex gap-2">
           <input
@@ -133,6 +117,8 @@ export default async function OverviewPage() {
           </button>
         </form>
       </section>
+
+      </div>
     </div>
   );
 }

@@ -51,6 +51,7 @@ describe("deleteCreditCard", () => {
 
   it("deletes card scoped to user", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.count.mockResolvedValue(0 as never);
     prismaMock.creditCard.deleteMany.mockResolvedValue({} as never);
 
     const form = new FormData();
@@ -60,6 +61,15 @@ describe("deleteCreditCard", () => {
     expect(prismaMock.creditCard.deleteMany).toHaveBeenCalledWith({
       where: { id: "card-1", userId: "user-1" },
     });
+  });
+
+  it("throws when card has debts", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.count.mockResolvedValue(2 as never);
+
+    const form = new FormData();
+    form.set("id", "card-1");
+    await expect(deleteCreditCard(form)).rejects.toThrow("dívidas registradas");
   });
 
   it("throws when id is missing", async () => {

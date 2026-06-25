@@ -27,6 +27,8 @@ export interface PersonWithBalance {
     amount: number;
     description: string;
     date: Date;
+    method: string | null;
+    creditCardLabel: string | null;
   }[];
   payments: {
     id: string;
@@ -42,7 +44,7 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
 
   const people = await prisma.person.findMany({
     where: { userId: session.user.id },
-    include: { debts: true, payments: true },
+    include: { debts: { include: { creditCard: true } }, payments: true },
     orderBy: { name: "asc" },
   });
 
@@ -52,6 +54,8 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
       amount: Number(d.amount),
       description: d.description,
       date: d.date,
+      method: d.method,
+      creditCardLabel: d.creditCard?.label ?? null,
     }));
     const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
     const totalOwed = debts.reduce((s, d) => s + d.amount, 0) - totalPaid;
@@ -77,7 +81,7 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
 
   const person = await prisma.person.findFirst({
     where: { id, userId: session.user.id },
-    include: { debts: true, payments: true },
+    include: { debts: { include: { creditCard: true } }, payments: true },
   });
 
   if (!person) return null;
@@ -87,6 +91,8 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
     amount: Number(d.amount),
     description: d.description,
     date: d.date,
+    method: d.method,
+    creditCardLabel: d.creditCard?.label ?? null,
   }));
   const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
   const totalOwed = debts.reduce((s, d) => s + d.amount, 0) - totalPaid;
@@ -169,7 +175,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
 export async function getDebtorViewById(id: string) {
   const person = await prisma.person.findUnique({
     where: { id },
-    include: { debts: true, payments: true },
+    include: { debts: { include: { creditCard: true } }, payments: true },
   });
 
   if (!person) return null;
@@ -185,6 +191,8 @@ export async function getDebtorViewById(id: string) {
       amount: Number(d.amount),
       description: d.description,
       date: d.date,
+      method: d.method,
+      creditCardLabel: d.creditCard?.label ?? null,
     })),
     payments: person.payments.map((p) => ({
       id: p.id,

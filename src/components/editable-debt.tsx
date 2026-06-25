@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteDebt, updateDebt } from "@/lib/actions/debt";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 interface Props {
   debt: {
@@ -9,11 +10,16 @@ interface Props {
     amount: number;
     description: string;
     date: Date;
+    method: string | null;
+    creditCardLabel: string | null;
   };
 }
 
+const METHOD_LABELS: Record<string, string> = { PIX: "Pix", CASH: "Dinheiro" };
+
 export function EditableDebt({ debt }: Props) {
   const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   if (editing) {
     return (
@@ -60,17 +66,42 @@ export function EditableDebt({ debt }: Props) {
     );
   }
 
+  const methodLabel = debt.creditCardLabel
+    ? debt.creditCardLabel
+    : debt.method
+    ? METHOD_LABELS[debt.method] ?? debt.method
+    : null;
+
   return (
     <li className="flex justify-between items-center text-xs py-2 border-b border-zinc-100 dark:border-zinc-900 gap-2 text-zinc-700 dark:text-zinc-300">
-      <span className="truncate flex-1">{debt.description}</span>
-      <span className="shrink-0 tracking-tight">R$ {debt.amount.toFixed(2)}</span>
-      <div className="flex gap-2 shrink-0">
-        <button onClick={() => setEditing(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer" title="Editar">✎</button>
-        <form action={deleteDebt}>
-          <input type="hidden" name="id" value={debt.id} />
-          <button type="submit" className="text-zinc-400 dark:text-zinc-700 hover:text-red-500 transition-colors cursor-pointer" title="Remover">✕</button>
-        </form>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="truncate">{debt.description}</span>
+        {methodLabel && (
+          <span className="shrink-0 text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
+            {methodLabel}
+          </span>
+        )}
       </div>
+      <div className="flex items-center gap-4 shrink-0">
+        <span className="tracking-tight">R$ {debt.amount.toFixed(2)}</span>
+          <div className="flex gap-2">
+            <button onClick={() => setEditing(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer" title="Editar">✎</button>
+            <button onClick={() => setConfirming(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-red-500 transition-colors cursor-pointer" title="Remover">✕</button>
+          </div>
+        </div>
+      {confirming && (
+        <ConfirmDialog
+          title="Excluir dívida?"
+          description={`"${debt.description}" será removida permanentemente.`}
+          confirmLabel="EXCLUIR"
+          onCancel={() => setConfirming(false)}
+          onConfirm={async () => {
+            const fd = new FormData();
+            fd.append("id", debt.id);
+            await deleteDebt(fd);
+          }}
+        />
+      )}
     </li>
   );
 }
