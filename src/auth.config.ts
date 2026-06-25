@@ -8,9 +8,7 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     jwt({ token, user }) {
       if (user?.id) token.id = user.id;
-      if ((user as { role?: string })?.role) {
-        token.role = (user as { role: "admin" }).role;
-      }
+      if (user?.role) token.role = user.role;
       return token;
     },
     session({ session, token }) {
@@ -20,7 +18,7 @@ export const authConfig: NextAuthConfig = {
     },
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
-      const role = (auth?.user as { role?: string } | undefined)?.role;
+      const role = auth?.user?.role;
 
       if (pathname === "/" || pathname.startsWith("/person")) {
         return role === "admin";
