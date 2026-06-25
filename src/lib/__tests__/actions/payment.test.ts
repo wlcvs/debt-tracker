@@ -34,8 +34,8 @@ describe("createPayment", () => {
 
   it("creates payment for authenticated user", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" });
-    prismaMock.payment.create.mockResolvedValue({});
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.payment.create.mockResolvedValue({} as never);
 
     const form = new FormData();
     form.set("personId", "person-1");

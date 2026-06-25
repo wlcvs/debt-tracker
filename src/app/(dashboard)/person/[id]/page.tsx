@@ -8,8 +8,8 @@ import { EditableDebt } from "@/components/editable-debt";
 import { EditablePayment } from "@/components/editable-payment";
 import { EditablePersonHeader } from "@/components/editable-person-header";
 import { ShareButton } from "@/components/share-button";
-import { InviteButton } from "@/components/invite-button";
 import { SelectHTMLAttributes, ReactNode } from "react";
+
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   children: ReactNode;
 }
@@ -37,6 +37,7 @@ function Select({ children, className = "", ...rest }: SelectProps) {
     </div>
   );
 }
+
 export default async function PersonPage({
   params,
 }: {
@@ -51,32 +52,16 @@ export default async function PersonPage({
   if (!person) notFound();
 
   return (
-    <div className="px-4 sm:px-8 py-6 sm:py-8 h-full flex flex-col gap-6 sm:gap-8">
+    <div className="flex flex-col gap-6 sm:gap-8 pb-16">
       {/* Person header */}
       <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4 sm:pb-6 flex flex-col gap-3">
         <EditablePersonHeader person={person} />
-        <div className="flex items-center gap-3 flex-wrap">
-          <ShareButton accessCode={person.accessCode} />
-          {!person.isRegistered && (
-            <InviteButton accessCode={person.accessCode} />
-          )}
-          <span
-            className={`text-[10px] tracking-widest uppercase px-2 py-1 border ${person.isRegistered
-              ? "border-zinc-400 dark:border-zinc-600 text-zinc-600 dark:text-zinc-400"
-              : "border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600"
-              }`}
-          >
-            {person.isRegistered ? "Cadastrado" : "Sem cadastro"}
-          </span>
-          {person.phone && (
-            <span className="text-xs tracking-widest text-zinc-400 dark:text-zinc-600">
-              {person.phone}
-            </span>
-          )}
+        <div className="flex items-center gap-3">
+          <ShareButton personId={person.id} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 flex-1 overflow-y-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
         {/* Debts */}
         <section className="flex flex-col gap-4">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">
@@ -117,7 +102,6 @@ export default async function PersonPage({
               required
               className="bg-transparent border border-zinc-300 dark:border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-600 transition-colors"
             />
-            {/* Cartão associado à dívida (opcional) */}
             {creditCards.length > 0 && (
               <Select name="creditCardId" className={selectClass}>
                 <option value="">SEM CARTÃO</option>
@@ -170,24 +154,11 @@ export default async function PersonPage({
               required
               className="bg-transparent border border-zinc-300 dark:border-zinc-800 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-600 transition-colors"
             />
-            {/* Meio de pagamento */}
             <Select name="method" className={selectClass}>
               {Object.entries(PAYMENT_METHODS).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
               ))}
             </Select>
-            {/* Vincular a uma dívida específica (opcional) */}
-            {person.debts.length > 0 && (
-              <Select name="debtId">
-                <option value="">SEM VÍNCULO ESPECÍFICO</option>
-                {person.debts.map((debt) => (
-                  <option key={debt.id} value={debt.id}>
-                    {debt.description} — R$ {debt.amount.toFixed(2)}
-                    {debt.isCovered ? " (QUITADA)" : ""}
-                  </option>
-                ))}
-              </Select>
-            )}
             <button
               type="submit"
               className="border border-zinc-300 dark:border-zinc-800 py-2 text-xs tracking-widest uppercase text-zinc-500 hover:border-zinc-900 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-300 transition-colors cursor-pointer"
@@ -197,7 +168,6 @@ export default async function PersonPage({
           </form>
         </section>
       </div>
-
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
-import { sendDebtNotification } from "@/lib/email-notifications";
 
 const createDebtSchema = z.object({
   personId: z.string().min(1),
@@ -16,12 +15,9 @@ const createDebtSchema = z.object({
 
 export async function createDebt(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Not authenticated");
-  }
+  if (!session?.user?.id) throw new Error("Not authenticated");
 
   const rawCreditCardId = formData.get("creditCardId");
-
   const parsed = createDebtSchema.parse({
     personId: formData.get("personId"),
     amount: formData.get("amount"),
@@ -30,14 +26,10 @@ export async function createDebt(formData: FormData) {
     creditCardId: rawCreditCardId ? rawCreditCardId : undefined,
   });
 
-  // Ensure the person belongs to the logged-in user (avoid cross-user data access)
   const person = await prisma.person.findFirst({
     where: { id: parsed.personId, userId: session.user.id },
-    include: { debts: true, payments: true },
   });
-  if (!person) {
-    throw new Error("Person not found");
-  }
+  if (!person) throw new Error("Person not found");
 
   await prisma.debt.create({
     data: {
@@ -48,22 +40,6 @@ export async function createDebt(formData: FormData) {
       creditCardId: parsed.creditCardId || null,
     },
   });
-
-  if (person.email && person.emailNotifications) {
-    const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
-    const prevOwed = person.debts.reduce((s, d) => s + Number(d.amount), 0);
-    const newBalance = Math.max(0, prevOwed + parsed.amount - totalPaid);
-
-    sendDebtNotification({
-      personName: person.name,
-      personEmail: person.email,
-      accessCode: person.accessCode,
-      debtAmount: parsed.amount,
-      debtDescription: parsed.description,
-      debtDate: parsed.date,
-      newBalance,
-    }).catch(() => {});
-  }
 
   revalidatePath("/");
 }

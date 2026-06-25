@@ -28,28 +28,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         };
       },
     }),
-    Credentials({
-      id: "debtor",
-      credentials: { email: {}, password: {} },
-      authorize: async (credentials) => {
-        const email = credentials?.email as string | undefined;
-        const password = credentials?.password as string | undefined;
-        if (!email || !password) return null;
-
-        const person = await prisma.person.findUnique({ where: { email } });
-        if (!person?.passwordHash) return null;
-
-        const match = await bcrypt.compare(password, person.passwordHash);
-        if (!match) return null;
-
-        return { id: person.id, email: person.email!, name: person.name, role: "debtor" } as {
-          id: string;
-          email: string;
-          name: string;
-          role: "debtor";
-        };
-      },
-    }),
   ],
   session: { strategy: "jwt" },
   callbacks: {

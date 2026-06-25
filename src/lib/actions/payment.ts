@@ -4,13 +4,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
-import { sendPaymentNotification } from "@/lib/email-notifications";
 
 const methodSchema = z.enum(["PIX", "CASH"]).default("CASH");
 
 const createPaymentSchema = z.object({
   personId: z.string().min(1),
-  debtId: z.string().optional(),
   amount: z.coerce.number().positive("Amount must be greater than zero"),
   date: z.coerce.date(),
   method: methodSchema,
@@ -18,14 +16,10 @@ const createPaymentSchema = z.object({
 
 export async function createPayment(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Not authenticated");
-  }
+  if (!session?.user?.id) throw new Error("Not authenticated");
 
-  const rawDebtId = formData.get("debtId") as string | null;
   const parsed = createPaymentSchema.parse({
     personId: formData.get("personId"),
-    debtId: rawDebtId || undefined,
     amount: formData.get("amount"),
     date: formData.get("date"),
     method: formData.get("method") || "CASH",
@@ -33,39 +27,17 @@ export async function createPayment(formData: FormData) {
 
   const person = await prisma.person.findFirst({
     where: { id: parsed.personId, userId: session.user.id },
-    include: { debts: true, payments: true },
   });
-  if (!person) {
-    throw new Error("Person not found");
-  }
+  if (!person) throw new Error("Person not found");
 
   await prisma.payment.create({
     data: {
       personId: parsed.personId,
-      debtId: parsed.debtId || null,
       amount: parsed.amount,
       date: parsed.date,
       method: parsed.method,
     },
   });
-
-  if (person.email && person.emailNotifications) {
-    const totalOwed = person.debts.reduce((s, d) => s + Number(d.amount), 0);
-    const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0) + parsed.amount;
-    const remaining = Math.max(0, totalOwed - totalPaid);
-
-    // Fire-and-forget — don't block the response
-    sendPaymentNotification({
-      personName: person.name,
-      personEmail: person.email,
-      accessCode: person.accessCode,
-      paymentAmount: parsed.amount,
-      paymentMethod: parsed.method,
-      totalPaid,
-      totalOwed,
-      remaining,
-    }).catch(() => {});
-  }
 
   revalidatePath("/");
 }

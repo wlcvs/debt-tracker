@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getDebtorViewByCode } from "@/lib/actions/person";
+import { getDebtorViewById } from "@/lib/actions/person";
 import { PublicView } from "@/components/public-view";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -9,7 +9,7 @@ export default async function PublicDirectPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const debtor = await getDebtorViewByCode(code);
+  const debtor = await getDebtorViewById(code);
 
   if (!debtor) notFound();
 
@@ -27,7 +27,7 @@ export default async function PublicDirectPage({
           </div>
           <ThemeToggle />
         </div>
-        <PublicView debtor={debtor} accessCode={code} />
+        <PublicView debtor={debtor} />
       </div>
     </main>
   );

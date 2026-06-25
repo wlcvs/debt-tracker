@@ -13,7 +13,6 @@ import { deleteCreditCard } from "@/lib/actions/credit-card";
 
 const mockAuth = vi.mocked(auth);
 
-// extend mock with methods used by delete/update
 const extendedMock = prismaMock as typeof prismaMock & {
   person: typeof prismaMock.person & { deleteMany: ReturnType<typeof vi.fn>; updateMany: ReturnType<typeof vi.fn> };
   debt: typeof prismaMock.debt & { deleteMany: ReturnType<typeof vi.fn>; updateMany: ReturnType<typeof vi.fn> };
@@ -67,7 +66,7 @@ describe("updatePerson", () => {
     await updatePerson(form);
     expect(extendedMock.person.updateMany).toHaveBeenCalledWith({
       where: { id: "person-1", userId: "user-1" },
-      data: { name: "Maria", email: null },
+      data: { name: "Maria" },
     });
   });
 

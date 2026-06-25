@@ -9,7 +9,6 @@ interface Props {
     amount: number;
     description: string;
     date: Date;
-    isCovered: boolean;
   };
 }
 
@@ -62,7 +61,7 @@ export function EditableDebt({ debt }: Props) {
   }
 
   return (
-    <li className={`flex justify-between items-center text-xs py-2 border-b border-zinc-100 dark:border-zinc-900 gap-2 ${debt.isCovered ? "text-zinc-400 dark:text-zinc-600" : "text-zinc-700 dark:text-zinc-300"}`}>
+    <li className="flex justify-between items-center text-xs py-2 border-b border-zinc-100 dark:border-zinc-900 gap-2 text-zinc-700 dark:text-zinc-300">
       <span className="truncate flex-1">{debt.description}</span>
       <span className="shrink-0 tracking-tight">R$ {debt.amount.toFixed(2)}</span>
       <div className="flex gap-2 shrink-0">

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app does
 
-Personal debt tracker where the admin (Wallacy) logs debts and payments for people who owe him. Each person (debtor) gets an `accessCode` for a read-only public view. Debtors can also register/login at `/debtor/*` for a richer view.
+Personal debt tracker where the admin (Wallacy) logs debts and payments for people who owe him. Each person's `id` in the database serves as their access code for a read-only public view at `/public/[id]`.
 
 ## Stack
 
@@ -13,11 +13,10 @@ Personal debt tracker where the admin (Wallacy) logs debts and payments for peop
 | Framework | Next.js 16 (TypeScript, App Router, Server Actions) |
 | Database | PostgreSQL — Docker locally / Neon in production |
 | ORM | Prisma 7 (client generated at `src/generated/prisma`) |
-| Auth | Auth.js v5 (next-auth) — Credentials provider + JWT session |
+| Auth | Auth.js v5 (next-auth) — Credentials provider + JWT session (admin only) |
 | Styles | Tailwind CSS 4 |
 | Unit tests | Vitest |
 | E2E tests | Playwright |
-| Email | Resend — domain `wlcsv.dev`, sender `noreply@wlcsv.dev` |
 | Validation | Zod |
 
 ## Commands
@@ -57,17 +56,12 @@ Prisma client is generated into `src/generated/prisma` — always run `npx prism
 ```
 src/app/
   (dashboard)/          # admin-only; protected by Edge middleware (proxy.ts)
-    page.tsx            # dashboard with stats
+    page.tsx            # dashboard: stats + person list + add person + credit cards
     person/[id]/        # debtor detail view
-  public/[code]/        # debtor read-only view, no login required
-  debtor/login|register # debtor authentication
+  public/[id]/          # debtor read-only view, no login required; [id] = person's DB id
   login/                # admin login
-  forgot-password/
-  reset-password/[token]/
-  account/
   api/
     auth/[...nextauth]/
-    notifications/      # fire-and-forget webhook; authenticated via NOTIFICATIONS_SECRET header
 ```
 
 ### Server Actions
@@ -78,35 +72,28 @@ All mutations go through Server Actions in `src/lib/actions/`:
 - `payment.ts` — add/edit/delete payments
 - `credit-card.ts` — admin's credit cards (referenced in debts)
 - `auth.ts` — admin login/logout
-- `debtor-auth.ts` — debtor login/register
-- `password-reset.ts` — forgot/reset password flow
 
 ### Auth
 
-Two separate sessions:
+Single session — admin only:
 - **Admin** — Auth.js v5 Credentials, JWT, role `admin` injected in `auth.config.ts`. Edge middleware (`proxy.ts`) reads this to protect `(dashboard)` routes.
-- **Debtor** — separate session at `/debtor/*`.
-- **Public** — `/public/[code]` requires no login; just the `accessCode`.
+- **Public** — `/public/[id]` requires no login; the URL itself is the access code.
 
 `auth.config.ts` is intentionally split from `auth.ts` so it can be imported in the Edge runtime.
 
 ### Prisma models
 
 ```
-User               — admin; owns People and CreditCards
-Person             — debtor; name, email?, passwordHash?, phone?, emailNotifications, accessCode (unique)
-CreditCard         — admin's card; referenced in Debt
-Debt               — amount (Decimal 10,2), description, date, creditCardId?
-Payment            — amount, date, method (PIX | CASH), debtId? (optional — links to a specific debt)
-PasswordResetToken — unique token, expiresAt, cascades with User
+User       — admin; owns People and CreditCards
+Person     — debtor; id (serves as access code), name
+CreditCard — admin's card; referenced in Debt
+Debt       — amount (Decimal 10,2), description, date, creditCardId?
+Payment    — amount, date, method (PIX | CASH)
 ```
 
 ### Key lib files
 
-- `src/lib/debt-allocation.ts` — computes which payments cover which debts (smallest-first). Result is **never** persisted.
 - `src/lib/prisma.ts` — singleton PrismaClient.
-- `src/lib/email-notifications.ts` — Resend email sender (`noreply@wlcsv.dev`).
-- `src/lib/rate-limit.ts` — in-memory rate limiter for auth routes.
 - `src/lib/payment-methods.ts` — maps `PaymentMethod` enum values to display labels (`PIX → "Pix"`, `CASH → "Dinheiro"`).
 
 ### Testing conventions
@@ -124,17 +111,15 @@ DATABASE_URL=
 ADMIN_EMAIL=
 ADMIN_PASSWORD=
 AUTH_SECRET=              # generate with: npx auth secret
-RESEND_API_KEY=
 NEXT_PUBLIC_APP_URL=
-NOTIFICATIONS_SECRET=     # random secure string to authenticate the notifications service
 ```
 
 ## Rules
 
-- **Never persist derived data** — balances and debt allocations are always computed at runtime.
+- **Never persist derived data** — balances are always computed at runtime.
 - **PaymentMethod enum** is `PIX | CASH` only — never `CREDIT_CARD`.
-- **Notifications** are fire-and-forget — never `await` them in a way that delays the response.
 - **Every new env var** must also be added to `.env.example`.
 - **Design:** HUD/monochromatic (grayscale, no accent colors, no emojis). Use uppercase text instead of icons (`"HIDE"` not `👁`). Light bg is `#c8c8d0`, not white. Dark/light toggle exists.
 - **Commits:** Conventional Commits in English (`feat:`, `fix:`, `chore:`, etc.).
 - **Never deploy** without Wallacy reviewing the feature first.
+- **Keep it simple** — this is a single-admin personal app; avoid overengineering.
