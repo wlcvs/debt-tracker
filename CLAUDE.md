@@ -15,8 +15,7 @@ Personal debt tracker where the admin (Wallacy) logs debts and payments for peop
 | ORM | Prisma 7 (client generated at `src/generated/prisma`) |
 | Auth | Auth.js v5 (next-auth) — Credentials provider + JWT session (admin only) |
 | Styles | Tailwind CSS 4 |
-| Unit tests | Vitest |
-| E2E tests | Playwright |
+| Tests | Vitest (unit only) |
 | Validation | Zod |
 
 ## Commands
@@ -34,10 +33,6 @@ npm run lint
 # Unit tests (Vitest, no DB, Prisma mocked)
 npm run test:run          # single run
 npm run test              # watch mode
-
-# E2E tests (Playwright — starts dev server automatically)
-npm run test:e2e
-npm run test:e2e:ui       # with Playwright UI
 
 # DB
 docker compose up -d                  # start Postgres locally
@@ -98,9 +93,9 @@ Payment    — amount, date, method (PIX | CASH)
 
 ### Testing conventions
 
-- Unit tests in `src/lib/__tests__/`; Prisma is mocked via `src/lib/__tests__/helpers/prisma-mock.ts`.
-- E2E tests in `e2e/`; use a dedicated test user (`e2e@debt-tracker.test`) created in `global-setup.ts` and removed in `global-teardown.ts`.
-- Playwright saves auth state to `e2e/.auth/user.json` and reuses it across desktop + mobile projects.
+- Unit tests in `src/lib/__tests__/actions/`; one file per action module (`person`, `debt`, `payment`, `credit-card`).
+- Prisma is mocked via `src/lib/__tests__/helpers/prisma-mock.ts` — tests never hit the DB.
+- Tests cover: auth guards, happy paths, and input validation for all server actions.
 
 ## Environment variables
 

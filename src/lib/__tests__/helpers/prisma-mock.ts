@@ -13,6 +13,11 @@ export const prismaMock = {
   payment: {
     create: vi.fn(),
   },
+  creditCard: {
+    create: vi.fn(),
+    deleteMany: vi.fn(),
+    findMany: vi.fn(),
+  },
 };
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
