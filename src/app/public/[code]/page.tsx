@@ -14,16 +14,19 @@ export default async function PublicDirectPage({
   if (!debtor) notFound();
 
   return (
-    <main className="min-h-dvh flex items-center justify-center px-4 bg-white dark:bg-zinc-950">
-      <div className="w-full max-w-md">
-        <div className="mb-10 flex items-start justify-between">
-          <h1 className="text-2xl tracking-widest uppercase text-zinc-900 dark:text-white">
-            Minha Dívida
-          </h1>
-          <ThemeToggle />
-        </div>
+    <div className="min-h-dvh bg-[#f0f0f4] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+      <header className="bg-white dark:bg-zinc-950 border-b border-zinc-400 dark:border-zinc-800 px-6 py-3 flex items-center justify-between">
+        <h1 className="text-sm tracking-widest uppercase text-zinc-900 dark:text-white">
+          Debt Tracker
+        </h1>
+        <ThemeToggle />
+      </header>
+      <main className="max-w-md mx-auto px-4 sm:px-8 py-8">
+        <h2 className="text-xl tracking-widest uppercase text-zinc-900 dark:text-white mb-6">
+          Minha Dívida
+        </h2>
         <PublicView debtor={debtor} />
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

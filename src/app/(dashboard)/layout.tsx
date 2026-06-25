@@ -22,7 +22,7 @@ export default async function DashboardLayout({
         </Link>
         <div className="flex items-center gap-3 sm:gap-6">
           <ThemeToggle />
-          <form action={signOutAction}>
+          <form action={signOutAction} className="flex items-center">
             <button
               type="submit"
               className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
