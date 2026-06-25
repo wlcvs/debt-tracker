@@ -22,7 +22,7 @@ export async function createPayment(formData: FormData) {
     personId: formData.get("personId"),
     amount: formData.get("amount"),
     date: formData.get("date"),
-    method: formData.get("method") || "CASH",
+    method: formData.get("method") ?? undefined,
   });
 
   const person = await prisma.person.findFirst({
@@ -68,7 +68,7 @@ export async function updatePayment(formData: FormData) {
     id: formData.get("id"),
     amount: formData.get("amount"),
     date: formData.get("date"),
-    method: formData.get("method") || "CASH",
+    method: formData.get("method") ?? undefined,
   });
 
   await prisma.payment.updateMany({
