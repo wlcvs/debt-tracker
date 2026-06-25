@@ -45,6 +45,7 @@ docker compose up -d                  # start Postgres locally
 npx prisma migrate dev                # run migrations + regenerate client
 npx prisma generate                   # regenerate client only
 npx tsx prisma/seed.ts                # create admin user (ADMIN_EMAIL + ADMIN_PASSWORD)
+node --env-file=.env --import tsx/esm prisma/seed-test-data.ts  # populate with fictitious debtors, debts and payments
 ```
 
 Prisma client is generated into `src/generated/prisma` — always run `npx prisma generate` after schema changes.
