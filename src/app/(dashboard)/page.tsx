@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { getOverviewStats, getPeopleWithBalances, createPerson } from "@/lib/actions/person";
-import { getCreditCards, createCreditCard } from "@/lib/actions/credit-card";
+import { getOverviewStats, getPeopleWithBalances } from "@/lib/actions/person";
+import { getCreditCards } from "@/lib/actions/credit-card";
 import { TotalDisplay } from "@/components/total-display";
 import { CreditCardList } from "@/components/credit-card-list";
+import { CreatePersonForm } from "@/components/create-person-form";
+import { CreateCreditCardForm } from "@/components/create-credit-card-form";
 
 export default async function OverviewPage() {
   const [stats, people, creditCards] = await Promise.all([
@@ -76,21 +78,7 @@ export default async function OverviewPage() {
           </ul>
         )}
 
-        <form action={createPerson} className="flex gap-2">
-          <input
-            type="text"
-            name="name"
-            placeholder="NOVO DEVEDOR"
-            required
-            className="flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-          />
-          <button
-            type="submit"
-            className="shrink-0 border border-zinc-400 dark:border-zinc-600 px-4 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-          >
-            +
-          </button>
-        </form>
+        <CreatePersonForm />
       </section>
 
       {/* Credit cards */}
@@ -101,21 +89,7 @@ export default async function OverviewPage() {
 
         {creditCards.length > 0 && <CreditCardList cards={creditCards} />}
 
-        <form action={createCreditCard} className="flex gap-2">
-          <input
-            type="text"
-            name="label"
-            placeholder="EX: NUBANK"
-            required
-            className="flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-          />
-          <button
-            type="submit"
-            className="border border-zinc-400 dark:border-zinc-600 px-4 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-          >
-            +
-          </button>
-        </form>
+        <CreateCreditCardForm />
       </section>
 
       </div>
