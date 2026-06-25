@@ -2,30 +2,12 @@
 
 import { useState } from "react";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
+import type { PersonWithBalance } from "@/lib/actions/person";
 
-interface Debt {
-  id: string;
-  amount: number;
-  description: string;
-  date: Date;
-}
-
-interface Payment {
-  id: string;
-  amount: number;
-  date: Date;
-  method: string;
-}
-
-interface Debtor {
-  name: string;
-  totalOwed: number;
-  debts: Debt[];
-  payments: Payment[];
-}
+type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "debts" | "payments">;
 
 interface Props {
-  debtor: Debtor;
+  debtor: DebtorView;
 }
 
 export function PublicView({ debtor }: Props) {
