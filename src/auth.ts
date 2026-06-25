@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 
 const credentialsSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(1),
 });
 
