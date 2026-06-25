@@ -72,7 +72,7 @@ All mutations go through Server Actions in `src/lib/actions/`:
 
 Single session — admin only:
 - **Admin** — Auth.js v5 Credentials, JWT, role `admin` injected in `auth.config.ts`. Edge middleware (`proxy.ts`) reads this to protect `(dashboard)` routes.
-- **Public** — `/public/[id]` requires no login; the URL itself is the access code.
+- **Public** — `/public/[code]` requires no login; the URL itself is the access code.
 
 `auth.config.ts` is intentionally split from `auth.ts` so it can be imported in the Edge runtime.
 
@@ -118,3 +118,5 @@ NEXT_PUBLIC_APP_URL=
 - **Commits:** Conventional Commits in English (`feat:`, `fix:`, `chore:`, etc.).
 - **Never deploy** without Wallacy reviewing the feature first.
 - **Keep it simple** — this is a single-admin personal app; avoid overengineering.
+- **Validate all inputs with Zod** — never use `as string` casts on FormData; always parse with an explicit schema. Use `formData.get("field") ?? undefined` when the field is optional so Zod's `.default()` fires correctly.
+- **Zod v4 formats** — use `z.email()` (standalone), not the deprecated `z.string().email()`.
