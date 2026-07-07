@@ -16,10 +16,10 @@ async function main() {
   });
 
   await prisma.debt.create({
-    data: { personId: carlos.id, creditCardId: nubank.id, amount: 350.0, description: "Jantar aniversário", date: new Date("2026-03-10") },
+    data: { personId: carlos.id, creditCardId: nubank.id, amount: 350.0, title: "Jantar aniversário", date: new Date("2026-03-10") },
   });
   await prisma.debt.create({
-    data: { personId: carlos.id, amount: 120.0, description: "Uber para o show", date: new Date("2026-04-02") },
+    data: { personId: carlos.id, amount: 120.0, title: "Uber para o show", date: new Date("2026-04-02") },
   });
   await prisma.payment.create({
     data: { personId: carlos.id, amount: 350.0, method: "PIX", date: new Date("2026-03-20") },
@@ -34,10 +34,10 @@ async function main() {
   });
 
   await prisma.debt.create({
-    data: { personId: ana.id, creditCardId: inter.id, amount: 800.0, description: "Passagem aérea", date: new Date("2026-02-14") },
+    data: { personId: ana.id, creditCardId: inter.id, amount: 800.0, title: "Passagem aérea", date: new Date("2026-02-14") },
   });
   await prisma.debt.create({
-    data: { personId: ana.id, amount: 250.0, description: "Mercado", date: new Date("2026-05-01") },
+    data: { personId: ana.id, amount: 250.0, title: "Mercado", date: new Date("2026-05-01") },
   });
   await prisma.payment.create({
     data: { personId: ana.id, amount: 400.0, method: "PIX", date: new Date("2026-03-01") },
@@ -49,13 +49,13 @@ async function main() {
   });
 
   await prisma.debt.create({
-    data: { personId: rafael.id, creditCardId: nubank.id, amount: 1200.0, description: "Notebook", date: new Date("2026-01-20") },
+    data: { personId: rafael.id, creditCardId: nubank.id, amount: 1200.0, title: "Notebook", date: new Date("2026-01-20") },
   });
   await prisma.debt.create({
-    data: { personId: rafael.id, amount: 90.0, description: "Farmácia", date: new Date("2026-05-18") },
+    data: { personId: rafael.id, amount: 90.0, title: "Farmácia", date: new Date("2026-05-18") },
   });
   await prisma.debt.create({
-    data: { personId: rafael.id, amount: 55.5, description: "Almoço rodízio", date: new Date("2026-06-10") },
+    data: { personId: rafael.id, amount: 55.5, title: "Almoço rodízio", date: new Date("2026-06-10") },
   });
 
   // --- Juliana (pagamento parcial) ---
@@ -64,10 +64,10 @@ async function main() {
   });
 
   await prisma.debt.create({
-    data: { personId: juliana.id, amount: 180.0, description: "Ingresso festival", date: new Date("2026-04-20") },
+    data: { personId: juliana.id, amount: 180.0, title: "Ingresso festival", date: new Date("2026-04-20") },
   });
   await prisma.debt.create({
-    data: { personId: juliana.id, creditCardId: inter.id, amount: 320.0, description: "Roupa loja online", date: new Date("2026-05-30") },
+    data: { personId: juliana.id, creditCardId: inter.id, amount: 320.0, title: "Roupa loja online", date: new Date("2026-05-30") },
   });
   await prisma.payment.create({
     data: { personId: juliana.id, amount: 200.0, method: "PIX", date: new Date("2026-06-01") },

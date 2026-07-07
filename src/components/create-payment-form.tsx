@@ -64,6 +64,15 @@ export function CreatePaymentForm({ personId }: Props) {
         {errors.date && <p className="text-[10px] tracking-wide text-red-500">{errors.date}</p>}
       </div>
 
+      <div className="flex flex-col gap-1">
+        <input
+          type="text"
+          name="description"
+          placeholder="DESCRIÇÃO (opcional)"
+          className={inputClass}
+        />
+      </div>
+
       <div className="relative">
         <select name="method" className={selectClass}>
           {Object.entries(PAYMENT_METHODS).map(([key, label]) => (

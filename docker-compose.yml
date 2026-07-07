@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: debt_tracker
       POSTGRES_PASSWORD: debt_tracker_dev
-      POSTGRES_DB: debt_tracker
+      POSTGRES_DB: debt_tracker_next
     ports:
       - "5432:5432"
     volumes:

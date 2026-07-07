@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { deleteDebt, updateDebt } from "@/lib/actions/debt";
+import { deleteDebt, toggleDebtPaid, updateDebt } from "@/lib/actions/debt";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
 interface Props {
   debt: {
     id: string;
     amount: number;
+    title: string;
     description: string;
+    paid: boolean;
     date: Date;
     method: string | null;
     creditCardLabel: string | null;
@@ -31,9 +33,17 @@ export function EditableDebt({ debt }: Props) {
           <input type="hidden" name="id" value={debt.id} />
           <input
             type="text"
+            name="title"
+            defaultValue={debt.title}
+            required
+            placeholder="TÍTULO"
+            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
+          />
+          <input
+            type="text"
             name="description"
             defaultValue={debt.description}
-            required
+            placeholder="DESCRIÇÃO (opcional)"
             className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
           />
           <div className="flex gap-2">
@@ -73,9 +83,9 @@ export function EditableDebt({ debt }: Props) {
     : null;
 
   return (
-    <li className="flex justify-between items-center text-xs py-2 border-b border-zinc-100 dark:border-zinc-900 gap-2 text-zinc-700 dark:text-zinc-300">
+    <li className={`flex justify-between items-center text-xs py-2 border-b border-zinc-100 dark:border-zinc-900 gap-2 text-zinc-700 dark:text-zinc-300${debt.paid ? " opacity-50" : ""}`}>
       <div className="flex items-center gap-2 min-w-0">
-        <span className="truncate">{debt.description}</span>
+        <span className={`truncate${debt.paid ? " line-through" : ""}`}>{debt.title}</span>
         {methodLabel && (
           <span className="shrink-0 text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
             {methodLabel}
@@ -83,8 +93,19 @@ export function EditableDebt({ debt }: Props) {
         )}
       </div>
       <div className="flex items-center gap-4 shrink-0">
-        <span className="tracking-tight">R$ {debt.amount.toFixed(2)}</span>
+        <span className={`tracking-tight${debt.paid ? " line-through" : ""}`}>R$ {debt.amount.toFixed(2)}</span>
           <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                const fd = new FormData();
+                fd.append("id", debt.id);
+                await toggleDebtPaid(fd);
+              }}
+              className="text-zinc-400 dark:text-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer"
+              title={debt.paid ? "Desfazer" : "Marcar como paga"}
+            >
+              {debt.paid ? "↺" : "✓"}
+            </button>
             <button onClick={() => setEditing(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer" title="Editar">✎</button>
             <button onClick={() => setConfirming(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-red-500 transition-colors cursor-pointer" title="Remover">✕</button>
           </div>
@@ -92,7 +113,7 @@ export function EditableDebt({ debt }: Props) {
       {confirming && (
         <ConfirmDialog
           title="Excluir dívida?"
-          description={`"${debt.description}" será removida permanentemente.`}
+          description={`"${debt.title}" será removida permanentemente.`}
           confirmLabel="EXCLUIR"
           onCancel={() => setConfirming(false)}
           onConfirm={async () => {

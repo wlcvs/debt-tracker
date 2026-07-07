@@ -49,14 +49,32 @@ describe("createPayment", () => {
     const form = new FormData();
     form.set("personId", "person-1");
     form.set("amount", "250");
+    form.set("description", "Parcela 1");
     form.set("date", "2025-04-01");
 
     await createPayment(form);
 
     expect(prismaMock.payment.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ personId: "person-1", amount: 250 }),
+        data: expect.objectContaining({ personId: "person-1", amount: 250, description: "Parcela 1" }),
       })
+    );
+  });
+
+  it("defaults description to empty string when omitted", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.payment.create.mockResolvedValue({} as never);
+
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "250");
+    form.set("date", "2025-04-01");
+
+    await createPayment(form);
+
+    expect(prismaMock.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ description: "" }) })
     );
   });
 

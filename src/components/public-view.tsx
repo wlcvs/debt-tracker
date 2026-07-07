@@ -35,17 +35,17 @@ export function PublicView({ debtor }: Props) {
             {debtor.debts.map((debt) => (
               <li
                 key={debt.id}
-                className="flex justify-between text-xs py-1.5 border-b border-zinc-100 dark:border-zinc-900 text-zinc-700 dark:text-zinc-300"
+                className={`flex justify-between text-xs py-1.5 border-b border-zinc-100 dark:border-zinc-900 text-zinc-700 dark:text-zinc-300${debt.paid ? " opacity-50" : ""}`}
               >
-                <span className="truncate mr-4">
-                  {debt.description}
+                <span className={`truncate mr-4${debt.paid ? " line-through" : ""}`}>
+                  {debt.title}
                   {(debt.creditCardLabel || debt.method) && (
                     <span className="ml-2 text-zinc-400 dark:text-zinc-600">
                       {debt.creditCardLabel ?? methodLabel(debt.method!)}
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 tracking-tight">
+                <span className={`shrink-0 tracking-tight${debt.paid ? " line-through" : ""}`}>
                   R$ {debt.amount.toFixed(2)}
                 </span>
               </li>
@@ -77,10 +77,13 @@ export function PublicView({ debtor }: Props) {
                     R$ {payment.amount.toFixed(2)}
                   </span>
                 </div>
-                <div className="mt-0.5">
+                <div className="mt-0.5 flex items-center gap-2">
                   <span className="text-[10px] tracking-wider text-zinc-400 dark:text-zinc-600">
                     {methodLabel(payment.method)}
                   </span>
+                  {payment.description && (
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-600">{payment.description}</span>
+                  )}
                 </div>
               </li>
             ))}

@@ -10,7 +10,8 @@ const DEBT_METHODS = ["PIX", "CASH"] as const;
 const createDebtSchema = z.object({
   personId: z.string().min(1),
   amount: z.coerce.number().positive("Amount must be greater than zero"),
-  description: z.string().trim().min(1, "Description is required"),
+  title: z.string().trim().min(1, "Title is required"),
+  description: z.string().trim().default(""),
   date: z.coerce.date(),
   debtMethod: z.string().optional(),
 });
@@ -22,7 +23,8 @@ export async function createDebt(formData: FormData) {
   const parsed = createDebtSchema.parse({
     personId: formData.get("personId"),
     amount: formData.get("amount"),
-    description: formData.get("description"),
+    title: formData.get("title"),
+    description: formData.get("description") ?? undefined,
     date: formData.get("date"),
     debtMethod: formData.get("debtMethod") ?? undefined,
   });
@@ -40,6 +42,7 @@ export async function createDebt(formData: FormData) {
     data: {
       personId: parsed.personId,
       amount: parsed.amount,
+      title: parsed.title,
       description: parsed.description,
       date: parsed.date,
       method,
@@ -64,7 +67,8 @@ export async function deleteDebt(formData: FormData) {
 const updateDebtSchema = z.object({
   id: z.string().min(1),
   amount: z.coerce.number().positive(),
-  description: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  description: z.string().trim().default(""),
   date: z.coerce.date(),
 });
 
@@ -75,13 +79,29 @@ export async function updateDebt(formData: FormData) {
   const parsed = updateDebtSchema.parse({
     id: formData.get("id"),
     amount: formData.get("amount"),
-    description: formData.get("description"),
+    title: formData.get("title"),
+    description: formData.get("description") ?? undefined,
     date: formData.get("date"),
   });
 
   await prisma.debt.updateMany({
     where: { id: parsed.id, person: { userId: session.user.id } },
-    data: { amount: parsed.amount, description: parsed.description, date: parsed.date },
+    data: { amount: parsed.amount, title: parsed.title, description: parsed.description, date: parsed.date },
   });
+  revalidatePath("/");
+}
+
+export async function toggleDebtPaid(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+
+  const id = z.string().min(1).parse(formData.get("id"));
+
+  const debt = await prisma.debt.findFirst({
+    where: { id, person: { userId: session.user.id } },
+  });
+  if (!debt) throw new Error("Debt not found");
+
+  await prisma.debt.update({ where: { id }, data: { paid: !debt.paid } });
   revalidatePath("/");
 }

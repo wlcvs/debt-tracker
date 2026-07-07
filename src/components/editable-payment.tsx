@@ -9,6 +9,7 @@ interface Props {
   payment: {
     id: string;
     amount: number;
+    description: string;
     date: Date;
     method: string;
   };
@@ -28,6 +29,13 @@ export function EditablePayment({ payment }: Props) {
           className="flex flex-col gap-1"
         >
           <input type="hidden" name="id" value={payment.id} />
+          <input
+            type="text"
+            name="description"
+            defaultValue={payment.description}
+            placeholder="DESCRIÇÃO (opcional)"
+            className="bg-transparent border border-zinc-400 dark:border-zinc-700 px-2 py-1 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 focus:outline-none focus:border-zinc-600 dark:focus:border-zinc-400"
+          />
           <div className="flex gap-2 flex-wrap">
             <input
               type="number"
@@ -64,14 +72,19 @@ export function EditablePayment({ payment }: Props) {
   }
 
   return (
-    <li className="flex justify-between items-center text-xs py-2 border-b border-zinc-200 dark:border-zinc-900 text-zinc-700 dark:text-zinc-300 gap-2">
-      <span className="flex-1">{payment.date.toLocaleDateString("pt-BR")}</span>
-      <span className="text-zinc-500 dark:text-zinc-500 tracking-widest uppercase">{methodLabel}</span>
-      <span className="shrink-0 tracking-tight">R$ {payment.amount.toFixed(2)}</span>
-      <div className="flex gap-2 shrink-0">
-        <button onClick={() => setEditing(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer" title="Editar">✎</button>
-        <button onClick={() => setConfirming(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-red-500 transition-colors cursor-pointer" title="Remover">✕</button>
+    <li className="flex flex-col text-xs py-2 border-b border-zinc-200 dark:border-zinc-900 text-zinc-700 dark:text-zinc-300 gap-1">
+      <div className="flex justify-between items-center gap-2">
+        <span className="flex-1">{payment.date.toLocaleDateString("pt-BR")}</span>
+        <span className="text-zinc-500 dark:text-zinc-500 tracking-widest uppercase">{methodLabel}</span>
+        <span className="shrink-0 tracking-tight">R$ {payment.amount.toFixed(2)}</span>
+        <div className="flex gap-2 shrink-0">
+          <button onClick={() => setEditing(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors cursor-pointer" title="Editar">✎</button>
+          <button onClick={() => setConfirming(true)} className="text-zinc-400 dark:text-zinc-700 hover:text-red-500 transition-colors cursor-pointer" title="Remover">✕</button>
+        </div>
       </div>
+      {payment.description && (
+        <span className="text-zinc-500 dark:text-zinc-400">{payment.description}</span>
+      )}
       {confirming && (
         <ConfirmDialog
           title="Excluir pagamento?"

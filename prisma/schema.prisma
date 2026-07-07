@@ -13,8 +13,10 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  people      Person[]
-  creditCards CreditCard[]
+  people       Person[]
+  creditCards  CreditCard[]
+  statements   Statement[]
+  llmFeedbacks LLMFeedback[]
 }
 
 model Person {
@@ -44,7 +46,9 @@ model Debt {
   creditCardId String?
   method       PaymentMethod?
   amount       Decimal        @db.Decimal(10, 2)
-  description  String
+  title        String
+  description  String         @default("")
+  paid         Boolean        @default(false)
   date         DateTime
   createdAt    DateTime       @default(now())
 
@@ -58,12 +62,45 @@ enum PaymentMethod {
 }
 
 model Payment {
-  id        String        @id @default(cuid())
-  personId  String
-  amount    Decimal       @db.Decimal(10, 2)
-  date      DateTime
-  method    PaymentMethod @default(CASH)
-  createdAt DateTime      @default(now())
+  id          String        @id @default(cuid())
+  personId    String
+  amount      Decimal       @db.Decimal(10, 2)
+  description String        @default("")
+  date        DateTime
+  method      PaymentMethod @default(CASH)
+  createdAt   DateTime      @default(now())
 
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+model Statement {
+  id               String   @id @default(cuid())
+  userId           String
+  bank             String
+  filename         String
+  pdfData          Bytes
+  transactionCount Int      @default(0)
+  algoResults      Json     @default("[]")
+  llmResults       Json     @default("[]")
+  extractedText    String   @default("")
+  uploadedAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, uploadedAt])
+}
+
+model LLMFeedback {
+  id          String   @id @default(cuid())
+  userId      String
+  bank        String
+  date        DateTime
+  description String
+  amount      Decimal  @db.Decimal(10, 2)
+  context     String   @default("")
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, bank, createdAt])
 }

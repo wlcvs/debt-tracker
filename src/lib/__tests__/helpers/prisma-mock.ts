@@ -19,6 +19,21 @@ export const prismaMock = {
     deleteMany: vi.fn(),
     findMany: vi.fn(),
   },
+  statement: {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
+    deleteMany: vi.fn(),
+  },
+  lLMFeedback: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+  },
+  $transaction: vi.fn(async (arg: unknown) => {
+    if (typeof arg === "function") return arg(prismaMock);
+    return Promise.all(arg as Promise<unknown>[]);
+  }),
 };
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));

@@ -139,6 +139,24 @@ describe("getPeopleWithBalances", () => {
     expect(result[0].totalOwed).toBe(300);
     expect(result[0].name).toBe("João");
   });
+
+  it("excludes paid debts from totalOwed", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findMany.mockResolvedValue([
+      {
+        id: "p1",
+        name: "João",
+        debts: [
+          { id: "d1", amount: 500, title: "X", description: "", paid: false, date: new Date() },
+          { id: "d2", amount: 1000, title: "Y", description: "", paid: true, date: new Date() },
+        ],
+        payments: [],
+      },
+    ] as never);
+
+    const result = await getPeopleWithBalances();
+    expect(result[0].totalOwed).toBe(500);
+  });
 });
 
 // ── getPersonById ─────────────────────────────────────────────────────────────

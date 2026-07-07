@@ -5,6 +5,12 @@ import { TotalDisplay } from "@/components/total-display";
 import { CreditCardList } from "@/components/credit-card-list";
 import { CreatePersonForm } from "@/components/create-person-form";
 import { CreateCreditCardForm } from "@/components/create-credit-card-form";
+import { StatementImportLauncher } from "@/components/statement-import-launcher";
+
+// Bank statement import (PDF parsing + optional LLM extraction) can take a
+// while — raise this route's serverless duration ceiling above Vercel's
+// default. See src/lib/actions/statement.ts for why this can't live there.
+export const maxDuration = 300;
 
 export default async function OverviewPage() {
   const [stats, people, creditCards] = await Promise.all([
@@ -15,7 +21,10 @@ export default async function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <TotalDisplay total={stats.totalToReceive} />
+      <div className="flex items-start justify-between gap-4">
+        <TotalDisplay total={stats.totalToReceive} />
+        <StatementImportLauncher people={people.map((p) => ({ id: p.id, name: p.name }))} />
+      </div>
 
       {/* Stats grid */}
       <section className="grid grid-cols-2 sm:grid-cols-3 gap-4">

@@ -32,3 +32,8 @@ npm-debug.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# real bank statement PDFs used as local test fixtures — contain real
+# personal financial data, never commit
+*.pdf
+*.PDF

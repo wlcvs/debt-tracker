@@ -25,7 +25,9 @@ export interface PersonWithBalance {
   debts: {
     id: string;
     amount: number;
+    title: string;
     description: string;
+    paid: boolean;
     date: Date;
     method: string | null;
     creditCardLabel: string | null;
@@ -33,6 +35,7 @@ export interface PersonWithBalance {
   payments: {
     id: string;
     amount: number;
+    description: string;
     date: Date;
     method: string;
   }[];
@@ -52,13 +55,16 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
     const debts = person.debts.map((d) => ({
       id: d.id,
       amount: Number(d.amount),
+      title: d.title,
       description: d.description,
+      paid: d.paid,
       date: d.date,
       method: d.method,
       creditCardLabel: d.creditCard?.label ?? null,
     }));
     const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
-    const totalOwed = debts.reduce((s, d) => s + d.amount, 0) - totalPaid;
+    const totalDebt = debts.reduce((s, d) => s + (d.paid ? 0 : d.amount), 0);
+    const totalOwed = totalDebt - totalPaid;
 
     return {
       id: person.id,
@@ -68,6 +74,7 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
       payments: person.payments.map((p) => ({
         id: p.id,
         amount: Number(p.amount),
+        description: p.description,
         date: p.date,
         method: p.method,
       })),
@@ -89,13 +96,16 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
   const debts = person.debts.map((d) => ({
     id: d.id,
     amount: Number(d.amount),
+    title: d.title,
     description: d.description,
+    paid: d.paid,
     date: d.date,
     method: d.method,
     creditCardLabel: d.creditCard?.label ?? null,
   }));
   const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
-  const totalOwed = debts.reduce((s, d) => s + d.amount, 0) - totalPaid;
+  const totalDebt = debts.reduce((s, d) => s + (d.paid ? 0 : d.amount), 0);
+  const totalOwed = totalDebt - totalPaid;
 
   return {
     id: person.id,
@@ -105,6 +115,7 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
     payments: person.payments.map((p) => ({
       id: p.id,
       amount: Number(p.amount),
+      description: p.description,
       date: p.date,
       method: p.method,
     })),
@@ -154,7 +165,7 @@ export async function getOverviewStats(): Promise<OverviewStats> {
   let totalPaid = 0;
 
   for (const p of people) {
-    const debt = p.debts.reduce((s, d) => s + Number(d.amount), 0);
+    const debt = p.debts.reduce((s, d) => s + (d.paid ? 0 : Number(d.amount)), 0);
     const paid = p.payments.reduce((s, pay) => s + Number(pay.amount), 0);
     const owed = debt - paid;
     totalToReceive += Math.max(0, owed);
@@ -181,7 +192,8 @@ export async function getDebtorViewById(id: string) {
   if (!person) return null;
 
   const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
-  const totalOwed = person.debts.reduce((s, d) => s + Number(d.amount), 0) - totalPaid;
+  const totalDebt = person.debts.reduce((s, d) => s + (d.paid ? 0 : Number(d.amount)), 0);
+  const totalOwed = totalDebt - totalPaid;
 
   return {
     name: person.name,
@@ -189,7 +201,9 @@ export async function getDebtorViewById(id: string) {
     debts: person.debts.map((d) => ({
       id: d.id,
       amount: Number(d.amount),
+      title: d.title,
       description: d.description,
+      paid: d.paid,
       date: d.date,
       method: d.method,
       creditCardLabel: d.creditCard?.label ?? null,
@@ -197,6 +211,7 @@ export async function getDebtorViewById(id: string) {
     payments: person.payments.map((p) => ({
       id: p.id,
       amount: Number(p.amount),
+      description: p.description,
       date: p.date,
       method: p.method,
     })),

@@ -20,7 +20,7 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
   function validate(fd: FormData): boolean {
     const next: Record<string, string> = {};
     if (!fd.get("amount")) next.amount = "Informe o valor.";
-    if (!fd.get("description")?.toString().trim()) next.description = "Informe a descrição.";
+    if (!fd.get("title")?.toString().trim()) next.title = "Informe o título.";
     if (!fd.get("date")) next.date = "Selecione uma data.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -58,12 +58,21 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
       <div className="flex flex-col gap-1">
         <input
           type="text"
-          name="description"
-          placeholder="DESCRIÇÃO"
+          name="title"
+          placeholder="TÍTULO"
           className={inputClass}
-          onChange={(e) => e.target.value.trim() && setErrors((p) => ({ ...p, description: "" }))}
+          onChange={(e) => e.target.value.trim() && setErrors((p) => ({ ...p, title: "" }))}
         />
-        {errors.description && <p className="text-[10px] tracking-wide text-red-500">{errors.description}</p>}
+        {errors.title && <p className="text-[10px] tracking-wide text-red-500">{errors.title}</p>}
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <input
+          type="text"
+          name="description"
+          placeholder="DESCRIÇÃO (opcional)"
+          className={inputClass}
+        />
       </div>
 
       <div className="flex flex-col gap-1">
