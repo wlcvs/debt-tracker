@@ -68,4 +68,4 @@ See `.env.example` for all required variables. `LLM_BASE_URL` is optional — if
 
 From the dashboard, click "Extratos" to upload a PDF bank/card statement. It's parsed two ways in parallel — an algorithmic parser per bank (Nubank, Itaú, Mercado Pago, Bradesco) and, if `LLM_BASE_URL` points at a running extraction server, an LLM pass — and both result sets are shown for review before anything is saved. The PDF renders client-side via pdf.js; clicking a row highlights the matching line in the source document. Uploads are cached so reopening one later doesn't require re-parsing.
 
-For local testing, drop real statement PDFs in `extratos/` (gitignored — these are real personal financial documents, never commit them).
+For local testing, drop real statement PDFs in `statements/` (gitignored — these are real personal financial documents, never commit them).
