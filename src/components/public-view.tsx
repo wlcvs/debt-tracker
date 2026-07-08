@@ -41,22 +41,20 @@ export function PublicView({ debtor }: Props) {
   const [openPayment, setOpenPayment] = useState<Payment | null>(null);
 
   return (
-    <section className="border border-zinc-200 dark:border-zinc-800">
-      <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-baseline justify-between gap-4">
+    <>
+      <div className="flex items-baseline justify-between gap-4 mb-8">
         <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">{debtor.name}</h2>
         <p className="text-lg tracking-tight text-zinc-900 dark:text-white shrink-0">R$ {debtor.totalOwed.toFixed(2)}</p>
       </div>
 
-      <div className="px-5 py-4">
-        <DebtsList debts={debtor.debts} onOpen={setOpenDebt} />
-        <div className="border-t border-zinc-200 dark:border-zinc-800 my-6" />
-        <PaymentsList payments={debtor.payments} onOpen={setOpenPayment} />
-        {debtor.totalOwed > 0 && <InstallmentCalculator balance={debtor.totalOwed} />}
-      </div>
+      <DebtsList debts={debtor.debts} onOpen={setOpenDebt} />
+      <div className="border-t border-zinc-300 dark:border-zinc-700 mb-8" />
+      <PaymentsList payments={debtor.payments} onOpen={setOpenPayment} />
+      {debtor.totalOwed > 0 && <InstallmentCalculator balance={debtor.totalOwed} />}
 
       {openDebt && <PublicDebtModal debt={openDebt} onClose={() => setOpenDebt(null)} />}
       {openPayment && <PublicPaymentModal payment={openPayment} onClose={() => setOpenPayment(null)} />}
-    </section>
+    </>
   );
 }
 
