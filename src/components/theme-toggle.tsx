@@ -17,15 +17,11 @@ export function ThemeToggle() {
   }
 
   return (
-    <div className="flex items-center gap-1">
-      <span className="text-xs tracking-widest uppercase text-zinc-500">TEMA</span>
-      <button
-        onClick={toggle}
-        title={dark ? "Modo claro" : "Modo escuro"}
-        className="w-14 text-xs tracking-widest uppercase text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-      >
-        {dark ? "CLARO" : "ESCURO"}
-      </button>
-    </div>
+    <button
+      onClick={toggle}
+      className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+    >
+      {dark ? "Tema claro" : "Tema escuro"}
+    </button>
   );
 }
