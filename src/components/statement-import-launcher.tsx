@@ -1,8 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { StatementsModal } from "@/components/statements-modal";
-import { ImportModal } from "@/components/import-modal";
+
+// Loaded client-only: this drags in pdfjs-dist's browser worker asset
+// reference, which Next's server compiler otherwise tries to analyze
+// (and fails on) while server-rendering this component's initial "closed"
+// state — see next.config.ts's serverExternalPackages comment.
+const ImportModal = dynamic(() => import("@/components/import-modal").then((m) => m.ImportModal), {
+  ssr: false,
+});
 
 interface Props {
   people: { id: string; name: string }[];

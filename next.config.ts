@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  // pdfjs-dist's Node ("legacy") build resolves its worker script via a
+  // relative import at runtime; bundling it breaks that path resolution
+  // ("Setting up fake worker failed: Cannot find module '.../pdf.worker.mjs'").
+  // Keeping it external makes Node require() it straight from node_modules.
+  serverExternalPackages: ["pdfjs-dist"],
 };
 
 export default nextConfig;
