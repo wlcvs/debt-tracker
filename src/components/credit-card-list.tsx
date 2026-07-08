@@ -41,9 +41,9 @@ export function CreditCardList({ cards }: { cards: CreditCard[] }) {
             <span>{card.label}</span>
             <button
               onClick={() => { setError(null); setConfirmId(card.id); }}
-              className="text-zinc-400 dark:text-zinc-700 hover:text-red-500 transition-colors cursor-pointer"
+              className="tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
             >
-              ✕
+              Excluir
             </button>
           </li>
         ))}

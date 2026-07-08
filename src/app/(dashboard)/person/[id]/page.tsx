@@ -1,13 +1,11 @@
 import { notFound } from "next/navigation";
 import { getPersonById } from "@/lib/actions/person";
 import { getCreditCards } from "@/lib/actions/credit-card";
-import { EditableDebt } from "@/components/editable-debt";
-import { EditablePayment } from "@/components/editable-payment";
 import { EditablePersonHeader } from "@/components/editable-person-header";
 import { ShareButton } from "@/components/share-button";
 import { PersonActions } from "@/components/person-actions";
-import { CreateDebtForm } from "@/components/create-debt-form";
-import { CreatePaymentForm } from "@/components/create-payment-form";
+import { DebtsSection } from "@/components/debts-section";
+import { PaymentsSection } from "@/components/payments-section";
 
 export default async function PersonPage({
   params,
@@ -33,40 +31,9 @@ export default async function PersonPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-        {/* Debts */}
-        <section className="flex flex-col gap-4">
-          <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">
-            Dívidas
-          </p>
-
-          {person.debts.length > 0 && (
-            <ul className="flex flex-col">
-              {person.debts.map((debt) => (
-                <EditableDebt key={debt.id} debt={debt} />
-              ))}
-            </ul>
-          )}
-
-          <CreateDebtForm personId={person.id} creditCards={creditCards} />
-        </section>
-
-        {/* Payments */}
-        <section className="flex flex-col gap-4">
-          <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">
-            Pagamentos
-          </p>
-
-          {person.payments.length > 0 && (
-            <ul className="flex flex-col">
-              {person.payments.map((payment) => (
-                <EditablePayment key={payment.id} payment={payment} />
-              ))}
-            </ul>
-          )}
-
-          <CreatePaymentForm personId={person.id} />
-        </section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-start">
+        <DebtsSection personId={person.id} debts={person.debts} creditCards={creditCards} />
+        <PaymentsSection personId={person.id} payments={person.payments} />
       </div>
     </div>
   );

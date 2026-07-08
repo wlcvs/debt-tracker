@@ -30,6 +30,7 @@ export interface PersonWithBalance {
     paid: boolean;
     date: Date;
     method: string | null;
+    creditCardId: string | null;
     creditCardLabel: string | null;
   }[];
   payments: {
@@ -60,6 +61,7 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
       paid: d.paid,
       date: d.date,
       method: d.method,
+      creditCardId: d.creditCardId,
       creditCardLabel: d.creditCard?.label ?? null,
     }));
     const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
@@ -101,6 +103,7 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
     paid: d.paid,
     date: d.date,
     method: d.method,
+    creditCardId: d.creditCardId,
     creditCardLabel: d.creditCard?.label ?? null,
   }));
   const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
@@ -206,6 +209,7 @@ export async function getDebtorViewById(id: string) {
       paid: d.paid,
       date: d.date,
       method: d.method,
+      creditCardId: d.creditCardId,
       creditCardLabel: d.creditCard?.label ?? null,
     })),
     payments: person.payments.map((p) => ({

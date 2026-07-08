@@ -15,10 +15,9 @@ export function PersonActions({ person }: Props) {
     <>
       <button
         onClick={() => setConfirming(true)}
-        className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-red-500 transition-colors cursor-pointer"
-        title="Excluir pessoa"
+        className="text-xs tracking-widest uppercase text-red-500 dark:text-red-400 hover:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer"
       >
-        ✕
+        Excluir devedor
       </button>
 
       {confirming && (

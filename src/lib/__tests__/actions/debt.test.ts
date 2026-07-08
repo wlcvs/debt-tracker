@@ -148,6 +148,34 @@ describe("updateDebt", () => {
       })
     );
   });
+
+  it("sets an enum method and clears the credit card", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("id", "debt-1");
+    form.set("amount", "200");
+    form.set("title", "Jantar");
+    form.set("date", "2025-05-01");
+    form.set("debtMethod", "PIX");
+    await updateDebt(form);
+    expect((prismaMock.debt as ExtendedDebt).updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ method: "PIX", creditCardId: null }) })
+    );
+  });
+
+  it("sets a credit card and clears the enum method", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("id", "debt-1");
+    form.set("amount", "200");
+    form.set("title", "Jantar");
+    form.set("date", "2025-05-01");
+    form.set("debtMethod", "card-123");
+    await updateDebt(form);
+    expect((prismaMock.debt as ExtendedDebt).updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ method: null, creditCardId: "card-123" }) })
+    );
+  });
 });
 
 // ── toggleDebtPaid ────────────────────────────────────────────────────────────

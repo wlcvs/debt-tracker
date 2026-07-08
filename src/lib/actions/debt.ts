@@ -70,6 +70,7 @@ const updateDebtSchema = z.object({
   title: z.string().trim().min(1),
   description: z.string().trim().default(""),
   date: z.coerce.date(),
+  debtMethod: z.string().optional(),
 });
 
 export async function updateDebt(formData: FormData) {
@@ -82,11 +83,23 @@ export async function updateDebt(formData: FormData) {
     title: formData.get("title"),
     description: formData.get("description") ?? undefined,
     date: formData.get("date"),
+    debtMethod: formData.get("debtMethod") ?? undefined,
   });
+
+  const isEnumMethod = DEBT_METHODS.includes(parsed.debtMethod as typeof DEBT_METHODS[number]);
+  const method = isEnumMethod ? (parsed.debtMethod as "PIX" | "CASH") : null;
+  const creditCardId = !isEnumMethod && parsed.debtMethod ? parsed.debtMethod : null;
 
   await prisma.debt.updateMany({
     where: { id: parsed.id, person: { userId: session.user.id } },
-    data: { amount: parsed.amount, title: parsed.title, description: parsed.description, date: parsed.date },
+    data: {
+      amount: parsed.amount,
+      title: parsed.title,
+      description: parsed.description,
+      date: parsed.date,
+      method,
+      creditCardId,
+    },
   });
   revalidatePath("/");
 }

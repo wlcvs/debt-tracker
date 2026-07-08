@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { FormValidationMessages } from "@/components/form-validation-messages";
 
 export const metadata: Metadata = {
   title: "Debt Tracker",
@@ -25,7 +26,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <FormValidationMessages />
+        {children}
+      </body>
     </html>
   );
 }
