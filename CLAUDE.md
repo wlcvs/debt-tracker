@@ -140,7 +140,7 @@ Every new variable must also be added to `.env.example` with a placeholder value
 DATABASE_URL=
 ADMIN_EMAIL=
 ADMIN_PASSWORD=
-AUTH_SECRET=              # generate with: npx auth secret
+AUTH_SECRET=              # generate with: openssl rand -base64 33 (npx auth secret now installs the unrelated Better Auth CLI)
 NEXT_PUBLIC_APP_URL=
 LLM_BASE_URL=             # external LLM extraction server for statement import; empty = algorithmic-only, no error
 ```

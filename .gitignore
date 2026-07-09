@@ -24,8 +24,8 @@ npm-debug.log*
 # vercel
 .vercel
 
-# claude code
-.claude
+# claude code (local settings only — .claude/skills/ is checked in)
+.claude/settings.local.json
 
 # typescript
 *.tsbuildinfo
