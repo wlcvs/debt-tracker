@@ -32,6 +32,9 @@ export interface PersonWithBalance {
     method: string | null;
     creditCardId: string | null;
     creditCardLabel: string | null;
+    installmentGroupId: string | null;
+    installmentIndex: number | null;
+    installmentTotal: number | null;
   }[];
   payments: {
     id: string;
@@ -63,6 +66,9 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
       method: d.method,
       creditCardId: d.creditCardId,
       creditCardLabel: d.creditCard?.label ?? null,
+      installmentGroupId: d.installmentGroupId,
+      installmentIndex: d.installmentIndex,
+      installmentTotal: d.installmentTotal,
     }));
     const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
     const totalDebt = debts.reduce((s, d) => s + (d.paid ? 0 : d.amount), 0);
@@ -105,6 +111,9 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
     method: d.method,
     creditCardId: d.creditCardId,
     creditCardLabel: d.creditCard?.label ?? null,
+    installmentGroupId: d.installmentGroupId,
+    installmentIndex: d.installmentIndex,
+    installmentTotal: d.installmentTotal,
   }));
   const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
   const totalDebt = debts.reduce((s, d) => s + (d.paid ? 0 : d.amount), 0);
@@ -211,6 +220,9 @@ export async function getDebtorViewById(id: string) {
       method: d.method,
       creditCardId: d.creditCardId,
       creditCardLabel: d.creditCard?.label ?? null,
+      installmentGroupId: d.installmentGroupId,
+      installmentIndex: d.installmentIndex,
+      installmentTotal: d.installmentTotal,
     })),
     payments: person.payments.map((p) => ({
       id: p.id,

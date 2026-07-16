@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { deleteDebt, toggleDebtPaid, updateDebt } from "@/lib/actions/debt";
+import { deleteDebt, deleteDebtInstallmentGroup, toggleDebtPaid, updateDebt } from "@/lib/actions/debt";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { InstallmentGroupPanel } from "@/components/installment-group-panel";
 
 interface DebtLike {
   id: string;
@@ -15,6 +16,9 @@ interface DebtLike {
   method: string | null;
   creditCardId: string | null;
   creditCardLabel: string | null;
+  installmentGroupId: string | null;
+  installmentIndex: number | null;
+  installmentTotal: number | null;
 }
 
 interface Props {
@@ -28,8 +32,10 @@ const METHOD_LABELS: Record<string, string> = { PIX: "Pix", CASH: "Dinheiro" };
 export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [showInstallments, setShowInstallments] = useState(false);
   const [method, setMethod] = useState(debt.creditCardId ?? debt.method ?? "");
   const [methodError, setMethodError] = useState(false);
+  const isInstallment = Boolean(debt.installmentGroupId);
 
   const methodOptions: MethodOption[] = [
     { value: "PIX", label: "Pix" },
@@ -64,14 +70,21 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
                   {badgeLabel}
                 </span>
               )}
+              {isInstallment && (
+                <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
+                  Parcela {debt.installmentIndex}/{debt.installmentTotal}
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap gap-3 items-center">
-              <button
-                onClick={() => setEditing(true)}
-                className="border border-zinc-600 dark:border-zinc-400 px-5 py-2 text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-              >
-                Editar
-              </button>
+              {!isInstallment && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="border border-zinc-600 dark:border-zinc-400 px-5 py-2 text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  Editar
+                </button>
+              )}
               <button
                 onClick={async () => {
                   const fd = new FormData();
@@ -87,6 +100,14 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
               >
                 {debt.paid ? "Desfazer" : "Marcar como paga"}
               </button>
+              {isInstallment && (
+                <button
+                  onClick={() => setShowInstallments(true)}
+                  className="border border-zinc-600 dark:border-zinc-400 px-5 py-2 text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  Ver parcelas
+                </button>
+              )}
               <button
                 onClick={() => setConfirming(true)}
                 className="border border-red-500 dark:border-red-400 px-5 py-2 text-xs tracking-widest uppercase text-red-500 dark:text-red-400 hover:border-red-400 hover:text-red-400 dark:hover:border-red-300 dark:hover:text-red-300 transition-colors cursor-pointer"
@@ -192,15 +213,32 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
       {confirming && (
         <ConfirmDialog
           title="Excluir dívida?"
-          description={`"${debt.title}" será removida permanentemente.`}
+          description={
+            isInstallment
+              ? `Todas as ${debt.installmentTotal} parcelas de "${debt.title}" serão removidas permanentemente.`
+              : `"${debt.title}" será removida permanentemente.`
+          }
           confirmLabel="EXCLUIR"
           onCancel={() => setConfirming(false)}
           onConfirm={async () => {
             const fd = new FormData();
-            fd.append("id", debt.id);
-            await deleteDebt(fd);
+            if (isInstallment && debt.installmentGroupId) {
+              fd.append("installmentGroupId", debt.installmentGroupId);
+              await deleteDebtInstallmentGroup(fd);
+            } else {
+              fd.append("id", debt.id);
+              await deleteDebt(fd);
+            }
             onClose();
           }}
+        />
+      )}
+
+      {showInstallments && debt.installmentGroupId && (
+        <InstallmentGroupPanel
+          installmentGroupId={debt.installmentGroupId}
+          title={debt.title.replace(/\s*\(\d+\/\d+\)$/, "")}
+          onClose={() => setShowInstallments(false)}
         />
       )}
     </div>

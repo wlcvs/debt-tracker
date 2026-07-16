@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import type { PersonWithBalance } from "@/lib/actions/person";
+import { getAvailableMonths, getMonthKey } from "@/lib/date-utils";
+import { MonthCarousel } from "@/components/month-carousel";
 
 type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "debts" | "payments">;
 
@@ -40,6 +42,12 @@ export function PublicView({ debtor }: Props) {
   const [openDebt, setOpenDebt] = useState<Debt | null>(null);
   const [openPayment, setOpenPayment] = useState<Payment | null>(null);
 
+  const months = useMemo(
+    () => getAvailableMonths([...debtor.debts.map((d) => d.date), ...debtor.payments.map((p) => p.date)], new Date()),
+    [debtor.debts, debtor.payments]
+  );
+  const [selectedMonth, setSelectedMonth] = useState(() => getMonthKey(new Date()));
+
   return (
     <>
       <div className="flex items-baseline justify-between gap-4 mb-8">
@@ -47,9 +55,13 @@ export function PublicView({ debtor }: Props) {
         <p className="text-lg tracking-tight text-zinc-900 dark:text-white shrink-0">R$ {debtor.totalOwed.toFixed(2)}</p>
       </div>
 
-      <DebtsList debts={debtor.debts} onOpen={setOpenDebt} />
+      <div className="mb-6">
+        <MonthCarousel months={months} selected={selectedMonth} onSelect={setSelectedMonth} />
+      </div>
+
+      <DebtsList debts={debtor.debts} onOpen={setOpenDebt} selectedMonth={selectedMonth} />
       <div className="border-t border-zinc-300 dark:border-zinc-700 mb-8" />
-      <PaymentsList payments={debtor.payments} onOpen={setOpenPayment} />
+      <PaymentsList payments={debtor.payments} onOpen={setOpenPayment} selectedMonth={selectedMonth} />
       {debtor.totalOwed > 0 && <InstallmentCalculator balance={debtor.totalOwed} />}
 
       {openDebt && <PublicDebtModal debt={openDebt} onClose={() => setOpenDebt(null)} />}
@@ -60,13 +72,12 @@ export function PublicView({ debtor }: Props) {
 
 // ── Debts ────────────────────────────────────────────────────────────────────
 
-function DebtsList({ debts, onOpen }: { debts: Debt[]; onOpen: (d: Debt) => void }) {
+function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d: Debt) => void; selectedMonth: string }) {
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
+  const [paidFilter, setPaidFilter] = useState<"all" | "paid" | "unpaid">("all");
   const { sortKey, sortDir, setSort, setSortKey, setSortDir } = useSort();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -80,29 +91,29 @@ function DebtsList({ debts, onOpen }: { debts: Debt[]; onOpen: (d: Debt) => void
 
   function clearFilters() {
     setSearch("");
-    setDateFrom("");
-    setDateTo("");
     setAmountMin("");
     setAmountMax("");
+    setPaidFilter("all");
     setSortKey("date");
     setSortDir("desc");
   }
+
+  const monthDebts = useMemo(() => debts.filter((d) => getMonthKey(d.date) === selectedMonth), [debts, selectedMonth]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const amtMin = amountMin ? parseAmountFilter(amountMin) : null;
     const amtMax = amountMax ? parseAmountFilter(amountMax) : null;
 
-    const list = debts.filter((d) => {
+    const list = monthDebts.filter((d) => {
+      if (paidFilter === "paid" && !d.paid) return false;
+      if (paidFilter === "unpaid" && d.paid) return false;
       const method = d.creditCardLabel ?? (d.method ? methodLabel(d.method) : "");
       if (q) {
         const amtStr = d.amount.toFixed(2).replace(".", ",");
         const hit = [d.title, d.description, method, amtStr].some((s) => s.toLowerCase().includes(q));
         if (!hit) return false;
       }
-      const dateStr = d.date.toISOString().slice(0, 10);
-      if (dateFrom && dateStr < dateFrom) return false;
-      if (dateTo && dateStr > dateTo) return false;
       if (amtMin && !isNaN(amtMin.val)) {
         if ((amtMin.isInt ? Math.floor(d.amount) : d.amount) < amtMin.val) return false;
       }
@@ -118,9 +129,9 @@ function DebtsList({ debts, onOpen }: { debts: Debt[]; onOpen: (d: Debt) => void
       const cmp = av < bv ? -1 : av > bv ? 1 : 0;
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [debts, search, dateFrom, dateTo, amountMin, amountMax, sortKey, sortDir]);
+  }, [monthDebts, search, amountMin, amountMax, paidFilter, sortKey, sortDir]);
 
-  const filtersActive = Boolean(showFilters || search || dateFrom || dateTo || amountMin || amountMax);
+  const filtersActive = Boolean(showFilters || search || amountMin || amountMax || paidFilter !== "all");
 
   return (
     <div className="mb-2">
@@ -142,14 +153,12 @@ function DebtsList({ debts, onOpen }: { debts: Debt[]; onOpen: (d: Debt) => void
           <FilterFields
             search={search}
             setSearch={setSearch}
-            dateFrom={dateFrom}
-            setDateFrom={setDateFrom}
-            dateTo={dateTo}
-            setDateTo={setDateTo}
             amountMin={amountMin}
             setAmountMin={setAmountMin}
             amountMax={amountMax}
             setAmountMax={setAmountMax}
+            paidFilter={paidFilter}
+            setPaidFilter={setPaidFilter}
             sortKey={sortKey}
             sortDir={sortDir}
             setSort={setSort}
@@ -159,8 +168,8 @@ function DebtsList({ debts, onOpen }: { debts: Debt[]; onOpen: (d: Debt) => void
         )}
       </div>
 
-      {debts.length === 0 ? (
-        <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-2">Nenhuma dívida registrada.</p>
+      {monthDebts.length === 0 ? (
+        <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-2">Nenhuma dívida neste mês.</p>
       ) : (
         <ul className="flex flex-col">
           {filtered.map((debt) => (
@@ -176,8 +185,13 @@ function DebtsList({ debts, onOpen }: { debts: Debt[]; onOpen: (d: Debt) => void
                       {debt.creditCardLabel ?? methodLabel(debt.method!)}
                     </span>
                   )}
-                  <span className={`text-xs text-zinc-700 dark:text-zinc-300 truncate${debt.paid ? " line-through opacity-50" : ""}`}>
+                  <span className={`flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 truncate${debt.paid ? " line-through opacity-50" : ""}`}>
                     {debt.title}
+                    {debt.installmentGroupId && (
+                      <span className="shrink-0 text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1 py-0.5 no-underline">
+                        {debt.installmentIndex}/{debt.installmentTotal}
+                      </span>
+                    )}
                   </span>
                   {debt.description && (
                     <span className="text-[10px] text-zinc-400 dark:text-zinc-600 mt-0.5">{debt.description}</span>
@@ -197,11 +211,9 @@ function DebtsList({ debts, onOpen }: { debts: Debt[]; onOpen: (d: Debt) => void
 
 // ── Payments ─────────────────────────────────────────────────────────────────
 
-function PaymentsList({ payments, onOpen }: { payments: Payment[]; onOpen: (p: Payment) => void }) {
+function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]; onOpen: (p: Payment) => void; selectedMonth: string }) {
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const { sortKey, sortDir, setSort, setSortKey, setSortDir } = useSort();
@@ -217,28 +229,25 @@ function PaymentsList({ payments, onOpen }: { payments: Payment[]; onOpen: (p: P
 
   function clearFilters() {
     setSearch("");
-    setDateFrom("");
-    setDateTo("");
     setAmountMin("");
     setAmountMax("");
     setSortKey("date");
     setSortDir("desc");
   }
 
+  const monthPayments = useMemo(() => payments.filter((p) => getMonthKey(p.date) === selectedMonth), [payments, selectedMonth]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const amtMin = amountMin ? parseAmountFilter(amountMin) : null;
     const amtMax = amountMax ? parseAmountFilter(amountMax) : null;
 
-    const list = payments.filter((p) => {
+    const list = monthPayments.filter((p) => {
       if (q) {
         const amtStr = p.amount.toFixed(2).replace(".", ",");
         const hit = [p.description, methodLabel(p.method), amtStr].some((s) => s.toLowerCase().includes(q));
         if (!hit) return false;
       }
-      const dateStr = p.date.toISOString().slice(0, 10);
-      if (dateFrom && dateStr < dateFrom) return false;
-      if (dateTo && dateStr > dateTo) return false;
       if (amtMin && !isNaN(amtMin.val)) {
         if ((amtMin.isInt ? Math.floor(p.amount) : p.amount) < amtMin.val) return false;
       }
@@ -254,9 +263,9 @@ function PaymentsList({ payments, onOpen }: { payments: Payment[]; onOpen: (p: P
       const cmp = av < bv ? -1 : av > bv ? 1 : 0;
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [payments, search, dateFrom, dateTo, amountMin, amountMax, sortKey, sortDir]);
+  }, [monthPayments, search, amountMin, amountMax, sortKey, sortDir]);
 
-  const filtersActive = Boolean(showFilters || search || dateFrom || dateTo || amountMin || amountMax);
+  const filtersActive = Boolean(showFilters || search || amountMin || amountMax);
 
   return (
     <div className="mb-2">
@@ -278,10 +287,6 @@ function PaymentsList({ payments, onOpen }: { payments: Payment[]; onOpen: (p: P
           <FilterFields
             search={search}
             setSearch={setSearch}
-            dateFrom={dateFrom}
-            setDateFrom={setDateFrom}
-            dateTo={dateTo}
-            setDateTo={setDateTo}
             amountMin={amountMin}
             setAmountMin={setAmountMin}
             amountMax={amountMax}
@@ -295,8 +300,8 @@ function PaymentsList({ payments, onOpen }: { payments: Payment[]; onOpen: (p: P
         )}
       </div>
 
-      {payments.length === 0 ? (
-        <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-2">Nenhum pagamento registrado.</p>
+      {monthPayments.length === 0 ? (
+        <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-2">Nenhum pagamento neste mês.</p>
       ) : (
         <ul className="flex flex-col">
           {filtered.map((payment) => (
@@ -332,14 +337,12 @@ function PaymentsList({ payments, onOpen }: { payments: Payment[]; onOpen: (p: P
 interface FilterFieldsProps {
   search: string;
   setSearch: (v: string) => void;
-  dateFrom: string;
-  setDateFrom: (v: string) => void;
-  dateTo: string;
-  setDateTo: (v: string) => void;
   amountMin: string;
   setAmountMin: (v: string) => void;
   amountMax: string;
   setAmountMax: (v: string) => void;
+  paidFilter?: "all" | "paid" | "unpaid";
+  setPaidFilter?: (v: "all" | "paid" | "unpaid") => void;
   sortKey: "date" | "amount";
   sortDir: "asc" | "desc";
   setSort: (key: "date" | "amount") => void;
@@ -357,26 +360,6 @@ function FilterFields(props: FilterFieldsProps) {
         placeholder={props.searchPlaceholder}
         className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
       />
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">De</p>
-          <input
-            type="date"
-            value={props.dateFrom}
-            onChange={(e) => props.setDateFrom(e.target.value)}
-            className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-          />
-        </div>
-        <div className="flex-1">
-          <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Até</p>
-          <input
-            type="date"
-            value={props.dateTo}
-            onChange={(e) => props.setDateTo(e.target.value)}
-            className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-          />
-        </div>
-      </div>
       <div className="flex gap-2">
         <div className="flex-1">
           <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Valor mín.</p>
@@ -401,6 +384,23 @@ function FilterFields(props: FilterFieldsProps) {
           />
         </div>
       </div>
+      {props.paidFilter && props.setPaidFilter && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <p className="text-[10px] tracking-widest uppercase text-zinc-400">Status</p>
+          {(["all", "paid", "unpaid"] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => props.setPaidFilter?.(key)}
+              className={`text-[10px] tracking-widest uppercase transition-colors cursor-pointer ${
+                props.paidFilter === key ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
+              }`}
+            >
+              {key === "all" ? "Todas" : key === "paid" ? "Pagas" : "Não pagas"}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex items-center gap-3 flex-wrap">
         <p className="text-[10px] tracking-widest uppercase text-zinc-400">Ordenar</p>
         <button
@@ -463,6 +463,11 @@ function PublicDebtModal({ debt, onClose }: { debt: Debt; onClose: () => void })
             {badgeLabel && (
               <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
                 {badgeLabel}
+              </span>
+            )}
+            {debt.installmentGroupId && (
+              <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
+                Parcela {debt.installmentIndex}/{debt.installmentTotal}
               </span>
             )}
           </div>

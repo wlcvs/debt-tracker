@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EditablePayment } from "@/components/editable-payment";
 import { CreatePaymentForm } from "@/components/create-payment-form";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
+import { getMonthKey } from "@/lib/date-utils";
 
 interface Payment {
   id: string;
@@ -16,6 +17,7 @@ interface Payment {
 interface Props {
   personId: string;
   payments: Payment[];
+  selectedMonth?: string;
 }
 
 function parseAmountFilter(s: string): { val: number; isInt: boolean } {
@@ -23,7 +25,7 @@ function parseAmountFilter(s: string): { val: number; isInt: boolean } {
   return { val: parseFloat(n), isInt: !n.includes(".") };
 }
 
-export function PaymentsSection({ personId, payments }: Props) {
+export function PaymentsSection({ personId, payments, selectedMonth }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -67,6 +69,7 @@ export function PaymentsSection({ personId, payments }: Props) {
     const amtMax = amountMax ? parseAmountFilter(amountMax) : null;
 
     const list = payments.filter((p) => {
+      if (selectedMonth && getMonthKey(p.date) !== selectedMonth) return false;
       if (q) {
         const methodStr = PAYMENT_METHODS[p.method as PaymentMethodKey] ?? p.method;
         const amtStr = p.amount.toFixed(2).replace(".", ",");
@@ -93,7 +96,7 @@ export function PaymentsSection({ personId, payments }: Props) {
       const cmp = av < bv ? -1 : av > bv ? 1 : 0;
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [payments, search, dateFrom, dateTo, amountMin, amountMax, sortKey, sortDir]);
+  }, [payments, selectedMonth, search, dateFrom, dateTo, amountMin, amountMax, sortKey, sortDir]);
 
   const filtersActive = Boolean(showFilters || search || dateFrom || dateTo || amountMin || amountMax);
 

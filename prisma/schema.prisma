@@ -41,19 +41,24 @@ model CreditCard {
 }
 
 model Debt {
-  id           String         @id @default(cuid())
-  personId     String
-  creditCardId String?
-  method       PaymentMethod?
-  amount       Decimal        @db.Decimal(10, 2)
-  title        String
-  description  String         @default("")
-  paid         Boolean        @default(false)
-  date         DateTime
-  createdAt    DateTime       @default(now())
+  id                 String         @id @default(cuid())
+  personId           String
+  creditCardId       String?
+  method             PaymentMethod?
+  amount             Decimal        @db.Decimal(10, 2)
+  title              String
+  description        String         @default("")
+  paid               Boolean        @default(false)
+  date               DateTime
+  installmentGroupId String?
+  installmentIndex   Int?
+  installmentTotal   Int?
+  createdAt          DateTime       @default(now())
 
   person     Person      @relation(fields: [personId], references: [id], onDelete: Cascade)
   creditCard CreditCard? @relation(fields: [creditCardId], references: [id], onDelete: SetNull)
+
+  @@index([installmentGroupId])
 }
 
 enum PaymentMethod {

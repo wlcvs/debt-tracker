@@ -68,7 +68,7 @@ src/app/
 
 All mutations go through Server Actions in `src/lib/actions/`:
 - `person.ts` — CRUD for debtors
-- `debt.ts` — add/edit/delete/toggle-paid for debts
+- `debt.ts` — add/edit/delete/toggle-paid for debts, plus installment support: `createDebt` accepts `installments`/`installmentDirection`/`paidInstallments` to create a linked group of `Debt` rows; `deleteDebtInstallmentGroup`, `toggleDebtsPaidBulk`, `getDebtInstallmentGroup` operate on a whole group at once
 - `payment.ts` — add/edit/delete payments
 - `credit-card.ts` — admin's credit cards (referenced in debts)
 - `auth.ts` — admin login/logout
@@ -89,7 +89,9 @@ User        — admin; owns People, CreditCards, Statements, LLMFeedback
 Person      — debtor; id (serves as access code), name
 CreditCard  — admin's card; referenced in Debt
 Debt        — amount (Decimal 10,2), title (required label), description (optional notes, default ""),
-              paid (default false — excluded from every balance sum when true), date, method (PIX|CASH)?, creditCardId?
+              paid (default false — excluded from every balance sum when true), date, method (PIX|CASH)?, creditCardId?,
+              installmentGroupId/installmentIndex/installmentTotal (all optional — set together when a debt is one
+              installment of a parceled purchase; null/null/null for a standalone debt)
 Payment     — amount, description (optional, default ""), date, method (PIX | CASH)
 Statement   — cached PDF import: userId, bank, filename, pdfData (Bytes), transactionCount,
               algoResults/llmResults (Json), extractedText, uploadedAt
@@ -98,6 +100,16 @@ LLMFeedback — a manually-corrected transaction the LLM missed: userId, bank, d
 ```
 
 **`paid` on Debt** toggles whether the debt counts toward balance — every balance computation (`getOverviewStats`, `getPeopleWithBalances`, `getPersonById`, `getDebtorViewById`) must sum only `!d.paid` debts. This is easy to silently break when adding a new aggregate — grep for existing `.paid` filters before writing a new one.
+
+### Installments (parceled debts)
+
+A parceled debt is just N `Debt` rows sharing one `installmentGroupId`, each with its own `installmentIndex`/`installmentTotal`, `paid`, and `date` — there's no separate "installment plan" model. `src/lib/installments.ts` holds the two pure functions both the server action and the create-form preview call, so they never drift:
+- `splitInstallmentAmounts(total, count)` — divides the total into cents, putting any leftover cent on the *last* installments so the sum always matches exactly what was typed.
+- `installmentDate(baseDate, index, total, direction)` — `"forward"` treats `baseDate` as installment 1 and steps forward monthly (via `date-utils.ts`'s `addMonthsClamped`, which clamps day-of-month overflow, e.g. Jan 31 + 1 month → Feb 28/29); `"backward"` treats `baseDate` as the *last* installment and steps backward — used to log a purchase that's already fully paid off retroactively.
+
+`createDebt` (`src/lib/actions/debt.ts`) branches on `installments > 1` to create the whole group via `prisma.debt.createMany`; each individual installment's `paid` flag can be set at creation time via `paidInstallments` (a JSON array of 1-based indexes), letting you record some/all installments as already paid without a separate step. A single (non-parceled) debt can also be created already `paid: true` the same way.
+
+Once a debt belongs to a group, the UI treats it as a unit: `debt-detail-modal.tsx` hides "Editar" for grouped debts (no per-installment editing) and its delete button calls `deleteDebtInstallmentGroup` instead of `deleteDebt`, removing the whole group. `installment-group-panel.tsx` (opened via "Ver parcelas" in the modal) lists every installment in a group and can bulk-mark a selection as paid (`toggleDebtsPaidBulk`), optionally also creating real `Payment` record(s) for the selected installments via `createPayment` — either one lump-sum payment or one per installment.
 
 ### Bank statement import
 
@@ -115,6 +127,8 @@ Upload a PDF from a card/bank statement at `/dashboard` → "Extratos"; nothing 
 
 - `src/lib/prisma.ts` — singleton PrismaClient.
 - `src/lib/payment-methods.ts` — maps `PaymentMethod` enum values to display labels (`PIX → "Pix"`, `CASH → "Dinheiro"`).
+- `src/lib/date-utils.ts` — `getMonthKey`/`formatMonthLabel`/`getAvailableMonths`/`addMonthsClamped`/`formatDateBR`. All calendar-date math here operates on the Date object's **UTC** components, not local — dates in this app originate from date-only strings (`z.coerce.date()` on `"YYYY-MM-DD"` form input), which JS always parses as UTC midnight, so using local getters would silently shift the day in timezones west of UTC. Keep this convention when adding new date logic.
+- `src/lib/installments.ts` — `splitInstallmentAmounts`/`installmentDate`; see "Installments" above.
 - `src/lib/llm-client.ts`, `src/lib/pdf-highlight.ts`, `src/lib/pdf-viewer-controller.ts`, `src/lib/pdf/group-lines.ts`, `src/lib/importers/` — see "Bank statement import" above.
 
 ### Testing conventions
@@ -128,7 +142,8 @@ Upload a PDF from a card/bank statement at `/dashboard` → "Extratos"; nothing 
 
 - **Detail modals**: clicking a debt/payment row opens a modal with a view mode (title/amount/description/date/method badge, plus a paid toggle for debts) and an "Editar" button that swaps the same modal to an edit form — not a separate route or a second modal. See `debt-detail-modal.tsx`/`payment-detail-modal.tsx` for the pattern; `public-view.tsx`'s modals are the read-only variant (no edit/delete/paid-toggle, but a "✓ Paga" indicator when relevant).
 - **Method selection** (Pix/Dinheiro/credit card): `src/components/method-select.tsx`, a controlled button+dropdown-list component with a hidden `<input>` for form submission — not a native `<select>`. Debt method options include credit cards (`value` = the card's own id, not prefixed); payment options are Pix/Dinheiro only.
-- **Filter/sort panels**: debt and payment lists (`debts-section.tsx`, `payments-section.tsx`, and `public-view.tsx`'s lists) each own local filter state (search, date range, amount range) and sort state (date/amount, asc/desc) — not shared across sections. Switching to a different sort key always resets direction to `desc`; clicking the same key again toggles it. Amount-range filters compare by `Math.floor(amount)` when the input has no decimal point (e.g. typing `222` should still match `222.70`).
+- **Filter/sort panels**: debt and payment lists (`debts-section.tsx`, `payments-section.tsx`, and `public-view.tsx`'s lists) each own local filter state (search, amount range, paid status) and sort state (date/amount, asc/desc) — not shared across sections. Switching to a different sort key always resets direction to `desc`; clicking the same key again toggles it. Amount-range filters compare by `Math.floor(amount)` when the input has no decimal point (e.g. typing `222` should still match `222.70`). Dashboard lists (`debts-section.tsx`/`payments-section.tsx`) also keep a manual `dateFrom`/`dateTo` range filter; `public-view.tsx`'s lists dropped it in favor of the month carousel below.
+- **Month carousel**: `month-carousel.tsx` is a controlled row of month chips (`months: string[]` of `"YYYY-MM"` keys from `date-utils.ts`'s `getAvailableMonths`, `selected`, `onSelect`), reused in two places. In `public-view.tsx`, one carousel sits above both the debts and payments lists and drives both via a single `selectedMonth` — it fully replaced the old date-range filter there. In the dashboard's `/person/[id]`, `person-month-view.tsx` wraps `debts-section.tsx`/`payments-section.tsx` with the same carousel, passed down as an additional (not exclusive) filter — the existing `dateFrom`/`dateTo` inputs still work alongside it. A debt belonging to an installment group shows a small "Parcela i/N" badge next to its title in every list/modal (`editable-debt.tsx`, `debt-detail-modal.tsx`, `public-view.tsx`).
 - **Form validation messages**: native browser validation tooltips are replaced globally by `src/components/form-validation-messages.tsx` (mounted once in the root layout), which listens for the `invalid` event and inserts a styled inline message instead. Don't add per-field error `useState` for basic `required`/type validation in new forms — rely on native `required`/`type` attributes and let this component handle the message; only add custom state for validation native attributes can't express (e.g. the method dropdown's hidden input, which doesn't support `required`).
 - **pdfjs-dist in a "use client" component**: never a plain top-level `import { X } from "pdfjs-dist"` — it evaluates browser-only globals (`DOMMatrix`, etc.) immediately, which crashes SSR. Load it via dynamic `import("pdfjs-dist")` inside a function, and if you need something like `Util` outside that function, cache the loaded module and expose a getter (see `pdf-viewer-controller.ts`'s `getLoadedPdfjs()`) rather than importing it directly elsewhere.
 

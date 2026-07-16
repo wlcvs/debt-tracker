@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EditableDebt } from "@/components/editable-debt";
 import { CreateDebtForm } from "@/components/create-debt-form";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
+import { getMonthKey } from "@/lib/date-utils";
 
 interface Debt {
   id: string;
@@ -15,26 +16,33 @@ interface Debt {
   method: string | null;
   creditCardId: string | null;
   creditCardLabel: string | null;
+  installmentGroupId: string | null;
+  installmentIndex: number | null;
+  installmentTotal: number | null;
 }
 
 interface Props {
   personId: string;
   debts: Debt[];
   creditCards: { id: string; label: string }[];
+  selectedMonth?: string;
 }
+
+type PaidFilter = "all" | "paid" | "unpaid";
 
 function parseAmountFilter(s: string): { val: number; isInt: boolean } {
   const n = s.replace(",", ".");
   return { val: parseFloat(n), isInt: !n.includes(".") };
 }
 
-export function DebtsSection({ personId, debts, creditCards }: Props) {
+export function DebtsSection({ personId, debts, creditCards, selectedMonth }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
+  const [paidFilter, setPaidFilter] = useState<PaidFilter>("all");
   const [sortKey, setSortKey] = useState<"date" | "amount">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -62,6 +70,7 @@ export function DebtsSection({ personId, debts, creditCards }: Props) {
     setDateTo("");
     setAmountMin("");
     setAmountMax("");
+    setPaidFilter("all");
     setSortKey("date");
     setSortDir("desc");
   }
@@ -72,6 +81,9 @@ export function DebtsSection({ personId, debts, creditCards }: Props) {
     const amtMax = amountMax ? parseAmountFilter(amountMax) : null;
 
     const list = debts.filter((d) => {
+      if (selectedMonth && getMonthKey(d.date) !== selectedMonth) return false;
+      if (paidFilter === "paid" && !d.paid) return false;
+      if (paidFilter === "unpaid" && d.paid) return false;
       if (q) {
         const methodStr = d.creditCardLabel ?? (d.method ? PAYMENT_METHODS[d.method as PaymentMethodKey] ?? d.method : "");
         const amtStr = d.amount.toFixed(2).replace(".", ",");
@@ -98,9 +110,9 @@ export function DebtsSection({ personId, debts, creditCards }: Props) {
       const cmp = av < bv ? -1 : av > bv ? 1 : 0;
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [debts, search, dateFrom, dateTo, amountMin, amountMax, sortKey, sortDir]);
+  }, [debts, selectedMonth, search, dateFrom, dateTo, amountMin, amountMax, paidFilter, sortKey, sortDir]);
 
-  const filtersActive = Boolean(showFilters || search || dateFrom || dateTo || amountMin || amountMax);
+  const filtersActive = Boolean(showFilters || search || dateFrom || dateTo || amountMin || amountMax || paidFilter !== "all");
 
   return (
     <section className="flex flex-col gap-4 border border-zinc-300 dark:border-zinc-700 p-4">
@@ -170,6 +182,21 @@ export function DebtsSection({ personId, debts, creditCards }: Props) {
                   className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs placeholder:text-zinc-300 dark:placeholder:text-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
                 />
               </div>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <p className="text-[10px] tracking-widest uppercase text-zinc-400">Status</p>
+              {(["all", "paid", "unpaid"] as const).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setPaidFilter(key)}
+                  className={`text-[10px] tracking-widest uppercase transition-colors cursor-pointer ${
+                    paidFilter === key ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
+                  }`}
+                >
+                  {key === "all" ? "Todas" : key === "paid" ? "Pagas" : "Não pagas"}
+                </button>
+              ))}
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <p className="text-[10px] tracking-widest uppercase text-zinc-400">Ordenar</p>

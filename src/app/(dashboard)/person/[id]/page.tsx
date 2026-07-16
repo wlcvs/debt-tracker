@@ -4,8 +4,7 @@ import { getCreditCards } from "@/lib/actions/credit-card";
 import { EditablePersonHeader } from "@/components/editable-person-header";
 import { ShareButton } from "@/components/share-button";
 import { PersonActions } from "@/components/person-actions";
-import { DebtsSection } from "@/components/debts-section";
-import { PaymentsSection } from "@/components/payments-section";
+import { PersonMonthView } from "@/components/person-month-view";
 
 export default async function PersonPage({
   params,
@@ -31,10 +30,7 @@ export default async function PersonPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-start">
-        <DebtsSection personId={person.id} debts={person.debts} creditCards={creditCards} />
-        <PaymentsSection personId={person.id} payments={person.payments} />
-      </div>
+      <PersonMonthView personId={person.id} debts={person.debts} payments={person.payments} creditCards={creditCards} />
     </div>
   );
 }

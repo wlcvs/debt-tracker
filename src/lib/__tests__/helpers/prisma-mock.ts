@@ -9,7 +9,13 @@ export const prismaMock = {
   },
   debt: {
     create: vi.fn(),
+    createMany: vi.fn(),
     count: vi.fn(),
+    deleteMany: vi.fn(),
+    updateMany: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    update: vi.fn(),
   },
   payment: {
     create: vi.fn(),

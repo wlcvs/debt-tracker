@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { splitInstallmentAmounts, installmentDate } from "@/lib/installments";
 
 async function main() {
   const user = await prisma.user.findFirstOrThrow();
@@ -48,8 +49,23 @@ async function main() {
     data: { userId: user.id, name: "Rafael Mendes" },
   });
 
-  await prisma.debt.create({
-    data: { personId: rafael.id, creditCardId: nubank.id, amount: 1200.0, title: "Notebook", date: new Date("2026-01-20") },
+  const notebookGroupId = crypto.randomUUID();
+  const notebookInstallments = splitInstallmentAmounts(1200.0, 3);
+  const notebookBaseDate = new Date("2026-01-20");
+  await prisma.debt.createMany({
+    data: notebookInstallments.map((amount, i) => {
+      const index = i + 1;
+      return {
+        personId: rafael.id,
+        creditCardId: nubank.id,
+        amount,
+        title: `Notebook (${index}/3)`,
+        date: installmentDate(notebookBaseDate, index, 3, "forward"),
+        installmentGroupId: notebookGroupId,
+        installmentIndex: index,
+        installmentTotal: 3,
+      };
+    }),
   });
   await prisma.debt.create({
     data: { personId: rafael.id, amount: 90.0, title: "Farmácia", date: new Date("2026-05-18") },
@@ -68,6 +84,9 @@ async function main() {
   });
   await prisma.debt.create({
     data: { personId: juliana.id, creditCardId: inter.id, amount: 320.0, title: "Roupa loja online", date: new Date("2026-05-30") },
+  });
+  await prisma.debt.create({
+    data: { personId: juliana.id, amount: 45.0, title: "Presente aniversário", paid: true, date: new Date("2026-03-05") },
   });
   await prisma.payment.create({
     data: { personId: juliana.id, amount: 200.0, method: "PIX", date: new Date("2026-06-01") },
