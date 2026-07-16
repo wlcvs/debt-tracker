@@ -14,13 +14,14 @@ export function CreatePersonForm() {
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          const fd = new FormData(e.currentTarget);
+          const form = e.currentTarget;
+          const fd = new FormData(form);
           if (!fd.get("name")?.toString().trim()) {
             setError("Informe o nome do devedor.");
             return;
           }
           await createPerson(fd);
-          e.currentTarget.reset();
+          form.reset();
           setError("");
         }}
         className="flex gap-2"
