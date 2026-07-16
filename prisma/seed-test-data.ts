@@ -92,11 +92,56 @@ async function main() {
     data: { personId: juliana.id, amount: 200.0, method: "PIX", date: new Date("2026-06-01") },
   });
 
+  // --- Bruno (dívidas marcadas pagas manualmente, sem nenhum Payment) ---
+  const bruno = await prisma.person.create({
+    data: { userId: user.id, name: "Bruno Ferreira" },
+  });
+
+  await prisma.debt.create({
+    data: { personId: bruno.id, amount: 250.0, title: "Curso online", paid: true, date: new Date("2026-02-01") },
+  });
+  await prisma.debt.create({
+    data: { personId: bruno.id, creditCardId: inter.id, amount: 430.0, title: "Peças de carro", paid: true, date: new Date("2026-03-15") },
+  });
+  await prisma.debt.create({
+    data: { personId: bruno.id, amount: 95.0, title: "Jantar de negócios", date: new Date("2026-06-05") },
+  });
+
+  // --- Camila (compra parcelada retroativa, já totalmente quitada) ---
+  const camila = await prisma.person.create({
+    data: { userId: user.id, name: "Camila Rocha" },
+  });
+
+  const geladeiraGroupId = crypto.randomUUID();
+  const geladeiraInstallments = splitInstallmentAmounts(600.0, 4);
+  const geladeiraLastDate = new Date("2026-04-10");
+  await prisma.debt.createMany({
+    data: geladeiraInstallments.map((amount, i) => {
+      const index = i + 1;
+      return {
+        personId: camila.id,
+        creditCardId: nubank.id,
+        amount,
+        title: `Geladeira nova (${index}/4)`,
+        date: installmentDate(geladeiraLastDate, index, 4, "backward"),
+        paid: true,
+        installmentGroupId: geladeiraGroupId,
+        installmentIndex: index,
+        installmentTotal: 4,
+      };
+    }),
+  });
+  await prisma.debt.create({
+    data: { personId: camila.id, amount: 60.0, title: "Presente para o filho", date: new Date("2026-06-20") },
+  });
+
   console.log("Dados de teste inseridos:");
-  console.log(`  Carlos Souza  — id: ${carlos.id} (quitado)`);
-  console.log(`  Ana Lima      — id: ${ana.id} (parcialmente pago)`);
-  console.log(`  Rafael Mendes — id: ${rafael.id} (sem pagamentos)`);
-  console.log(`  Juliana Costa — id: ${juliana.id} (pagamento parcial)`);
+  console.log(`  Carlos Souza   — id: ${carlos.id} (quitado via pagamentos)`);
+  console.log(`  Ana Lima       — id: ${ana.id} (parcialmente pago)`);
+  console.log(`  Rafael Mendes  — id: ${rafael.id} (sem pagamentos, com notebook parcelado)`);
+  console.log(`  Juliana Costa  — id: ${juliana.id} (pagamento parcial + dívida já nascida paga)`);
+  console.log(`  Bruno Ferreira — id: ${bruno.id} (dívidas marcadas pagas manualmente, sem Payment)`);
+  console.log(`  Camila Rocha   — id: ${camila.id} (parcelamento retroativo já quitado)`);
   console.log("\nURL pública de exemplo:");
   console.log(`  /public/${carlos.id}`);
 }

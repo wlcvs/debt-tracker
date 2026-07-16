@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getDebtInstallmentGroup, toggleDebtsPaidBulk } from "@/lib/actions/debt";
 import { createPayment } from "@/lib/actions/payment";
 import { formatDateBR } from "@/lib/date-utils";
+import { Checkbox } from "@/components/checkbox";
 
 interface Props {
   installmentGroupId: string;
@@ -126,18 +127,12 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
               <ul className="flex flex-col gap-1">
                 {installments.map((i) => (
                   <li key={i.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
-                    <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        disabled={i.paid}
-                        checked={selected.has(i.id)}
-                        onChange={() => toggleSelect(i.id)}
-                        className="cursor-pointer"
-                      />
-                      <span className={i.paid ? "line-through opacity-50" : ""}>
-                        {i.installmentIndex}/{i.installmentTotal} — {formatDateBR(new Date(i.date))}
-                      </span>
-                    </label>
+                    <Checkbox
+                      disabled={i.paid}
+                      checked={selected.has(i.id)}
+                      onChange={() => toggleSelect(i.id)}
+                      label={`${i.installmentIndex}/${i.installmentTotal} — ${formatDateBR(new Date(i.date))}`}
+                    />
                     <div className="flex items-center gap-2">
                       <span className={`text-xs text-zinc-700 dark:text-zinc-300 ${i.paid ? "line-through opacity-50" : ""}`}>
                         R$ {i.amount.toFixed(2)}
@@ -158,15 +153,7 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
               </ul>
 
               <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 flex flex-col gap-3">
-                <label className="flex items-center gap-2 text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={registerPayment}
-                    onChange={(e) => setRegisterPayment(e.target.checked)}
-                    className="cursor-pointer"
-                  />
-                  Registrar pagamento correspondente
-                </label>
+                <Checkbox checked={registerPayment} onChange={setRegisterPayment} label="Registrar pagamento correspondente" />
 
                 {registerPayment && (
                   <div className="flex flex-col gap-2 pl-1">

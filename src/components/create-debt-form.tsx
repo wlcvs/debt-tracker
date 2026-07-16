@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createDebt } from "@/lib/actions/debt";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
+import { Checkbox } from "@/components/checkbox";
 import { splitInstallmentAmounts, installmentDate, type InstallmentDirection } from "@/lib/installments";
 import { formatDateBR } from "@/lib/date-utils";
 
@@ -25,6 +26,15 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [paidIndexes, setPaidIndexes] = useState<Set<number>>(new Set());
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) reset();
+    }
+    document.addEventListener("click", onClickOutside);
+    return () => document.removeEventListener("click", onClickOutside);
+  }, []);
 
   const methodOptions: MethodOption[] = [
     { value: "PIX", label: "Pix" },
@@ -68,7 +78,7 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
   }
 
   return (
-    <div>
+    <div ref={wrapperRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -129,18 +139,14 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
 
           <MethodSelect name="debtMethod" options={methodOptions} value={method} onChange={setMethod} error={methodError} />
 
-          <label className="flex items-center gap-2 text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={installment}
-              onChange={(e) => {
-                setInstallment(e.target.checked);
-                if (e.target.checked) setPaid(false);
-              }}
-              className="cursor-pointer"
-            />
-            Parcelar
-          </label>
+          <Checkbox
+            checked={installment}
+            onChange={(checked) => {
+              setInstallment(checked);
+              if (checked) setPaid(false);
+            }}
+            label="Parcelar"
+          />
 
           {installment ? (
             <div className="flex flex-col gap-2 border border-zinc-200 dark:border-zinc-800 p-3">
@@ -197,17 +203,11 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
                   <ul className="flex flex-col gap-1 max-h-48 overflow-y-auto">
                     {preview.map((p) => (
                       <li key={p.index} className="flex items-center justify-between gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={paidIndexes.has(p.index)}
-                            onChange={() => togglePaidIndex(p.index)}
-                            className="cursor-pointer"
-                          />
-                          <span>
-                            {p.index}/{installments} — {formatDateBR(p.date)}
-                          </span>
-                        </label>
+                        <Checkbox
+                          checked={paidIndexes.has(p.index)}
+                          onChange={() => togglePaidIndex(p.index)}
+                          label={`${p.index}/${installments} — ${formatDateBR(p.date)}`}
+                        />
                         <span>R$ {p.amount.toFixed(2)}</span>
                       </li>
                     ))}
@@ -216,10 +216,7 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
               )}
             </div>
           ) : (
-            <label className="flex items-center gap-2 text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400 cursor-pointer">
-              <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} className="cursor-pointer" />
-              Já paga
-            </label>
+            <Checkbox checked={paid} onChange={setPaid} label="Já paga" />
           )}
 
           <div className="flex gap-3 items-center">
