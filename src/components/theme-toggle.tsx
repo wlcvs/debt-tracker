@@ -19,7 +19,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+      className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer py-3 -my-3 px-2 -mx-2"
     >
       {dark ? "Tema claro" : "Tema escuro"}
     </button>

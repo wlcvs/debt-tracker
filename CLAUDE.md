@@ -48,6 +48,8 @@ Local dev Postgres runs as its own database (`debt_tracker_next` in `DATABASE_UR
 
 Prisma client is generated into `src/generated/prisma` — always run `npx prisma generate` after schema changes.
 
+**Testing the dev server from a phone on the same LAN** (e.g. `http://192.168.x.x:3000`): Next.js blocks cross-origin requests to dev-only resources (`/_next/webpack-hmr`, RSC/HMR fetches) by default. When blocked, the page still renders normally, but React hydration silently fails to attach *any* client-side event handler — every button looks present but does nothing, with no console error. The dev server terminal logs the tell: `⚠ Blocked cross-origin request to Next.js dev resource ... from "<ip>"`. Fix by adding that IP to `allowedDevOrigins` in `next.config.ts` and restarting the dev server. That IP is DHCP-assigned and can change (new Wi-Fi, router restart) — if buttons stop responding again after a network change, check the terminal for the same warning with a new IP.
+
 Agent skills for this repo: `setup-debt-tracker` (`.claude/skills/setup-debt-tracker/`) does one-time environment setup on a fresh checkout — Docker/Postgres install, `.env`, deps, migrate, seed. `run-debt-tracker` (`.claude/skills/run-debt-tracker/`) starts/drives/verifies an already-set-up app via `smoke.sh` (boots Postgres + dev server, logs in through the real Auth.js flow, confirms the dashboard renders) — use it instead of ad-hoc `curl`/`npm run dev` when verifying a change works end-to-end.
 
 ## Architecture
