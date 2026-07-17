@@ -835,14 +835,14 @@ function FilterToolbar(props: FilterToolbarProps) {
             title="Data inicial"
             value={props.filterDateFrom}
             onChange={(e) => props.setFilterDateFrom(e.target.value)}
-            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors [color-scheme:light] dark:[color-scheme:dark]"
+            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors scheme-light dark:scheme-dark"
           />
           <input
             type="date"
             title="Data final"
             value={props.filterDateTo}
             onChange={(e) => props.setFilterDateTo(e.target.value)}
-            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors [color-scheme:light] dark:[color-scheme:dark]"
+            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors scheme-light dark:scheme-dark"
           />
           <input
             type="number"
