@@ -2,8 +2,6 @@
 
 Personal application to track debts owed by third parties. Each debtor gets a shareable link to check their own balance. Includes a bank statement import feature (PDF parsing + optional LLM-assisted extraction) to speed up logging debts/payments from real statements. The UI is in Brazilian Portuguese.
 
-![Demo](.github/demo.gif)
-
 ## Stack
 
 - **Next.js 16** (App Router, TypeScript, Server Actions)
