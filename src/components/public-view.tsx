@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import type { PersonWithBalance } from "@/lib/actions/person";
-import { getAvailableMonths, getMonthKey } from "@/lib/date-utils";
+import { getAvailableMonths, getMonthKey, formatDateBR } from "@/lib/date-utils";
 import { MonthCarousel } from "@/components/month-carousel";
 
 type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "debts" | "payments">;
@@ -325,7 +325,7 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
                   )}
                 </div>
                 <span className="shrink-0 text-[10px] text-zinc-400 dark:text-zinc-600 mt-0.5">
-                  {payment.date.toLocaleDateString("pt-BR")}
+                  {formatDateBR(payment.date)}
                 </span>
               </button>
             </li>
@@ -463,7 +463,7 @@ function PublicDebtModal({ debt, onClose }: { debt: Debt; onClose: () => void })
             <p className="text-xs tracking-wider text-zinc-500 dark:text-zinc-400 -mt-2 mb-2">{debt.description}</p>
           )}
           <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <span className="text-xs text-zinc-400 dark:text-zinc-600">{debt.date.toLocaleDateString("pt-BR")}</span>
+            <span className="text-xs text-zinc-400 dark:text-zinc-600">{formatDateBR(debt.date)}</span>
             {badgeLabel && (
               <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
                 {badgeLabel}
@@ -499,7 +499,7 @@ function PublicPaymentModal({ payment, onClose }: { payment: Payment; onClose: (
             <p className="text-xs tracking-wider text-zinc-500 dark:text-zinc-400 -mt-2 mb-2">{payment.description}</p>
           )}
           <div className="flex items-center gap-3">
-            <span className="text-xs text-zinc-400 dark:text-zinc-600">{payment.date.toLocaleDateString("pt-BR")}</span>
+            <span className="text-xs text-zinc-400 dark:text-zinc-600">{formatDateBR(payment.date)}</span>
             <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
               {methodLabel(payment.method)}
             </span>

@@ -138,7 +138,7 @@ Upload a PDF from a card/bank statement at `/dashboard` → "Extratos"; nothing 
 
 ### Testing conventions
 
-- Unit tests in `src/lib/__tests__/`, mirroring `src/lib/` structure: `actions/` (one file per action module — `person`, `debt`, `payment`, `credit-card`, `statement`), `importers/`, `pdf/`, plus `llm-client.test.ts` and `pdf-highlight.test.ts`.
+- Unit tests in `src/lib/__tests__/`, mirroring `src/lib/` structure: `actions/` (one file per action module — `person`, `debt`, `payment`, `credit-card`, `statement`), `importers/`, `pdf/`, plus `date-utils.test.ts`, `installments.test.ts`, `llm-client.test.ts`, and `pdf-highlight.test.ts`.
 - Prisma is mocked via `src/lib/__tests__/helpers/prisma-mock.ts` — tests never hit the DB. It also mocks `$transaction` (passing itself through for the interactive-transaction form used by `saveImportedTransactions`).
 - Tests cover: auth guards, happy paths, input validation, and (for statement actions) the cached-vs-fresh LLM branching and graceful degradation when the LLM server is offline.
 - `src/lib/__tests__/importers/fixtures.test.ts` uses real bank statement PDFs — see "Bank statement import" above for why they're not committed.

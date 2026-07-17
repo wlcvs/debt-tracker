@@ -5,6 +5,7 @@ import { deleteDebt, deleteDebtInstallmentGroup, toggleDebtPaid, updateDebt } fr
 import { MethodSelect, type MethodOption } from "@/components/method-select";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { InstallmentGroupPanel } from "@/components/installment-group-panel";
+import { formatDateBR } from "@/lib/date-utils";
 
 interface DebtLike {
   id: string;
@@ -64,7 +65,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
               <p className="text-xs tracking-wider text-zinc-500 dark:text-zinc-400 -mt-2 mb-2">{debt.description}</p>
             )}
             <div className="flex items-center gap-3 mb-6 flex-wrap">
-              <span className="text-xs text-zinc-400 dark:text-zinc-600">{debt.date.toLocaleDateString("pt-BR")}</span>
+              <span className="text-xs text-zinc-400 dark:text-zinc-600">{formatDateBR(debt.date)}</span>
               {badgeLabel && (
                 <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
                   {badgeLabel}

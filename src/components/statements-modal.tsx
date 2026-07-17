@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getStatements, deleteStatement, type StatementSummary } from "@/lib/actions/statement";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { formatDateBR } from "@/lib/date-utils";
 
 interface Props {
   onClose: () => void;
@@ -140,7 +141,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
                   {stmt.filename}
                 </button>
                 <span className="text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500 shrink-0">
-                  {new Date(stmt.uploadedAt).toLocaleDateString("pt-BR")}
+                  {formatDateBR(new Date(stmt.uploadedAt))}
                 </span>
                 <button
                   onClick={() => onReopen(stmt.id)}

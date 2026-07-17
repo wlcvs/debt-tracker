@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { deletePayment, updatePayment } from "@/lib/actions/payment";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
+import { formatDateBR } from "@/lib/date-utils";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
@@ -48,7 +49,7 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
               <div className="mb-3" />
             )}
             <div className="flex items-center gap-3 mb-6">
-              <span className="text-xs text-zinc-400 dark:text-zinc-600">{payment.date.toLocaleDateString("pt-BR")}</span>
+              <span className="text-xs text-zinc-400 dark:text-zinc-600">{formatDateBR(payment.date)}</span>
               <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
                 {methodLabel}
               </span>
