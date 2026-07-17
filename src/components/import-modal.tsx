@@ -60,6 +60,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   const [statementId, setStatementId] = useState<string | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState("");
 
+  const [mobileView, setMobileView] = useState<"list" | "pdf">("list");
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<"date" | "amount">("date");
@@ -180,6 +181,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
     setSelectedTxnIndex(null);
     setHighlights([]);
     setPageInfoList([]);
+    setMobileView("list");
     claimedLineKeysRef.current.clear();
   }
 
@@ -388,6 +390,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
     }
     setPdfNoMatch(false);
     setSelectedTxnIndex(t.index);
+    setMobileView("pdf");
 
     const wrapperEl = pageInfos[entry.pageIdx]?.wrapperEl;
     wrapperEl?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -519,11 +522,39 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
               currentTxnsCount={currentTxns.length}
             />
 
+            {/* Mobile view switcher */}
+            <div className="flex lg:hidden gap-2 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobileView("list")}
+                className={`flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer ${
+                  mobileView === "list"
+                    ? "bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-900"
+                    : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400"
+                }`}
+              >
+                Lista
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileView("pdf")}
+                className={`flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer ${
+                  mobileView === "pdf"
+                    ? "bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-900"
+                    : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400"
+                }`}
+              >
+                PDF
+              </button>
+            </div>
+
             <div className="flex-1 flex min-h-0">
               {/* LEFT: table */}
-              <div className="w-[45%] lg:w-[42%] flex flex-col min-h-0 border-r border-zinc-200 dark:border-zinc-800">
+              <div
+                className={`${mobileView === "list" ? "flex" : "hidden"} lg:flex w-full lg:w-[42%] flex-col min-h-0 border-r border-zinc-200 dark:border-zinc-800`}
+              >
                 <div className="flex-1 overflow-auto">
-                  <table className="w-full text-xs border-collapse" style={{ tableLayout: "fixed" }}>
+                  <table className="w-full min-w-140 lg:min-w-0 text-xs border-collapse" style={{ tableLayout: "fixed" }}>
                     <colgroup>
                       <col style={{ width: 90 }} />
                       <col />
@@ -623,7 +654,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
               </div>
 
               {/* RIGHT: PDF viewer */}
-              <div className="flex-1 flex flex-col min-h-0">
+              <div className={`${mobileView === "pdf" ? "flex" : "hidden"} lg:flex flex-1 flex-col min-h-0`}>
                 <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
                   <button onClick={zoomOut} disabled={!pdfReady} className="text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
                     −
@@ -765,7 +796,7 @@ function FilterToolbar(props: FilterToolbarProps) {
 
   return (
     <div ref={wrapperRef}>
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
         <button
           type="button"
           onClick={() => props.setShowFilters((v) => !v)}
@@ -784,7 +815,7 @@ function FilterToolbar(props: FilterToolbarProps) {
         >
           + Adicionar manualmente
         </button>
-        <span className="flex-1" />
+        <span className="hidden lg:flex flex-1" />
         <span className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 whitespace-nowrap">
           {props.currentTxnsCount} transações extraídas do PDF
         </span>
