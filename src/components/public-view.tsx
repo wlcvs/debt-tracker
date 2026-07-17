@@ -138,15 +138,17 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
       <div ref={wrapperRef}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">Dívidas</p>
-          <button
-            type="button"
-            onClick={() => setShowFilters((v) => !v)}
-            className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
-              filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
-            }`}
-          >
-            Filtros
-          </button>
+          {monthDebts.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowFilters((v) => !v)}
+              className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
+                filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
+              }`}
+            >
+              Filtros
+            </button>
+          )}
         </div>
 
         {showFilters && (
@@ -272,15 +274,17 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
       <div ref={wrapperRef}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">Pagamentos</p>
-          <button
-            type="button"
-            onClick={() => setShowFilters((v) => !v)}
-            className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
-              filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
-            }`}
-          >
-            Filtros
-          </button>
+          {monthPayments.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowFilters((v) => !v)}
+              className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
+                filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
+              }`}
+            >
+              Filtros
+            </button>
+          )}
         </div>
 
         {showFilters && (

@@ -75,13 +75,17 @@ export function DebtsSection({ personId, debts, creditCards, selectedMonth }: Pr
     setSortDir("desc");
   }
 
+  const monthDebts = useMemo(
+    () => (selectedMonth ? debts.filter((d) => getMonthKey(d.date) === selectedMonth) : debts),
+    [debts, selectedMonth]
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const amtMin = amountMin ? parseAmountFilter(amountMin) : null;
     const amtMax = amountMax ? parseAmountFilter(amountMax) : null;
 
-    const list = debts.filter((d) => {
-      if (selectedMonth && getMonthKey(d.date) !== selectedMonth) return false;
+    const list = monthDebts.filter((d) => {
       if (paidFilter === "paid" && !d.paid) return false;
       if (paidFilter === "unpaid" && d.paid) return false;
       if (q) {
@@ -110,7 +114,7 @@ export function DebtsSection({ personId, debts, creditCards, selectedMonth }: Pr
       const cmp = av < bv ? -1 : av > bv ? 1 : 0;
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [debts, selectedMonth, search, dateFrom, dateTo, amountMin, amountMax, paidFilter, sortKey, sortDir]);
+  }, [monthDebts, search, dateFrom, dateTo, amountMin, amountMax, paidFilter, sortKey, sortDir]);
 
   const filtersActive = Boolean(showFilters || search || dateFrom || dateTo || amountMin || amountMax || paidFilter !== "all");
 
