@@ -180,12 +180,22 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
             </div>
             <div>
               <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Método</p>
-              <MethodSelect name="debtMethod" options={methodOptions} value={method} onChange={setMethod} error={methodError} />
+              <MethodSelect
+                name="debtMethod"
+                options={methodOptions}
+                value={method}
+                onChange={(v) => {
+                  setMethod(v);
+                  setMethodError(false);
+                }}
+                error={methodError}
+              />
             </div>
             <div className="flex justify-between items-center pt-1">
               <div className="flex gap-3">
                 <button
                   type="submit"
+                  onClick={() => setMethodError(!method)}
                   className="border border-zinc-600 dark:border-zinc-400 px-5 py-2 text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   Salvar

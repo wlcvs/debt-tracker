@@ -137,7 +137,16 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
             </div>
           </div>
 
-          <MethodSelect name="debtMethod" options={methodOptions} value={method} onChange={setMethod} error={methodError} />
+          <MethodSelect
+            name="debtMethod"
+            options={methodOptions}
+            value={method}
+            onChange={(v) => {
+              setMethod(v);
+              setMethodError(false);
+            }}
+            error={methodError}
+          />
 
           <Checkbox
             checked={installment}
@@ -222,6 +231,7 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
           <div className="flex gap-3 items-center">
             <button
               type="submit"
+              onClick={() => setMethodError(!method)}
               className="border border-zinc-400 dark:border-zinc-600 px-4 py-2 text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
             >
               Salvar

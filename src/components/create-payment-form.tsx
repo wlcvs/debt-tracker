@@ -61,11 +61,21 @@ export function CreatePaymentForm({ personId }: Props) {
 
           <input type="text" name="description" placeholder="DESCRIÇÃO (opcional)" className={inputClass} />
 
-          <MethodSelect name="method" options={METHOD_OPTIONS} value={method} onChange={setMethod} error={methodError} />
+          <MethodSelect
+            name="method"
+            options={METHOD_OPTIONS}
+            value={method}
+            onChange={(v) => {
+              setMethod(v);
+              setMethodError(false);
+            }}
+            error={methodError}
+          />
 
           <div className="flex gap-3 items-center">
             <button
               type="submit"
+              onClick={() => setMethodError(!method)}
               className="border border-zinc-400 dark:border-zinc-600 px-4 py-2 text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
             >
               Salvar
