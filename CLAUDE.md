@@ -48,6 +48,8 @@ Local dev Postgres runs as its own database (`debt_tracker_next` in `DATABASE_UR
 
 Prisma client is generated into `src/generated/prisma` — always run `npx prisma generate` after schema changes.
 
+Agent skills for this repo: `setup-debt-tracker` (`.claude/skills/setup-debt-tracker/`) does one-time environment setup on a fresh checkout — Docker/Postgres install, `.env`, deps, migrate, seed. `run-debt-tracker` (`.claude/skills/run-debt-tracker/`) starts/drives/verifies an already-set-up app via `smoke.sh` (boots Postgres + dev server, logs in through the real Auth.js flow, confirms the dashboard renders) — use it instead of ad-hoc `curl`/`npm run dev` when verifying a change works end-to-end.
+
 ## Architecture
 
 ### Route structure

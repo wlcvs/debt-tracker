@@ -1,52 +1,17 @@
 ---
 name: run-debt-tracker
-description: Build, run, and drive debt-tracker (Next.js debt tracker app). Use when asked to start the app, run it locally, run its tests, or verify a change actually works end-to-end (login + dashboard).
+description: Start, drive, and verify debt-tracker (Next.js debt tracker app) on a machine that's already set up. Use when asked to start the app, run it locally, run its tests, or verify a change actually works end-to-end (login + dashboard). If setup has never been done on this machine (no .env, DB never migrated/seeded, Docker not installed), use the setup-debt-tracker skill first.
 ---
 
-This is a Next.js 16 app (Postgres + Prisma + Auth.js). Drive it via
+This is a Next.js 16 app (Postgres + Prisma + Auth.js). Assumes
+`setup-debt-tracker` has already been run once (`.env` exists, deps
+installed, DB migrated and seeded). Drive it via
 `.claude/skills/run-debt-tracker/smoke.sh` — it boots Postgres, starts
 the dev server, logs in as the admin user through the real Auth.js
 credentials flow (`curl`, no browser needed), and confirms the
 authenticated dashboard renders.
 
 All paths below are relative to the repo root.
-
-## Prerequisites
-
-Docker is required for local Postgres (no docker/postgresql found
-preinstalled on this box).
-
-```bash
-sudo pacman -S --needed docker docker-compose
-sudo systemctl enable --now docker
-sudo usermod -aG docker "$USER"   # then log out/in (or `newgrp docker`) for it to take effect
-```
-
-(Ubuntu/Debian equivalent: `sudo apt-get install -y docker.io docker-compose-plugin`.)
-
-## Setup
-
-```bash
-cp .env.example .env
-```
-
-Fill in `.env`:
-
-```bash
-DATABASE_URL="postgresql://debt_tracker:debt_tracker_dev@localhost:5432/debt_tracker_next"   # matches docker-compose.yml
-ADMIN_EMAIL="test@example.com"
-ADMIN_PASSWORD="teste1234"
-AUTH_SECRET="$(openssl rand -base64 33)"    # see Gotchas — npx auth secret no longer works
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-LLM_BASE_URL=   # leave empty — no LLM extraction server in dev, algorithmic import still works
-```
-
-```bash
-npm install
-docker compose up -d                              # start Postgres
-npx prisma migrate deploy && npx prisma generate   # schema + client
-node --env-file=.env --import tsx/esm prisma/seed.ts   # creates the admin user
-```
 
 ## Run (agent path)
 
@@ -74,6 +39,11 @@ kill $(cat /tmp/debt-tracker-dev.pid)
 
 Postgres is left running (`docker compose down` to stop it).
 
+This confirms the app boots and admin auth works, but it's a `curl`
+check, not a browser — it does not verify visual/CSS changes. For
+those, ask the user to eyeball the running dev server themselves (or
+use a real browser-driving tool if one is available in the session).
+
 ## Run (human path)
 
 ```bash
@@ -95,11 +65,6 @@ Vitest, Prisma fully mocked — no DB needed for this command.
 
 ## Gotchas
 
-- **`npx auth secret` is broken as a way to generate `AUTH_SECRET`.**
-  The npm package name `auth` now belongs to the *Better Auth* CLI
-  (`better-auth.com`), an unrelated project — running it installs
-  `auth@1.x` and prints a `BETTER_AUTH_SECRET` line, not an Auth.js
-  secret. Generate one with `openssl rand -base64 33` instead.
 - **The credentials provider's callback URL is `/api/auth/callback/admin`,
   not `/api/auth/callback/credentials`.** `src/auth.ts` registers the
   provider with `Credentials({ id: "admin", ... })`. Posting to the
@@ -107,10 +72,6 @@ Vitest, Prisma fully mocked — no DB needed for this command.
   `/api/auth/error?error=Configuration` with a `Provider with id
   "credentials" not found` error in the server log — easy to miss
   since it still returns a 302 like a real success would.
-- **`npx tsx prisma/seed.ts` alone fails** with `ADMIN_EMAIL and
-  ADMIN_PASSWORD must be set in .env` — the script doesn't load
-  dotenv itself. Use the command in CLAUDE.md /  Setup above:
-  `node --env-file=.env --import tsx/esm prisma/seed.ts`.
 - **Docker group membership doesn't apply to already-open shells**
   (including this agent's Bash sessions) — `usermod -aG docker` only
   takes effect in new login sessions. `smoke.sh` works around this by
@@ -119,7 +80,7 @@ Vitest, Prisma fully mocked — no DB needed for this command.
   no longer needs docker permissions at all. If it genuinely needs to
   start Postgres and gets `permission denied while trying to connect
   to the docker API`, ask the user to run `docker compose up -d`
-  themselves (or `newgrp docker` / re-login).
+  themselves (or `newgrp docker` / re-login) — or run `setup-debt-tracker`.
 
 ## Troubleshooting
 
@@ -130,6 +91,5 @@ Vitest, Prisma fully mocked — no DB needed for this command.
   current shell predates the `usermod -aG docker` change. Either have
   the user run the docker command directly, or open a fresh login
   session.
-- **`ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env`** from the
-  seed script: you ran `npx tsx prisma/seed.ts` directly instead of
-  the `--env-file=.env` form (see Gotchas).
+- **Missing `.env`, DB never migrated, or no admin user**: this is a
+  setup problem, not a run problem — use the `setup-debt-tracker` skill.
