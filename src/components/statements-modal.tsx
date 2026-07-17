@@ -81,7 +81,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Filtrar por nome do arquivo…"
-              className="flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
+              className="flex-1 min-w-0 truncate bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
             />
             <button
               type="button"
