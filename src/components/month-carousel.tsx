@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { formatMonthLabel } from "@/lib/date-utils";
 
 interface Props {
@@ -9,6 +10,12 @@ interface Props {
 }
 
 export function MonthCarousel({ months, selected, onSelect }: Props) {
+  const selectedRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [selected]);
+
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
       {months.map((month) => {
@@ -16,6 +23,7 @@ export function MonthCarousel({ months, selected, onSelect }: Props) {
         return (
           <button
             key={month}
+            ref={isSelected ? selectedRef : undefined}
             type="button"
             onClick={() => onSelect(month)}
             className={`shrink-0 border px-4 py-2 text-xs tracking-widest uppercase transition-colors cursor-pointer ${
