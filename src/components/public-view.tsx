@@ -536,14 +536,32 @@ function InstallmentCalculator({ balance }: { balance: number }) {
             {n}x
           </button>
         ))}
-        <input
-          type="number"
-          value={months}
-          onChange={(e) => setMonths(Number(e.target.value))}
-          min={1}
-          max={360}
-          className="w-20 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-center text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-        />
+        <div className="flex items-stretch border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">
+          <button
+            type="button"
+            onClick={() => setMonths((m) => Math.max(1, m - 1))}
+            className="px-2 text-xs text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+            aria-label="Diminuir meses"
+          >
+            −
+          </button>
+          <input
+            type="number"
+            value={months}
+            onChange={(e) => setMonths(Number(e.target.value))}
+            min={1}
+            max={360}
+            className="w-14 bg-transparent border-x border-zinc-300 dark:border-zinc-700 px-1 py-2 text-xs text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          <button
+            type="button"
+            onClick={() => setMonths((m) => Math.min(360, m + 1))}
+            className="px-2 text-xs text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+            aria-label="Aumentar meses"
+          >
+            +
+          </button>
+        </div>
       </div>
       <p className="text-2xl tracking-tight text-zinc-900 dark:text-white">
         R$ {monthly ?? "—"} <span className="text-sm tracking-wider text-zinc-400 dark:text-zinc-600">/mês</span>
