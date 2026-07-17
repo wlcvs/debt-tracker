@@ -182,7 +182,7 @@ export function PaymentsSection({ personId, payments, selectedMonth }: Props) {
                   sortKey === "date" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
                 }`}
               >
-                Data {sortKey === "date" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                Data {sortKey === "date" ? (sortDir === "asc" ? "+" : "-") : ""}
               </button>
               <button
                 type="button"
@@ -191,7 +191,7 @@ export function PaymentsSection({ personId, payments, selectedMonth }: Props) {
                   sortKey === "amount" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
                 }`}
               >
-                Valor {sortKey === "amount" ? (sortDir === "asc" ? "↑" : "↓") : ""}
+                Valor {sortKey === "amount" ? (sortDir === "asc" ? "+" : "-") : ""}
               </button>
               <button
                 type="button"

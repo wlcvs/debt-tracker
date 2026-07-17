@@ -52,8 +52,8 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
       <div className="relative bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 w-full max-w-sm max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center px-6 pt-5 pb-4 border-b border-zinc-200 dark:border-zinc-800">
           <p className="text-[10px] tracking-[0.3em] uppercase text-zinc-400 dark:text-zinc-500">Dívida</p>
-          <button onClick={onClose} className="text-xs text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
-            ✕
+          <button onClick={onClose} className="text-[10px] tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
+            Fechar
           </button>
         </div>
 

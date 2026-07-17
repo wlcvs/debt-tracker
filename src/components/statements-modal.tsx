@@ -64,8 +64,8 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
       <div className="relative flex flex-col bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 w-full max-w-2xl max-h-[80vh]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
           <p className="text-[10px] tracking-[0.3em] uppercase text-zinc-400 dark:text-zinc-500">Extratos salvos</p>
-          <button onClick={onClose} className="text-xs text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
-            ✕
+          <button onClick={onClose} className="text-[10px] tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
+            Fechar
           </button>
         </div>
 

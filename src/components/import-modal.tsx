@@ -460,8 +460,8 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
               <p className="text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 mt-0.5">{bank}</p>
             )}
           </div>
-          <button onClick={handleClose} className="text-xs text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
-            ✕
+          <button onClick={handleClose} className="text-[10px] tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
+            Fechar
           </button>
         </div>
 
@@ -870,7 +870,7 @@ function FilterToolbar(props: FilterToolbarProps) {
               props.sortKey === "date" ? "text-zinc-900 dark:text-white" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300"
             }`}
           >
-            Data {props.sortKey === "date" ? (props.sortDir === "asc" ? "↑" : "↓") : ""}
+            Data {props.sortKey === "date" ? (props.sortDir === "asc" ? "+" : "-") : ""}
           </button>
           <button
             type="button"
@@ -879,7 +879,7 @@ function FilterToolbar(props: FilterToolbarProps) {
               props.sortKey === "amount" ? "text-zinc-900 dark:text-white" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-300"
             }`}
           >
-            Valor {props.sortKey === "amount" ? (props.sortDir === "asc" ? "↑" : "↓") : ""}
+            Valor {props.sortKey === "amount" ? (props.sortDir === "asc" ? "+" : "-") : ""}
           </button>
           <span className="text-zinc-300 dark:text-zinc-700 select-none">|</span>
           <button

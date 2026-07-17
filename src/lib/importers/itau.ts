@@ -91,8 +91,8 @@ function parseFatura(pagesText: string[]): Transaction[] {
         // lowercase token — mixed-case words are right-column artifacts.
         const cleanWords: string[] = [];
         for (const w of line.split(/\s+/)) {
-          if (AMOUNT_FULL_RE.test(w)) break; // amount → right column
-          if (/[a-z]/.test(w)) break; // camelCase compressed text → right column
+          if (AMOUNT_FULL_RE.test(w)) break; // amount - right column
+          if (/[a-z]/.test(w)) break; // camelCase compressed text - right column
           cleanWords.push(w);
         }
         if (cleanWords.length > 0) {

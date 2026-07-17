@@ -414,7 +414,7 @@ function FilterFields(props: FilterFieldsProps) {
             props.sortKey === "date" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
           }`}
         >
-          Data {props.sortKey === "date" ? (props.sortDir === "asc" ? "↑" : "↓") : ""}
+          Data {props.sortKey === "date" ? (props.sortDir === "asc" ? "+" : "-") : ""}
         </button>
         <button
           type="button"
@@ -423,7 +423,7 @@ function FilterFields(props: FilterFieldsProps) {
             props.sortKey === "amount" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
           }`}
         >
-          Valor {props.sortKey === "amount" ? (props.sortDir === "asc" ? "↑" : "↓") : ""}
+          Valor {props.sortKey === "amount" ? (props.sortDir === "asc" ? "+" : "-") : ""}
         </button>
         <button
           type="button"
@@ -448,8 +448,8 @@ function PublicDebtModal({ debt, onClose }: { debt: Debt; onClose: () => void })
       <div className="relative bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 w-full max-w-sm max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center px-6 pt-5 pb-4 border-b border-zinc-200 dark:border-zinc-800">
           <p className="text-[10px] tracking-[0.3em] uppercase text-zinc-400 dark:text-zinc-500">Dívida</p>
-          <button onClick={onClose} className="text-xs text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
-            ✕
+          <button onClick={onClose} className="text-[10px] tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
+            Fechar
           </button>
         </div>
         <div className="px-6 py-5">
@@ -475,7 +475,7 @@ function PublicDebtModal({ debt, onClose }: { debt: Debt; onClose: () => void })
               </span>
             )}
           </div>
-          {debt.paid && <p className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600">✓ Paga</p>}
+          {debt.paid && <p className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600">Paga</p>}
         </div>
       </div>
     </div>
@@ -489,8 +489,8 @@ function PublicPaymentModal({ payment, onClose }: { payment: Payment; onClose: (
       <div className="relative bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 w-full max-w-sm max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center px-6 pt-5 pb-4 border-b border-zinc-200 dark:border-zinc-800">
           <p className="text-[10px] tracking-[0.3em] uppercase text-zinc-400 dark:text-zinc-500">Pagamento</p>
-          <button onClick={onClose} className="text-xs text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
-            ✕
+          <button onClick={onClose} className="text-[10px] tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
+            Fechar
           </button>
         </div>
         <div className="px-6 py-5">
