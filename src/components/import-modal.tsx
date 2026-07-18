@@ -13,9 +13,9 @@ import { PdfViewerController, type PageInfo } from "@/lib/pdf-viewer-controller"
 import { buildHighlightRect, findMatches, pickBestMatch, type HighlightRect } from "@/lib/pdf-highlight";
 
 const HIGHLIGHT_BASE =
-  "bg-yellow-300/40 dark:bg-yellow-400/25 border border-yellow-400/50 dark:border-yellow-300/40";
+  "bg-zinc-400/30 dark:bg-zinc-300/20 border border-zinc-500/50 dark:border-zinc-400/40";
 const HIGHLIGHT_SELECTED =
-  "bg-green-400/50 dark:bg-green-400/35 border border-green-600/70 dark:border-green-400/60";
+  "bg-zinc-700/40 dark:bg-zinc-100/30 border border-zinc-900/70 dark:border-white/70";
 
 type TxnType = "ignore" | "debt" | "payment";
 
@@ -590,7 +590,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
                           key={t.index}
                           data-txn-index={t.index}
                           className={`border-b border-zinc-100 dark:border-zinc-800/60 transition-all cursor-pointer ${t.type === "ignore" ? "opacity-30" : ""} ${
-                            t.index === selectedTxnIndex ? "bg-green-400/20 dark:bg-green-400/15" : ""
+                            t.index === selectedTxnIndex ? "bg-zinc-300/60 dark:bg-zinc-700/50" : ""
                           }`}
                           onClick={() => highlightTransaction(t)}
                         >
