@@ -36,7 +36,7 @@ ADMIN_EMAIL="test@example.com"
 ADMIN_PASSWORD="teste1234"
 AUTH_SECRET="$(openssl rand -base64 33)"    # see Gotchas — npx auth secret no longer works
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-LLM_BASE_URL=   # leave empty — no LLM extraction server in dev, algorithmic import still works
+OLLAMA_BASE_URL=   # leave empty — no local Ollama in dev, algorithmic import still works
 ```
 
 ```bash

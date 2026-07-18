@@ -16,6 +16,7 @@ Personal application to track debts owed by third parties. Each debtor gets a sh
 
 - Node.js 20+
 - Docker (for local PostgreSQL)
+- [Ollama](https://ollama.com) (optional — only needed for LLM-assisted statement extraction; the app works algorithmic-only without it)
 
 ## Local Setup
 
@@ -62,10 +63,38 @@ npm run dev
 
 ## Environment Variables
 
-See `.env.example` for all required variables. `LLM_BASE_URL` is optional — if unset, the statement import feature falls back to algorithmic-only extraction with no error.
+See `.env.example` for all required variables. `OLLAMA_BASE_URL`/`OLLAMA_MODEL` are optional — if `OLLAMA_BASE_URL` is unset, the statement import feature falls back to algorithmic-only extraction with no error.
 
 ## Bank statement import
 
-From the dashboard, click "Extratos" to upload a PDF bank/card statement. It's parsed two ways in parallel — an algorithmic parser per bank (Nubank, Itaú, Mercado Pago, Bradesco) and, if `LLM_BASE_URL` points at a running extraction server, an LLM pass — and both result sets are shown for review before anything is saved. The PDF renders client-side via pdf.js; clicking a row highlights the matching line in the source document. Uploads are cached so reopening one later doesn't require re-parsing.
+From the dashboard, click "Extratos" to upload a PDF bank/card statement. It's parsed two ways in parallel — an algorithmic parser per bank (Nubank, Itaú, Mercado Pago, Bradesco) and, if `OLLAMA_BASE_URL` points at a reachable Ollama instance, an LLM pass — and both result sets are shown for review before anything is saved. The PDF renders client-side via pdf.js; clicking a row highlights the matching line in the source document. Uploads are cached so reopening one later doesn't require re-parsing.
 
 For local testing, drop real statement PDFs in `statements/` (gitignored — these are real personal financial documents, never commit them).
+
+### LLM-assisted extraction (Ollama)
+
+The LLM pass runs entirely against a locally-hosted model — no cloud LLM cost. Each bank has its own pre-processing (isolating the relevant text/table before handing it to the model) plus a tailored prompt; see `src/lib/llm-extract/` (one file per bank, mirroring `src/lib/importers/`'s structure) for the exact strategy per bank:
+
+| Bank | Strategy |
+|---|---|
+| Nubank (cartão) | Per-page extraction on pages containing `TRANSAÇÕES` |
+| Nubank (extrato) | Per-page extraction on all pages, deduplicated by (date, description, amount) |
+| Itaú | Isolates the left column of the `DATA / ESTABELECIMENTO` table via word x/y position |
+| Bradesco | Rule-based pre-processing into unambiguous `YYYY-MM-DD DESCRIPTION AMOUNT` lines, then a strict pass-through LLM call (whitelisted against those lines afterward, since small models can still fabricate an extra entry despite the "don't skip/dedupe" instruction) |
+| Mercado Pago | Isolates the `Detalhes de consumo` section |
+| Unrecognized bank | Generic full-text LLM extraction, no pre-processing |
+
+To run the LLM pass locally:
+
+```bash
+ollama pull qwen2.5:3b   # or your own choice of OLLAMA_MODEL
+ollama serve             # or run it as a persistent service (systemd, etc.)
+```
+
+Then set `OLLAMA_BASE_URL="http://localhost:11434/v1"` in `.env`.
+
+Manually-corrected transactions made during review are saved as `LLMFeedback` and replayed as few-shot examples (last 10, per bank) on future extracts for that bank — this is how extraction quality improves over time without retraining anything.
+
+Since this app is deployed on Vercel but the LLM keeps running on your own machine, `OLLAMA_BASE_URL` in production must point at a tunnel exposing your local Ollama instance over HTTPS (e.g. a Cloudflare Tunnel or Tailscale Funnel hostname) — not `localhost`.
+
+This extraction logic used to live in a separate Python/FastAPI sidecar (`bank-statement-extractor`); it's since been fully ported into this repo (see `src/lib/llm-extract/`) and the sidecar repo retired.

@@ -88,4 +88,48 @@ describe("extract", () => {
     const [systemArg] = vi.mocked(ollamaClient.chatComplete).mock.calls[0];
     expect(systemArg).toContain("do NOT skip, filter, or deduplicate");
   });
+
+  it("drops a hallucinated transaction whose date+amount don't match any pre-processed line", async () => {
+    vi.spyOn(importersBase, "extractTextPages").mockResolvedValue([
+      ["Histórico Débito", "01/06/2026 PIX ENVIADO", "01/06/2026 000123 186,69 1.500,00", "Saldo Final"].join("\n"),
+    ]);
+    // A small model can still fabricate an extra entry despite the strict
+    // pass-through instructions — e.g. duplicating a real amount under
+    // today's date instead of the date that was actually on the statement.
+    vi.spyOn(ollamaClient, "chatComplete").mockResolvedValue(
+      JSON.stringify([
+        { date: "2026-07-18", description: "PIX ENVIADO", amount: "186.69" },
+        { date: "2026-06-01", description: "PIX ENVIADO", amount: "186.69" },
+      ])
+    );
+
+    const [txns, text] = await extract(Buffer.from("irrelevant"), []);
+    expect(txns).toEqual([{ date: "2026-06-01", description: "PIX ENVIADO", amount: "186.69" }]);
+    expect(text).toBe("2026-06-01 PIX ENVIADO 186.69");
+  });
+
+  it("keeps every transaction when all of them match pre-processed lines", async () => {
+    vi.spyOn(importersBase, "extractTextPages").mockResolvedValue([
+      [
+        "Histórico Débito",
+        "01/06/2026 PIX ENVIADO",
+        "01/06/2026 000123 186,69 1.500,00",
+        "02/06/2026 TARIFA MANUTENCAO",
+        "02/06/2026 000456 1,50 999,00",
+        "Saldo Final",
+      ].join("\n"),
+    ]);
+    vi.spyOn(ollamaClient, "chatComplete").mockResolvedValue(
+      JSON.stringify([
+        { date: "2026-06-01", description: "PIX ENVIADO", amount: "186.69" },
+        { date: "2026-06-02", description: "TARIFA MANUTENCAO", amount: "1.50" },
+      ])
+    );
+
+    const [txns] = await extract(Buffer.from("irrelevant"), []);
+    expect(txns).toEqual([
+      { date: "2026-06-01", description: "PIX ENVIADO", amount: "186.69" },
+      { date: "2026-06-02", description: "TARIFA MANUTENCAO", amount: "1.50" },
+    ]);
+  });
 });

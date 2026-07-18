@@ -12,9 +12,9 @@ import { healthCheck, extract, type LlmCorrection } from "@/lib/llm-extract";
 // every export of a "use server" module to be an async function, and a
 // non-function export here breaks the module's client bundle entirely (see
 // the (dashboard)/page.tsx route segment, which sets it instead). The LLM
-// client's own timeout (see src/lib/llm-client.ts) is set a couple seconds
-// under that ceiling, so a slow LLM server always resolves to the
-// graceful-degradation path before the platform kills the whole function.
+// client's own timeout (see src/lib/llm-extract/ollama-client.ts) is set a
+// couple seconds under that ceiling, so a slow Ollama server always resolves
+// to the graceful-degradation path before the platform kills the whole function.
 
 function toJson(value: unknown): object {
   return JSON.parse(JSON.stringify(value));
