@@ -6,11 +6,11 @@ vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/importers", () => ({ detectAndParse: vi.fn() }));
 vi.mock("@/lib/importers/base", () => ({ extractTextPages: vi.fn().mockResolvedValue(["extracted text"]) }));
-vi.mock("@/lib/llm-client", () => ({ healthCheck: vi.fn(), extract: vi.fn() }));
+vi.mock("@/lib/llm-extract", () => ({ healthCheck: vi.fn(), extract: vi.fn() }));
 
 import { auth } from "@/auth";
 import { detectAndParse } from "@/lib/importers";
-import { healthCheck, extract } from "@/lib/llm-client";
+import { healthCheck, extract } from "@/lib/llm-extract";
 import {
   getStatements,
   importStatement,

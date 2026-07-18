@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { detectAndParse } from "@/lib/importers";
 import { extractTextPages } from "@/lib/importers/base";
-import { healthCheck, extract, type LlmCorrection } from "@/lib/llm-client";
+import { healthCheck, extract, type LlmCorrection } from "@/lib/llm-extract";
 
 // Note: `maxDuration` cannot be exported from this file — Next.js requires
 // every export of a "use server" module to be an async function, and a

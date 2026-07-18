@@ -3,6 +3,7 @@ import { groupLines, lineText, type PdfLine, type PdfTextItem } from "@/lib/pdf/
 export interface PdfPage {
   text: string;
   lines: PdfLine[];
+  width: number;
 }
 
 export async function extractPages(data: Buffer | Uint8Array): Promise<PdfPage[]> {
@@ -22,7 +23,8 @@ export async function extractPages(data: Buffer | Uint8Array): Promise<PdfPage[]
       const content = await page.getTextContent();
       const items = content.items as PdfTextItem[];
       const lines = groupLines(items);
-      pages.push({ text: lines.map(lineText).join("\n"), lines });
+      const viewport = page.getViewport({ scale: 1 });
+      pages.push({ text: lines.map(lineText).join("\n"), lines, width: viewport.width });
     }
   } finally {
     await loadingTask.destroy();
