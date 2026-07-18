@@ -393,7 +393,20 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
     setMobileView("pdf");
 
     const wrapperEl = pageInfos[entry.pageIdx]?.wrapperEl;
-    wrapperEl?.scrollIntoView({ block: "center", behavior: "smooth" });
+    const scrollContainer = containerRef.current;
+    if (wrapperEl && scrollContainer) {
+      const margin = 24;
+      const highlightTop = wrapperEl.offsetTop + entry.rect.top * pdfZoom;
+      const highlightBottom = highlightTop + entry.rect.height * pdfZoom;
+      const viewTop = scrollContainer.scrollTop;
+      const viewBottom = viewTop + scrollContainer.clientHeight;
+
+      if (highlightTop < viewTop + margin) {
+        scrollContainer.scrollTo({ top: highlightTop - margin, behavior: "smooth" });
+      } else if (highlightBottom > viewBottom - margin) {
+        scrollContainer.scrollTo({ top: highlightBottom - scrollContainer.clientHeight + margin, behavior: "smooth" });
+      }
+    }
 
     const rowEl = tableBodyRef.current?.querySelector(`tr[data-txn-index="${CSS.escape(String(t.index))}"]`);
     rowEl?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -576,15 +589,17 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
                         <tr
                           key={t.index}
                           data-txn-index={t.index}
-                          className={`border-b border-zinc-100 dark:border-zinc-800/60 transition-opacity cursor-pointer ${t.type === "ignore" ? "opacity-30" : ""}`}
+                          className={`border-b border-zinc-100 dark:border-zinc-800/60 transition-all cursor-pointer ${t.type === "ignore" ? "opacity-30" : ""} ${
+                            t.index === selectedTxnIndex ? "bg-green-400/20 dark:bg-green-400/15" : ""
+                          }`}
                           onClick={() => highlightTransaction(t)}
                         >
-                          <td className="pl-3 pr-1 py-1.5 tabular-nums text-zinc-500 dark:text-zinc-300 whitespace-nowrap text-[11px]">{t.date}</td>
-                          <td className="px-1 py-1.5 text-zinc-800 dark:text-zinc-100 overflow-hidden">
+                          <td className="pl-3 pr-1 py-1.5 tabular-nums text-zinc-700 dark:text-zinc-300 whitespace-nowrap text-[11px]">{t.date}</td>
+                          <td className="px-1 py-1.5 text-zinc-900 dark:text-zinc-100 overflow-hidden">
                             <span className="block truncate text-[11px]" title={t.description}>{t.description}</span>
                             {t.manual && <span className="text-[9px] tracking-widest uppercase text-zinc-400 dark:text-zinc-500">manual</span>}
                           </td>
-                          <td className="pl-1 pr-3 py-1.5 text-left tabular-nums text-zinc-800 dark:text-zinc-100 whitespace-nowrap text-[11px]">
+                          <td className="pl-1 pr-3 py-1.5 text-left tabular-nums text-zinc-900 dark:text-zinc-100 whitespace-nowrap text-[11px]">
                             R${formatAmount(t.amount)}
                           </td>
                           <td className="px-1 py-1.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -594,7 +609,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
                                 const personId = e.target.value;
                                 patchCurrentTxn(t.index, { personId, type: personId && t.type === "ignore" ? "debt" : t.type });
                               }}
-                              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider text-zinc-800 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
+                              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
                             >
                               <option value="">—</option>
                               {people.map((p) => (
@@ -609,7 +624,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
                                 const type = e.target.value as TxnType;
                                 patchCurrentTxn(t.index, { type, personId: type === "ignore" ? "" : t.personId });
                               }}
-                              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider text-zinc-800 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
+                              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
                             >
                               <option value="ignore">Ignorar</option>
                               <option value="debt">Dívida</option>
