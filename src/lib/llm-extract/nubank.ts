@@ -8,14 +8,7 @@ import {
   parseShortDate,
 } from "@/lib/importers/nubank";
 import { MONTHS_PT, detectYear, extractTextPages, parseBrAmount, parseBrDate } from "@/lib/importers/base";
-import {
-  callLlm,
-  chunkLines,
-  filterHallucinations,
-  mergeDedup,
-  type LlmCorrection,
-  type LlmTransaction,
-} from "./base";
+import { extractChunked, type LlmCorrection, type LlmTransaction } from "./base";
 
 // Strict pass-through prompts, mirroring bradesco.ts/itau.ts/mercadopago.ts:
 // dates/amounts are already computed deterministically below, so the LLM's
@@ -67,13 +60,10 @@ async function extractExtrato(
   const lines = cleanExtratoLines(pagesText);
   if (lines.length === 0) return [[], ""];
 
-  const batches: LlmTransaction[][] = [];
-  for (const chunk of chunkLines(lines)) {
-    batches.push(
-      await callLlm(chunk.join("\n"), "Nubank", { systemOverride: EXTRATO_SYSTEM_PROMPT_OVERRIDE, corrections })
-    );
-  }
-  const filtered = filterHallucinations(mergeDedup(batches), lines);
+  const filtered = await extractChunked(lines, "Nubank", {
+    systemOverride: EXTRATO_SYSTEM_PROMPT_OVERRIDE,
+    corrections,
+  });
   return [filtered, lines.join("\n")];
 }
 
@@ -99,17 +89,11 @@ async function extractCartao(
 
   if (lines.length === 0) return [[], ""];
 
-  const batches: LlmTransaction[][] = [];
-  for (const chunk of chunkLines(lines)) {
-    batches.push(
-      await callLlm(chunk.join("\n"), "Nubank", {
-        systemOverride: CARTAO_SYSTEM_PROMPT_OVERRIDE,
-        maxTokens: 2048,
-        corrections,
-      })
-    );
-  }
-  const filtered = filterHallucinations(mergeDedup(batches), lines);
+  const filtered = await extractChunked(lines, "Nubank", {
+    systemOverride: CARTAO_SYSTEM_PROMPT_OVERRIDE,
+    maxTokens: 2048,
+    corrections,
+  });
   return [filtered, lines.join("\n")];
 }
 

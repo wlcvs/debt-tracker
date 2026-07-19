@@ -4,14 +4,7 @@
 // the LLM (which just does a strict pass-through conversion to JSON — no
 // interpretation needed). Ported from banks/bradesco.py.
 import { extractTextPages } from "@/lib/importers/base";
-import {
-  callLlm,
-  chunkLines,
-  filterHallucinations,
-  mergeDedup,
-  type LlmCorrection,
-  type LlmTransaction,
-} from "./base";
+import { extractChunked, type LlmCorrection, type LlmTransaction } from "./base";
 
 const SYSTEM_PROMPT_OVERRIDE = `\
 Convert each input line to a JSON object. Every line is a confirmed debit transaction — do NOT skip, filter, or deduplicate any of them.
@@ -44,20 +37,15 @@ export async function extract(
   // that are already unambiguous — small models can still fabricate an
   // extra entry despite the "do NOT skip/filter/dedupe" instruction (seen
   // in practice: a duplicated amount under today's date), and can shuffle
-  // values between lines once a call holds many of them at once. Chunking
-  // keeps each call small; filterHallucinations whitelists the response
-  // against the real pre-processed lines by date+amount.
-  const batches: LlmTransaction[][] = [];
-  for (const chunk of chunkLines(lines)) {
-    batches.push(
-      await callLlm(chunk.join("\n"), "Bradesco", {
-        systemOverride: SYSTEM_PROMPT_OVERRIDE,
-        maxTokens: 2048,
-        corrections,
-      })
-    );
-  }
-  const filtered = filterHallucinations(mergeDedup(batches), lines);
+  // values between lines once a call holds many of them at once.
+  // extractChunked keeps each call small, retries a chunk whose response
+  // doesn't cover all of its own lines, and whitelists against the real
+  // pre-processed lines by date+amount.
+  const filtered = await extractChunked(lines, "Bradesco", {
+    systemOverride: SYSTEM_PROMPT_OVERRIDE,
+    maxTokens: 2048,
+    corrections,
+  });
 
   return [filtered, text];
 }

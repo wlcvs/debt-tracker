@@ -140,10 +140,19 @@ export function filterHallucinations(txns: LlmTransaction[], cleanLines: string[
  * lines in context at once — small models start swapping dates/amounts
  * between unrelated lines once a single call holds ~20+ lines. Override via
  * LLM_CHUNK_SIZE for sweeping without code changes.
+ *
+ * Distributes evenly rather than slicing at a fixed size: a fixed size leaves
+ * a small dangling remainder chunk (e.g. 25 lines / 6 -> 6,6,6,6,1) — a
+ * lone-line chunk was observed to make a small model hallucinate an extra,
+ * fabricated entry instead of just echoing the one real line back, unlike
+ * evenly-sized chunks of comparable difficulty elsewhere in the same input.
  */
 export function chunkLines(lines: string[], chunkSize = Number(process.env.LLM_CHUNK_SIZE) || 6): string[][] {
+  if (lines.length === 0) return [];
+  const numChunks = Math.ceil(lines.length / chunkSize);
+  const evenSize = Math.ceil(lines.length / numChunks);
   const chunks: string[][] = [];
-  for (let i = 0; i < lines.length; i += chunkSize) chunks.push(lines.slice(i, i + chunkSize));
+  for (let i = 0; i < lines.length; i += evenSize) chunks.push(lines.slice(i, i + evenSize));
   return chunks;
 }
 
@@ -161,6 +170,56 @@ export function mergeDedup(batches: LlmTransaction[][]): LlmTransaction[] {
     }
   }
   return out;
+}
+
+/**
+ * Call the LLM once per chunk of `lines`, retrying an individual chunk when
+ * its response doesn't account for all of that chunk's own lines.
+ *
+ * Retries reverse the chunk's line order rather than re-sending it as-is:
+ * debugging traced a *deterministic* (not sampling-noise) failure mode where
+ * a small model garbles a whole chunk's JSON shape (dropping the amount
+ * field for every line) specifically when the chunk ends on a line whose
+ * date repeats an earlier line in the same chunk — re-sending the identical
+ * order reproduces the identical failure every time, but reversing the order
+ * (so a different, usually date-unique line ends the chunk) reliably
+ * recovered the correct output in testing. Each attempt's results are
+ * validated against the FULL clean-line set (not just this chunk) via
+ * filterHallucinations, then restricted back down to only this chunk's own
+ * lines before being counted toward coverage or kept — so a retry can never
+ * smuggle in another chunk's transaction.
+ */
+export async function extractChunked(
+  lines: string[],
+  bank: string,
+  llmOptions: CallLlmOptions,
+  maxRetries = 2
+): Promise<LlmTransaction[]> {
+  const keyOf = (line: string) => {
+    const m = line.match(CLEAN_LINE_RE);
+    return m ? `${m[1]}|${m[2]}` : "";
+  };
+
+  const allBatches: LlmTransaction[][] = [];
+
+  for (const chunk of chunkLines(lines)) {
+    const chunkKeys = new Set(chunk.map(keyOf).filter(Boolean));
+
+    let best: LlmTransaction[] = [];
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const attemptLines = attempt % 2 === 1 ? [...chunk].reverse() : chunk;
+      const raw = await callLlm(attemptLines.join("\n"), bank, llmOptions);
+      const valid = filterHallucinations(raw, lines);
+      best = mergeDedup([best, valid]);
+
+      const covered = new Set(best.map((t) => `${t.date}|${t.amount}`));
+      if ([...chunkKeys].every((k) => covered.has(k))) break;
+    }
+
+    allBatches.push(best.filter((t) => chunkKeys.has(`${t.date}|${t.amount}`)));
+  }
+
+  return mergeDedup(allBatches);
 }
 
 /** Fallback for unrecognized banks: full-text LLM extraction, no pre-processing. */
