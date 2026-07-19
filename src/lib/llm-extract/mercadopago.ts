@@ -2,14 +2,7 @@
 // is sent to the LLM — ported from banks/mercadopago.py.
 import { detectYear, extractTextPages, parseBrAmount, parseBrDate } from "@/lib/importers/base";
 import { SKIP, TX_RE, YEAR_RE } from "@/lib/importers/mercadopago";
-import {
-  callLlm,
-  chunkLines,
-  filterHallucinations,
-  mergeDedup,
-  type LlmCorrection,
-  type LlmTransaction,
-} from "./base";
+import { extractChunked, type LlmCorrection, type LlmTransaction } from "./base";
 
 // Strict pass-through prompt, mirroring bradesco.ts/itau.ts: dates/amounts are
 // already computed deterministically in cleanLines(), so the LLM's only job
@@ -36,17 +29,11 @@ export async function extract(
   if (!text) return [[], ""];
 
   const lines = text.split("\n");
-  const batches: LlmTransaction[][] = [];
-  for (const chunk of chunkLines(lines)) {
-    batches.push(
-      await callLlm(chunk.join("\n"), "Mercado Pago", {
-        systemOverride: SYSTEM_PROMPT_OVERRIDE,
-        maxTokens: 512,
-        corrections,
-      })
-    );
-  }
-  const filtered = filterHallucinations(mergeDedup(batches), lines);
+  const filtered = await extractChunked(lines, "Mercado Pago", {
+    systemOverride: SYSTEM_PROMPT_OVERRIDE,
+    maxTokens: 512,
+    corrections,
+  });
   return [filtered, text];
 }
 

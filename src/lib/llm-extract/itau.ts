@@ -3,14 +3,7 @@
 import { AMOUNT_FULL_RE, TX_START_RE } from "@/lib/importers/itau";
 import { extractPages, findAllAmounts, findYear, parseBrAmount, parseBrDate } from "@/lib/importers/base";
 import { lineText, type PdfLine, type PdfTextItem } from "@/lib/pdf/group-lines";
-import {
-  callLlm,
-  chunkLines,
-  filterHallucinations,
-  mergeDedup,
-  type LlmCorrection,
-  type LlmTransaction,
-} from "./base";
+import { extractChunked, type LlmCorrection, type LlmTransaction } from "./base";
 
 const STOP_MARKERS = ["Totaldos", "LTotaldos", "Limitesdecr", "Fiqueaten"];
 
@@ -39,13 +32,11 @@ export async function extract(
   if (!text) return [[], ""];
 
   const lines = text.split("\n");
-  const batches: LlmTransaction[][] = [];
-  for (const chunk of chunkLines(lines)) {
-    batches.push(
-      await callLlm(chunk.join("\n"), "Itaú", { systemOverride: SYSTEM_PROMPT_OVERRIDE, maxTokens: 512, corrections })
-    );
-  }
-  const filtered = filterHallucinations(mergeDedup(batches), lines);
+  const filtered = await extractChunked(lines, "Itaú", {
+    systemOverride: SYSTEM_PROMPT_OVERRIDE,
+    maxTokens: 512,
+    corrections,
+  });
   return [filtered, text];
 }
 
