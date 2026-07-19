@@ -1,21 +1,52 @@
 // Nubank extraction: separate strategies for credit card (fatura) and
 // current account (extrato) statements — ported from banks/nubank.py.
-import { extractTextPages } from "@/lib/importers/base";
-import { callLlm, type LlmCorrection, type LlmTransaction } from "./base";
+import {
+  CARD_TX_RE,
+  CC_SKIP,
+  DATE_HEADER_RE,
+  LINE_END_AMOUNT_RE,
+  parseShortDate,
+} from "@/lib/importers/nubank";
+import { MONTHS_PT, detectYear, extractTextPages, parseBrAmount, parseBrDate } from "@/lib/importers/base";
+import {
+  callLlm,
+  chunkLines,
+  filterHallucinations,
+  mergeDedup,
+  type LlmCorrection,
+  type LlmTransaction,
+} from "./base";
 
-const CARTAO_HINT =
-  "\n\nNubank credit card (fatura) format:\n" +
-  "Each transaction line: 'DD MMM •••• NNNN  MERCHANT NAME  R$ 68,59'\n" +
-  "Portuguese month → number: JAN=01 FEV=02 MAR=03 ABR=04 MAI=05 JUN=06 JUL=07 AGO=08 SET=09 OUT=10 NOV=11 DEZ=12\n" +
-  "Year is 2026 (from the statement header).\n" +
-  "Skip: lines starting with 'IOF de', lines with negative amounts (−R$), lines starting with 'Pagamento', totals.";
+// Strict pass-through prompts, mirroring bradesco.ts/itau.ts/mercadopago.ts:
+// dates/amounts are already computed deterministically below, so the LLM's
+// only job is copying already-unambiguous lines forward.
+const CARTAO_SYSTEM_PROMPT_OVERRIDE = `\
+Convert each input line to a JSON object. Every line is a confirmed Nubank credit card (fatura) transaction — do NOT skip, filter, or deduplicate any of them.
 
-const EXTRATO_HINT =
-  "\n\nNubank current account (extrato) format:\n" +
-  "Day headers look like: '01 MAI 2026 Total de saídas - 92,49' — these are NOT transactions.\n" +
-  "Transaction lines come after a day header and end with a BR amount (e.g. '1.234,56').\n" +
-  "Skip: 'Saldo inicial', 'Saldo final', 'Rendimento', 'Nu Pagamentos', header/footer lines.\n" +
-  "Each transaction line: description ending with the amount.";
+Each line format: YYYY-MM-DD DESCRIPTION AMOUNT
+
+- date: copy exactly as YYYY-MM-DD
+- description: the text between the date and the last number on the line
+- amount: the last number on the line, already in decimal format (e.g. 68.59), copy as a string with 2 decimal places
+
+Output ONLY a valid JSON array:
+[{"date":"2026-05-04","description":"MERCHANT NAME","amount":"68.59"}]
+
+Include ALL lines without exception.`;
+
+const EXTRATO_SYSTEM_PROMPT_OVERRIDE = `\
+Convert each input line to a JSON object. Every line is a confirmed Nubank current account (extrato) transaction — do NOT skip, filter, or deduplicate any of them.
+
+Each line format: YYYY-MM-DD DESCRIPTION AMOUNT
+
+- date: copy exactly as YYYY-MM-DD
+- description: the text between the date and the last number on the line
+- amount: the last number on the line, already in decimal format (e.g. 92.49), copy as a string with 2 decimal places
+
+Output ONLY a valid JSON array:
+[{"date":"2026-05-01","description":"MERCHANT NAME","amount":"92.49"}]
+
+Include ALL lines without exception.`;
 
 export async function extract(
   pdfBytes: Buffer | Uint8Array,
@@ -28,52 +59,122 @@ export async function extract(
   return extractCartao(pages, corrections);
 }
 
-/** Extrato has many transactions spread across pages — process page by page to keep each LLM call small and fast. */
+/** Extrato has many transactions spread across pages — day-header state persists across page boundaries. */
 async function extractExtrato(
   pagesText: string[],
   corrections: LlmCorrection[]
 ): Promise<[LlmTransaction[], string]> {
-  const allTransactions: LlmTransaction[] = [];
-  const seen = new Set<string>();
-  const textParts: string[] = [];
+  const lines = cleanExtratoLines(pagesText);
+  if (lines.length === 0) return [[], ""];
 
-  for (const pageText of pagesText) {
-    if (!pageText.trim()) continue;
-    textParts.push(pageText);
-    const pageTxns = await callLlm(pageText, "Nubank", { extraHint: EXTRATO_HINT, corrections });
-    for (const t of pageTxns) {
-      const key = `${t.date}|${t.description}|${t.amount}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        allTransactions.push(t);
-      }
-    }
+  const batches: LlmTransaction[][] = [];
+  for (const chunk of chunkLines(lines)) {
+    batches.push(
+      await callLlm(chunk.join("\n"), "Nubank", { systemOverride: EXTRATO_SYSTEM_PROMPT_OVERRIDE, corrections })
+    );
   }
-
-  return [allTransactions, textParts.join("\n\n---\n\n")];
+  const filtered = filterHallucinations(mergeDedup(batches), lines);
+  return [filtered, lines.join("\n")];
 }
 
-/** Fatura: transactions appear on pages labelled 'TRANSAÇÕES' — process those individually. */
+/**
+ * Fatura: transactions appear on pages with real 'DD MMM •••• NNNN ... R$ x,xx'
+ * rows. Page qualification now requires an actual transaction-line match
+ * (CARD_TX_RE), not just the 'TRANSAÇÕES' heading substring — the fatura
+ * summary page's unrelated 'VALOR MÁXIMO PARA TRANSAÇÕES' heading used to
+ * false-positive here, sending a useless page to the LLM on every import.
+ */
 async function extractCartao(
   pagesText: string[],
   corrections: LlmCorrection[]
 ): Promise<[LlmTransaction[], string]> {
-  const allTransactions: LlmTransaction[] = [];
-  const seen = new Set<string>();
-  const textParts: string[] = [];
+  const year = detectYear(pagesText.slice(0, 3));
+  const lines: string[] = [];
 
   for (const pageText of pagesText) {
-    if (!pageText.includes("TRANSAÇÕES")) continue;
-    textParts.push(pageText);
-    const pageTxns = await callLlm(pageText, "Nubank", { extraHint: CARTAO_HINT, maxTokens: 2048, corrections });
-    for (const t of pageTxns) {
-      const key = `${t.date}|${t.description}|${t.amount}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        allTransactions.push(t);
+    const hasRealTransactionRow = pageText.split("\n").some((line) => CARD_TX_RE.test(line.trim()));
+    if (!hasRealTransactionRow) continue;
+    lines.push(...cleanCartaoLines(pageText, year));
+  }
+
+  if (lines.length === 0) return [[], ""];
+
+  const batches: LlmTransaction[][] = [];
+  for (const chunk of chunkLines(lines)) {
+    batches.push(
+      await callLlm(chunk.join("\n"), "Nubank", {
+        systemOverride: CARTAO_SYSTEM_PROMPT_OVERRIDE,
+        maxTokens: 2048,
+        corrections,
+      })
+    );
+  }
+  const filtered = filterHallucinations(mergeDedup(batches), lines);
+  return [filtered, lines.join("\n")];
+}
+
+/**
+ * Pre-process a fatura page into unambiguous 'YYYY-MM-DD DESCRIPTION AMOUNT'
+ * lines, deterministically in code — mirrors importers/nubank.ts's
+ * parseCartao().
+ */
+function cleanCartaoLines(pageText: string, year: number): string[] {
+  const out: string[] = [];
+  for (const rawLine of pageText.split("\n")) {
+    const cell = rawLine.trim();
+    if (cell.includes("IOF de")) continue;
+
+    const m = cell.match(CARD_TX_RE);
+    if (!m) continue;
+
+    const txnDate = parseShortDate(m[1], year);
+    if (!txnDate) continue;
+
+    const amount = parseBrAmount(m[3]);
+    if (amount === null || amount <= 0) continue;
+
+    out.push(`${txnDate} ${m[2].trim()} ${amount.toFixed(2)}`);
+  }
+  return out;
+}
+
+/**
+ * Pre-process all extrato pages into unambiguous 'YYYY-MM-DD DESCRIPTION
+ * AMOUNT' lines, deterministically in code — mirrors importers/nubank.ts's
+ * parseContaCorrente(). Day-header state must persist across pages (unlike
+ * cartão, which is page-independent), so this walks all pages in order.
+ */
+function cleanExtratoLines(pagesText: string[]): string[] {
+  const out: string[] = [];
+  let currentDate: string | null = null;
+
+  for (const page of pagesText) {
+    for (const rawLine of page.split("\n")) {
+      const line = rawLine.trim();
+      if (!line) continue;
+
+      const headerMatch = line.match(DATE_HEADER_RE);
+      if (headerMatch && line.includes("Total de")) {
+        const month = MONTHS_PT[headerMatch[2]];
+        if (month) {
+          const date = parseBrDate(Number(headerMatch[1]), month, Number(headerMatch[3]));
+          if (date) currentDate = date;
+        }
+        continue;
+      }
+
+      if (CC_SKIP.some((s) => line.startsWith(s))) continue;
+
+      const am = line.match(LINE_END_AMOUNT_RE);
+      if (am && currentDate && am.index !== undefined) {
+        const amount = parseBrAmount(am[1]);
+        if (amount !== null && amount >= 0.01) {
+          const desc = line.slice(0, am.index).trim();
+          if (desc) out.push(`${currentDate} ${desc} ${amount.toFixed(2)}`);
+        }
       }
     }
   }
 
-  return [allTransactions, textParts.join("\n\n---\n\n")];
+  return out;
 }

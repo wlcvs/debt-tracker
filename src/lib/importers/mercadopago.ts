@@ -1,9 +1,9 @@
-import { type Transaction, parseBrAmount, parseBrDate, extractTextPages } from "./base";
+import { type Transaction, parseBrAmount, parseBrDate, detectYear, extractTextPages } from "./base";
 
-const TX_RE = /^(\d{2}\/\d{2})\s+(.+?)\s+R\$\s+([\d.,]+)$/;
-const YEAR_RE = /(?:Emitida em|Vence em|Vencimento)[:\s]+\d{2}\/\d{2}\/(\d{4})/;
+export const TX_RE = /^(\d{2}\/\d{2})\s+(.+?)\s+R\$\s+([\d.,]+)$/;
+export const YEAR_RE = /(?:Emitida em|Vence em|Vencimento)[:\s]+\d{2}\/\d{2}\/(\d{4})/;
 
-const SKIP = [
+export const SKIP = [
   "Pagamento da fatura",
   "Data Movimentações",
   "Movimentações na fatura",
@@ -16,16 +16,8 @@ const SKIP = [
 
 export async function parse(data: Buffer | Uint8Array): Promise<Transaction[]> {
   const pagesText = await extractTextPages(data);
-  const year = detectYear(pagesText);
+  const year = detectYear(pagesText, YEAR_RE);
   return parseText(pagesText, year);
-}
-
-function detectYear(pagesText: string[]): number {
-  for (const page of pagesText) {
-    const m = page.match(YEAR_RE);
-    if (m) return Number(m[1]);
-  }
-  return new Date().getFullYear();
 }
 
 function parseText(pagesText: string[], year: number): Transaction[] {

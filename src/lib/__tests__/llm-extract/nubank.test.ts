@@ -17,45 +17,80 @@ afterEach(() => {
 });
 
 describe("extract — extrato (current account)", () => {
-  it("calls the LLM once per non-empty page with the extrato hint and dedups across pages", async () => {
+  it("pre-processes real transaction lines into clean YYYY-MM-DD rows and calls the LLM with the extrato prompt", async () => {
     vi.spyOn(importersBase, "extractTextPages").mockResolvedValue([
-      "Movimentações\npage one",
-      "",
-      "page two",
-    ]);
-    vi.spyOn(ollamaClient, "chatComplete")
-      .mockResolvedValueOnce('[{"date":"2026-05-01","description":"A","amount":"10.00"}]')
-      .mockResolvedValueOnce('[{"date":"2026-05-01","description":"A","amount":"10.00"}]');
-
-    const [txns, text] = await extract(Buffer.from("irrelevant"), []);
-
-    expect(ollamaClient.chatComplete).toHaveBeenCalledTimes(2);
-    expect(txns).toEqual([{ date: "2026-05-01", description: "A", amount: "10.00" }]);
-    expect(text).toBe("Movimentações\npage one\n\n---\n\npage two");
-
-    const [systemArg] = vi.mocked(ollamaClient.chatComplete).mock.calls[0];
-    expect(systemArg).toContain("current account");
-  });
-});
-
-describe("extract — cartão (fatura)", () => {
-  it("only processes pages containing TRANSAÇÕES, with the cartão hint", async () => {
-    vi.spyOn(importersBase, "extractTextPages").mockResolvedValue([
-      "cover page",
-      "TRANSAÇÕES\nfatura page",
+      "Movimentações\n01 MAI 2026 Total de saídas - 92,49\nMERCHANT ONE 92,49",
     ]);
     vi.spyOn(ollamaClient, "chatComplete").mockResolvedValue(
-      '[{"date":"2026-05-04","description":"MERCHANT","amount":"68.59"}]'
+      '[{"date":"2026-05-01","description":"MERCHANT ONE","amount":"92.49"}]'
     );
 
     const [txns, text] = await extract(Buffer.from("irrelevant"), []);
 
     expect(ollamaClient.chatComplete).toHaveBeenCalledTimes(1);
-    expect(txns).toEqual([{ date: "2026-05-04", description: "MERCHANT", amount: "68.59" }]);
-    expect(text).toBe("TRANSAÇÕES\nfatura page");
+    expect(txns).toEqual([{ date: "2026-05-01", description: "MERCHANT ONE", amount: "92.49" }]);
+    expect(text).toBe("2026-05-01 MERCHANT ONE 92.49");
+
+    const [systemArg] = vi.mocked(ollamaClient.chatComplete).mock.calls[0];
+    expect(systemArg).toContain("current account");
+  });
+
+  it("drops an LLM response that doesn't match a real pre-processed line (hallucination guard)", async () => {
+    vi.spyOn(importersBase, "extractTextPages").mockResolvedValue([
+      "Movimentações\n01 MAI 2026 Total de saídas - 92,49\nMERCHANT ONE 92,49",
+    ]);
+    vi.spyOn(ollamaClient, "chatComplete").mockResolvedValue(
+      '[{"date":"2026-07-19","description":"FABRICATED","amount":"999.99"}]'
+    );
+
+    const [txns] = await extract(Buffer.from("irrelevant"), []);
+    expect(txns).toEqual([]);
+  });
+
+  it("returns no transactions and no LLM call when no real transaction lines are found", async () => {
+    vi.spyOn(importersBase, "extractTextPages").mockResolvedValue(["Movimentações\nSaldo inicial R$ 100,00"]);
+    vi.spyOn(ollamaClient, "chatComplete");
+
+    const [txns, text] = await extract(Buffer.from("irrelevant"), []);
+    expect(txns).toEqual([]);
+    expect(text).toBe("");
+    expect(ollamaClient.chatComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe("extract — cartão (fatura)", () => {
+  it("only processes pages with a real transaction row, with the cartão prompt", async () => {
+    vi.spyOn(importersBase, "extractTextPages").mockResolvedValue([
+      "cover page",
+      "VALOR MÁXIMO PARA TRANSAÇÕES\nSaque no crédito R$ 945,00", // false-positive heading, no real row — must be skipped
+      "TRANSAÇÕES DE 04 JUN A 04 JUL\n04 MAI •••• 8119 MERCHANT NAME R$ 68,59",
+    ]);
+    vi.spyOn(ollamaClient, "chatComplete").mockResolvedValue(
+      '[{"date":"2026-05-04","description":"MERCHANT NAME","amount":"68.59"}]'
+    );
+
+    const [txns, text] = await extract(Buffer.from("irrelevant"), []);
+
+    expect(ollamaClient.chatComplete).toHaveBeenCalledTimes(1);
+    expect(txns).toEqual([{ date: "2026-05-04", description: "MERCHANT NAME", amount: "68.59" }]);
+    expect(text).toBe("2026-05-04 MERCHANT NAME 68.59");
 
     const [systemArg] = vi.mocked(ollamaClient.chatComplete).mock.calls[0];
     expect(systemArg).toContain("credit card");
+  });
+
+  it("skips IOF lines during pre-processing", async () => {
+    vi.spyOn(importersBase, "extractTextPages").mockResolvedValue([
+      "TRANSAÇÕES DE 04 JUN A 04 JUL\n" +
+        "04 MAI •••• 8119 MERCHANT NAME R$ 68,59\n" +
+        "23 JUN IOF de \"MERCHANT NAME\" R$ 4,00",
+    ]);
+    vi.spyOn(ollamaClient, "chatComplete").mockResolvedValue(
+      '[{"date":"2026-05-04","description":"MERCHANT NAME","amount":"68.59"}]'
+    );
+
+    const [, text] = await extract(Buffer.from("irrelevant"), []);
+    expect(text).toBe("2026-05-04 MERCHANT NAME 68.59");
   });
 });
 
@@ -66,7 +101,7 @@ describe("extract (real PDFs)", () => {
 
     vi.spyOn(ollamaClient, "chatComplete").mockResolvedValue("[]");
     const [, text] = await extract(data, []);
-    expect(text).toContain("Movimentações");
+    expect(text).toMatch(/^\d{4}-\d{2}-\d{2} /);
   });
 
   it("extracts from a Nubank credit card fatura statement", async () => {
@@ -75,6 +110,6 @@ describe("extract (real PDFs)", () => {
 
     vi.spyOn(ollamaClient, "chatComplete").mockResolvedValue("[]");
     const [, text] = await extract(data, []);
-    expect(text).toContain("TRANSAÇÕES");
+    expect(text).toMatch(/^\d{4}-\d{2}-\d{2} /);
   });
 });

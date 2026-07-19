@@ -1,11 +1,11 @@
 import { lineText } from "@/lib/pdf/group-lines";
-import { type Transaction, MONTHS_PT, parseBrAmount, parseBrDate, extractPages, type PdfPage } from "./base";
+import { type Transaction, MONTHS_PT, detectYear, parseBrAmount, parseBrDate, extractPages, type PdfPage } from "./base";
 
 // Current account (extrato)
-const DATE_HEADER_RE = /^(\d{2}) ([A-Z]{3}) (\d{4})/;
-const LINE_END_AMOUNT_RE = /\s(\d{1,3}(?:\.\d{3})*,\d{2})$/;
+export const DATE_HEADER_RE = /^(\d{2}) ([A-Z]{3}) (\d{4})/;
+export const LINE_END_AMOUNT_RE = /\s(\d{1,3}(?:\.\d{3})*,\d{2})$/;
 
-const CC_SKIP = [
+export const CC_SKIP = [
   "Saldo inicial", "Saldo final", "Rendimento", "Total de", "Movimentações",
   "Tem alguma dúvida", "Caso a solução", "Extrato gerado", "Nu Financeira",
   "Nu Pagamentos", "CNPJ:", "CPF", "O saldo", "Não nos responsabilizamos",
@@ -13,7 +13,7 @@ const CC_SKIP = [
 ];
 
 // Card: "04 MAI •••• 8119 Description [- Parcela X/Y] R$ 68,59"
-const CARD_TX_RE = /^(\d{2} [A-Z]{3})\s+[•]+\s+\d+\s+(.+?)\s+R\$\s+([\d.,]+)/;
+export const CARD_TX_RE = /^(\d{2} [A-Z]{3})\s+[•]+\s+\d+\s+(.+?)\s+R\$\s+([\d.,]+)/;
 
 export async function parse(data: Buffer | Uint8Array): Promise<Transaction[]> {
   const pages = await extractPages(data);
@@ -74,14 +74,7 @@ function cleanCcDesc(text: string): string {
 // ── Credit card ────────────────────────────────────────────────────────────────
 
 function parseCartao(pages: PdfPage[]): Transaction[] {
-  let year = new Date().getFullYear();
-  for (const page of pages.slice(0, 3)) {
-    const m = page.text.match(/\b(20\d{2})\b/);
-    if (m) {
-      year = Number(m[1]);
-      break;
-    }
-  }
+  const year = detectYear(pages.slice(0, 3).map((p) => p.text));
 
   const transactions: Transaction[] = [];
 
@@ -106,7 +99,7 @@ function parseCartao(pages: PdfPage[]): Transaction[] {
   return transactions;
 }
 
-function parseShortDate(dateStr: string, year: number): string | null {
+export function parseShortDate(dateStr: string, year: number): string | null {
   const parts = dateStr.trim().split(/\s+/);
   if (parts.length < 2) return null;
   const month = MONTHS_PT[parts[1].toUpperCase().slice(0, 3)];

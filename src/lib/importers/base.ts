@@ -36,4 +36,18 @@ export function parseBrDate(day: number, month: number, year?: number): string |
   return d.toISOString().slice(0, 10);
 }
 
+/** First year match across `pagesText` in order, or null if none found. */
+export function findYear(pagesText: string[], pattern: RegExp = /\b(20\d{2})\b/): number | null {
+  for (const page of pagesText) {
+    const m = page.match(pattern);
+    if (m) return Number(m[1]);
+  }
+  return null;
+}
+
+/** Same as findYear, falling back to the current year when no page matches. */
+export function detectYear(pagesText: string[], pattern?: RegExp): number {
+  return findYear(pagesText, pattern) ?? new Date().getFullYear();
+}
+
 export { extractPages, extractTextPages, type PdfPage } from "@/lib/importers/pdf-text";
