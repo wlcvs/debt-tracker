@@ -278,3 +278,16 @@ export async function deleteStatement(id: string): Promise<void> {
   await prisma.statement.deleteMany({ where: { id, userId } });
   revalidatePath("/");
 }
+
+// ── renameStatement ──────────────────────────────────────────────────────────
+
+const renameSchema = z.object({
+  filename: z.string().trim().min(1).max(255),
+});
+
+export async function renameStatement(id: string, filename: string): Promise<void> {
+  const userId = await requireUserId();
+  const parsed = renameSchema.parse({ filename });
+  await prisma.statement.updateMany({ where: { id, userId }, data: { filename: parsed.filename } });
+  revalidatePath("/");
+}

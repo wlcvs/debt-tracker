@@ -80,6 +80,8 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   const [pdfReady, setPdfReady] = useState(false);
   const [pdfNoMatch, setPdfNoMatch] = useState(false);
   const [selectedTxnIndex, setSelectedTxnIndex] = useState<number | string | null>(null);
+  const [editingDescIndex, setEditingDescIndex] = useState<number | string | null>(null);
+  const [editingDescValue, setEditingDescValue] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [highlights, setHighlights] = useState<HighlightEntry[]>([]);
   const [pageInfoList, setPageInfoList] = useState<PageInfo[]>([]);
@@ -151,6 +153,17 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   function patchCurrentTxn(index: number | string, patch: Partial<Txn>) {
     if (llmTxns.length) updateTxn("llm", index, patch);
     else updateTxn("algo", index, patch);
+  }
+
+  function startEditingDesc(t: Txn) {
+    setEditingDescIndex(t.index);
+    setEditingDescValue(t.description);
+  }
+
+  function commitEditingDesc(index: number | string) {
+    setEditingDescIndex(null);
+    const trimmed = editingDescValue.trim();
+    if (trimmed) patchCurrentTxn(index, { description: trimmed });
   }
 
   function reset() {
@@ -596,7 +609,37 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
                         >
                           <td className="pl-3 pr-1 py-1.5 tabular-nums text-zinc-700 dark:text-zinc-300 whitespace-nowrap text-[11px]">{t.date}</td>
                           <td className="px-1 py-1.5 text-zinc-900 dark:text-zinc-100 overflow-hidden">
-                            <span className="block truncate text-[11px]" title={t.description}>{t.description}</span>
+                            {editingDescIndex === t.index ? (
+                              <input
+                                autoFocus
+                                type="text"
+                                value={editingDescValue}
+                                onChange={(e) => setEditingDescValue(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                onBlur={() => commitEditingDesc(t.index)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    (e.target as HTMLInputElement).blur();
+                                  } else if (e.key === "Escape") {
+                                    e.preventDefault();
+                                    setEditingDescIndex(null);
+                                  }
+                                }}
+                                className="w-full bg-transparent border-b border-zinc-400 dark:border-zinc-500 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                              />
+                            ) : (
+                              <span
+                                className="block truncate text-[11px]"
+                                title={t.description}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditingDesc(t);
+                                }}
+                              >
+                                {t.description}
+                              </span>
+                            )}
                             {t.manual && <span className="text-[9px] tracking-widest uppercase text-zinc-400 dark:text-zinc-500">manual</span>}
                           </td>
                           <td className="pl-1 pr-3 py-1.5 text-left tabular-nums text-zinc-900 dark:text-zinc-100 whitespace-nowrap text-[11px]">

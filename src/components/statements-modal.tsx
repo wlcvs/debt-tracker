@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getStatements, deleteStatement, type StatementSummary } from "@/lib/actions/statement";
+import { getStatements, deleteStatement, renameStatement, type StatementSummary } from "@/lib/actions/statement";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDateBR } from "@/lib/date-utils";
 
@@ -18,7 +18,10 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<StatementSummary | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getStatements().then(setStatements);
@@ -46,6 +49,20 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
     await deleteStatement(id);
     setStatements((prev) => prev.filter((s) => s.id !== id));
     setConfirmDelete(null);
+  }
+
+  function startEditing(stmt: StatementSummary) {
+    setEditingId(stmt.id);
+    setEditValue(stmt.filename);
+  }
+
+  async function commitEdit(id: string) {
+    const trimmed = editValue.trim();
+    setEditingId(null);
+    const original = statements.find((s) => s.id === id)?.filename;
+    if (!trimmed || trimmed === original) return;
+    setStatements((prev) => prev.map((s) => (s.id === id ? { ...s, filename: trimmed } : s)));
+    await renameStatement(id, trimmed);
   }
 
   const filtered = statements.filter((s) => {
@@ -134,12 +151,34 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
           ) : (
             filtered.map((stmt) => (
               <div key={stmt.id} className="flex items-center gap-4 px-6 py-3.5">
-                <button
-                  onClick={() => onReopen(stmt.id)}
-                  className="flex-1 text-xs text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white truncate min-w-0 text-left transition-colors cursor-pointer"
-                >
-                  {stmt.filename}
-                </button>
+                {editingId === stmt.id ? (
+                  <input
+                    ref={editInputRef}
+                    autoFocus
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => commitEdit(stmt.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        (e.target as HTMLInputElement).blur();
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        setEditingId(null);
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 min-w-0 bg-transparent border-b border-zinc-400 dark:border-zinc-500 px-0 py-0 text-xs text-zinc-900 dark:text-white focus:outline-none"
+                  />
+                ) : (
+                  <button
+                    onClick={() => startEditing(stmt)}
+                    className="flex-1 text-xs text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white truncate min-w-0 text-left transition-colors cursor-pointer"
+                  >
+                    {stmt.filename}
+                  </button>
+                )}
                 <span className="text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500 shrink-0">
                   {formatDateBR(new Date(stmt.uploadedAt))}
                 </span>
