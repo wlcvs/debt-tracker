@@ -71,7 +71,7 @@ describe("chatComplete", () => {
     expect(result).toBe("hello");
   });
 
-  it("defaults to qwen2.5:3b when OLLAMA_MODEL is unset", async () => {
+  it("defaults to LFM2.5-1.2B-Instruct when OLLAMA_MODEL is unset", async () => {
     process.env.OLLAMA_BASE_URL = "http://localhost:11434/v1";
     process.env.OLLAMA_MODEL = "";
     vi.mocked(fetch).mockResolvedValue({
@@ -82,7 +82,7 @@ describe("chatComplete", () => {
     await chatComplete("s", "u", 100);
     const [, options] = vi.mocked(fetch).mock.calls[0];
     const body = JSON.parse(options!.body as string);
-    expect(body.model).toBe("qwen2.5:3b");
+    expect(body.model).toBe("hf.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF:Q8_0");
   });
 
   it("returns null when the response is not ok", async () => {

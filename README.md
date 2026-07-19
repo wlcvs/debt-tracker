@@ -87,7 +87,7 @@ The LLM pass runs entirely against a locally-hosted model — no cloud LLM cost.
 To run the LLM pass locally:
 
 ```bash
-ollama pull qwen2.5:3b   # or your own choice of OLLAMA_MODEL
+ollama pull hf.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF:Q8_0   # or your own choice of OLLAMA_MODEL
 ollama serve             # or run it as a persistent service (systemd, etc.)
 ```
 

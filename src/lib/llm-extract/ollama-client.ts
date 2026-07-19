@@ -9,7 +9,7 @@
 // the platform killing the whole function.
 const CHAT_TIMEOUT_MS = 290_000;
 const HEALTH_TIMEOUT_MS = 3_000;
-const DEFAULT_MODEL = "qwen2.5:3b";
+const DEFAULT_MODEL = "hf.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF:Q8_0";
 
 function baseUrl(): string {
   return (process.env.OLLAMA_BASE_URL ?? "").replace(/\/+$/, "");
