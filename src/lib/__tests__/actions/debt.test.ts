@@ -213,6 +213,84 @@ describe("createDebt", () => {
     const data = prismaMock.debt.createMany.mock.calls[0][0].data as Array<Record<string, unknown>>;
     expect(data.map((d) => d.paid)).toEqual([true, true, false]);
   });
+
+  it("marks only a non-contiguous subset of indexes as paid (e.g. 1 and 3 of 4)", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "400");
+    form.set("title", "Celular");
+    form.set("date", "2026-01-01");
+    form.set("installments", "4");
+    form.set("paidInstallments", JSON.stringify([1, 3]));
+
+    await createDebt(form);
+
+    const data = prismaMock.debt.createMany.mock.calls[0][0].data as Array<Record<string, unknown>>;
+    expect(data.map((d) => d.paid)).toEqual([true, false, true, false]);
+  });
+
+  it("ignores out-of-range indexes in paidInstallments without marking anything incorrectly", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "300");
+    form.set("title", "X");
+    form.set("date", "2026-01-01");
+    form.set("installments", "3");
+    form.set("paidInstallments", JSON.stringify([5, 99]));
+
+    await createDebt(form);
+
+    const data = prismaMock.debt.createMany.mock.calls[0][0].data as Array<Record<string, unknown>>;
+    expect(data.map((d) => d.paid)).toEqual([false, false, false]);
+  });
+
+  it("throws when installments exceeds the max of 60", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "100");
+    form.set("title", "X");
+    form.set("date", "2026-01-01");
+    form.set("installments", "61");
+    await expect(createDebt(form)).rejects.toThrow();
+  });
+
+  it("throws on a non-integer installments value", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "100");
+    form.set("title", "X");
+    form.set("date", "2026-01-01");
+    form.set("installments", "2.5");
+    await expect(createDebt(form)).rejects.toThrow();
+  });
+
+  it("defaults installmentDirection to forward when omitted", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "300");
+    form.set("title", "X");
+    form.set("date", "2026-01-31");
+    form.set("installments", "3");
+    // installmentDirection intentionally omitted
+
+    await createDebt(form);
+
+    const data = prismaMock.debt.createMany.mock.calls[0][0].data as Array<Record<string, unknown>>;
+    expect(localDateStr(data[0].date as Date)).toBe("2026-01-31");
+    expect(localDateStr(data[1].date as Date)).toBe("2026-02-28");
+    expect(localDateStr(data[2].date as Date)).toBe("2026-03-31");
+  });
 });
 
 // ── deleteDebt ────────────────────────────────────────────────────────────────
@@ -256,6 +334,11 @@ describe("deleteDebtInstallmentGroup", () => {
       where: { installmentGroupId: "group-1", person: { userId: "user-1" } },
     });
   });
+
+  it("throws when installmentGroupId is missing", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    await expect(deleteDebtInstallmentGroup(new FormData())).rejects.toThrow();
+  });
 });
 
 // ── updateDebt ────────────────────────────────────────────────────────────────
@@ -264,6 +347,25 @@ describe("updateDebt", () => {
   it("throws when not authenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
     await expect(updateDebt(new FormData())).rejects.toThrow("Not authenticated");
+  });
+
+  it("throws when id is missing", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("amount", "200");
+    form.set("title", "X");
+    form.set("date", "2025-05-01");
+    await expect(updateDebt(form)).rejects.toThrow();
+  });
+
+  it("throws on non-positive amount", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("id", "debt-1");
+    form.set("amount", "0");
+    form.set("title", "X");
+    form.set("date", "2025-05-01");
+    await expect(updateDebt(form)).rejects.toThrow();
   });
 
   it("updates debt fields", async () => {
@@ -338,6 +440,18 @@ describe("toggleDebtPaid", () => {
       data: { paid: true },
     });
   });
+
+  it("flips paid from true to false", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findFirst.mockResolvedValue({ id: "debt-1", paid: true } as never);
+    const form = new FormData();
+    form.set("id", "debt-1");
+    await toggleDebtPaid(form);
+    expect(prismaMock.debt.update).toHaveBeenCalledWith({
+      where: { id: "debt-1" },
+      data: { paid: false },
+    });
+  });
 });
 
 // ── toggleDebtsPaidBulk ───────────────────────────────────────────────────────
@@ -364,6 +478,25 @@ describe("toggleDebtsPaidBulk", () => {
     const form = new FormData();
     form.set("debtIds", JSON.stringify([]));
     await expect(toggleDebtsPaidBulk(form)).rejects.toThrow();
+  });
+
+  it("throws when debtIds field is missing entirely", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    await expect(toggleDebtsPaidBulk(new FormData())).rejects.toThrow();
+  });
+
+  it("marks only a partial selection within a larger group, leaving the rest out of the query", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    // Group has debt-1, debt-2, debt-3 but only debt-1 and debt-3 are selected.
+    form.set("debtIds", JSON.stringify(["debt-1", "debt-3"]));
+    await toggleDebtsPaidBulk(form);
+    expect(prismaMock.debt.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["debt-1", "debt-3"] }, person: { userId: "user-1" } },
+      data: { paid: true },
+    });
+    const call = prismaMock.debt.updateMany.mock.calls[0][0];
+    expect(call.where.id.in).not.toContain("debt-2");
   });
 });
 
@@ -397,5 +530,41 @@ describe("getDebtInstallmentGroup", () => {
     });
     expect(result).toHaveLength(1);
     expect(result[0].amount).toBe(50);
+  });
+
+  it("returns an empty array when no debts match the group", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue([]);
+    const result = await getDebtInstallmentGroup("nonexistent-group");
+    expect(result).toEqual([]);
+  });
+
+  it("preserves each installment's own paid flag in the mapped result", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue([
+      {
+        id: "d1",
+        personId: "person-1",
+        amount: 50,
+        title: "X (1/2)",
+        date: new Date("2026-01-01"),
+        paid: true,
+        installmentIndex: 1,
+        installmentTotal: 2,
+      },
+      {
+        id: "d2",
+        personId: "person-1",
+        amount: 50,
+        title: "X (2/2)",
+        date: new Date("2026-02-01"),
+        paid: false,
+        installmentIndex: 2,
+        installmentTotal: 2,
+      },
+    ] as never);
+
+    const result = await getDebtInstallmentGroup("group-1");
+    expect(result.map((d) => d.paid)).toEqual([true, false]);
   });
 });

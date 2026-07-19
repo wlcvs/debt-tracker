@@ -86,6 +86,72 @@ describe("createPayment", () => {
     form.set("date", "2025-01-01");
     await expect(createPayment(form)).rejects.toThrow();
   });
+
+  it("accepts an explicit PIX method", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.payment.create.mockResolvedValue({} as never);
+
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "50");
+    form.set("date", "2025-01-01");
+    form.set("method", "PIX");
+
+    await createPayment(form);
+
+    expect(prismaMock.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ method: "PIX" }) })
+    );
+  });
+
+  it("defaults method to CASH when omitted", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.payment.create.mockResolvedValue({} as never);
+
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "50");
+    form.set("date", "2025-01-01");
+
+    await createPayment(form);
+
+    expect(prismaMock.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ method: "CASH" }) })
+    );
+  });
+
+  it("rejects an invalid method value (not silently defaulted)", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "50");
+    form.set("date", "2025-01-01");
+    form.set("method", "CREDIT_CARD");
+
+    await expect(createPayment(form)).rejects.toThrow();
+  });
+
+  it("trims a whitespace-only description down to an empty string", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.payment.create.mockResolvedValue({} as never);
+
+    const form = new FormData();
+    form.set("personId", "person-1");
+    form.set("amount", "50");
+    form.set("date", "2025-01-01");
+    form.set("description", "   ");
+
+    await createPayment(form);
+
+    expect(prismaMock.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ description: "" }) })
+    );
+  });
 });
 
 // ── deletePayment ─────────────────────────────────────────────────────────────
@@ -132,6 +198,70 @@ describe("updatePayment", () => {
         where: { id: "pay-1", person: { userId: "user-1" } },
         data: expect.objectContaining({ amount: 300 }),
       })
+    );
+  });
+
+  it("throws when id is missing", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("amount", "300");
+    form.set("date", "2025-06-01");
+    await expect(updatePayment(form)).rejects.toThrow();
+  });
+
+  it("throws on non-positive amount", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("id", "pay-1");
+    form.set("amount", "-10");
+    form.set("date", "2025-06-01");
+    await expect(updatePayment(form)).rejects.toThrow();
+  });
+
+  it("defaults description to empty string when omitted", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("id", "pay-1");
+    form.set("amount", "300");
+    form.set("date", "2025-06-01");
+    await updatePayment(form);
+    expect((prismaMock.payment as ExtendedPayment).updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ description: "" }) })
+    );
+  });
+
+  it("rejects an invalid method value", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("id", "pay-1");
+    form.set("amount", "300");
+    form.set("date", "2025-06-01");
+    form.set("method", "CREDIT_CARD");
+    await expect(updatePayment(form)).rejects.toThrow();
+  });
+
+  it("updates the method field to PIX", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("id", "pay-1");
+    form.set("amount", "300");
+    form.set("date", "2025-06-01");
+    form.set("method", "PIX");
+    await updatePayment(form);
+    expect((prismaMock.payment as ExtendedPayment).updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ method: "PIX" }) })
+    );
+  });
+
+  it("scopes the update to a different authenticated user's ownership", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-2" } } as never);
+    const form = new FormData();
+    form.set("id", "pay-9");
+    form.set("amount", "80");
+    form.set("date", "2025-06-01");
+    await updatePayment(form);
+    expect((prismaMock.payment as ExtendedPayment).updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "pay-9", person: { userId: "user-2" } } })
     );
   });
 });

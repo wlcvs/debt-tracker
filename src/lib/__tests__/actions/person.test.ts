@@ -60,6 +60,19 @@ describe("createPerson", () => {
     form.set("name", "  ");
     await expect(createPerson(form)).rejects.toThrow();
   });
+
+  it("trims surrounding whitespace from the name", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.create.mockResolvedValue({} as never);
+
+    const form = new FormData();
+    form.set("name", "  Ana  ");
+    await createPerson(form);
+
+    expect(prismaMock.person.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ name: "Ana" }) })
+    );
+  });
 });
 
 // ── deletePerson ──────────────────────────────────────────────────────────────
@@ -83,6 +96,16 @@ describe("deletePerson", () => {
   it("throws when id is missing", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     await expect(deletePerson(new FormData())).rejects.toThrow();
+  });
+
+  it("scopes the delete to a different authenticated user's ownership", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-2" } } as never);
+    const form = new FormData();
+    form.set("id", "person-9");
+    await deletePerson(form);
+    expect((prismaMock.person as ExtendedPerson).deleteMany).toHaveBeenCalledWith({
+      where: { id: "person-9", userId: "user-2" },
+    });
   });
 });
 
@@ -111,6 +134,25 @@ describe("updatePerson", () => {
     const form = new FormData();
     form.set("id", "person-1");
     form.set("name", "  ");
+    await expect(updatePerson(form)).rejects.toThrow();
+  });
+
+  it("trims surrounding whitespace from the updated name", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("id", "person-1");
+    form.set("name", "  Maria  ");
+    await updatePerson(form);
+    expect((prismaMock.person as ExtendedPerson).updateMany).toHaveBeenCalledWith({
+      where: { id: "person-1", userId: "user-1" },
+      data: { name: "Maria" },
+    });
+  });
+
+  it("throws when id is missing", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    const form = new FormData();
+    form.set("name", "Maria");
     await expect(updatePerson(form)).rejects.toThrow();
   });
 });
@@ -157,6 +199,44 @@ describe("getPeopleWithBalances", () => {
     const result = await getPeopleWithBalances();
     expect(result[0].totalOwed).toBe(500);
   });
+
+  it("excludes a paid debt that belongs to an installment group from totalOwed", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findMany.mockResolvedValue([
+      {
+        id: "p1",
+        name: "João",
+        debts: [
+          {
+            id: "d1",
+            amount: 100,
+            title: "Notebook (1/2)",
+            description: "",
+            paid: true,
+            date: new Date(),
+            installmentGroupId: "group-1",
+            installmentIndex: 1,
+            installmentTotal: 2,
+          },
+          {
+            id: "d2",
+            amount: 100,
+            title: "Notebook (2/2)",
+            description: "",
+            paid: false,
+            date: new Date(),
+            installmentGroupId: "group-1",
+            installmentIndex: 2,
+            installmentTotal: 2,
+          },
+        ],
+        payments: [],
+      },
+    ] as never);
+
+    const result = await getPeopleWithBalances();
+    expect(result[0].totalOwed).toBe(100);
+  });
 });
 
 // ── getPersonById ─────────────────────────────────────────────────────────────
@@ -188,6 +268,22 @@ describe("getPersonById", () => {
     const result = await getPersonById("p1");
     expect(result!.totalOwed).toBe(300);
     expect(result!.debts).toHaveLength(2);
+  });
+
+  it("excludes paid debts from totalOwed", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({
+      id: "p1",
+      name: "João",
+      debts: [
+        { id: "d1", amount: 100, title: "X", description: "", paid: false, date: new Date() },
+        { id: "d2", amount: 900, title: "Y", description: "", paid: true, date: new Date() },
+      ],
+      payments: [],
+    } as never);
+
+    const result = await getPersonById("p1");
+    expect(result!.totalOwed).toBe(100);
   });
 });
 
@@ -222,6 +318,28 @@ describe("getOverviewStats", () => {
     expect(stats.totalToReceive).toBe(0);
     expect(stats.activeDebtors).toBe(0);
   });
+
+  it("clamps a negative owed balance (overpayment) to 0 in totalToReceive without counting them as an active debtor", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findMany.mockResolvedValue([
+      { id: "p1", debts: [{ amount: 100, paid: false }], payments: [{ amount: 300 }] },
+    ] as never);
+
+    const stats = await getOverviewStats();
+    expect(stats.totalToReceive).toBe(0);
+    expect(stats.activeDebtors).toBe(0);
+    expect(stats.totalPaid).toBe(300);
+  });
+
+  it("does not count a debtor with exactly zero balance owed as active", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findMany.mockResolvedValue([
+      { id: "p1", debts: [{ amount: 200, paid: false }], payments: [{ amount: 200 }] },
+    ] as never);
+
+    const stats = await getOverviewStats();
+    expect(stats.activeDebtors).toBe(0);
+  });
 });
 
 // ── getDebtorViewById ─────────────────────────────────────────────────────────
@@ -242,5 +360,19 @@ describe("getDebtorViewById", () => {
     const result = await getDebtorViewById("valid-id");
     expect(result!.name).toBe("Maria");
     expect(result!.totalOwed).toBe(150);
+  });
+
+  it("excludes paid debts from totalOwed", async () => {
+    prismaMock.person.findUnique.mockResolvedValue({
+      name: "Maria",
+      debts: [
+        { id: "d1", amount: 200, title: "X", description: "", paid: false, date: new Date() },
+        { id: "d2", amount: 800, title: "Y", description: "", paid: true, date: new Date() },
+      ],
+      payments: [],
+    } as never);
+
+    const result = await getDebtorViewById("valid-id");
+    expect(result!.totalOwed).toBe(200);
   });
 });

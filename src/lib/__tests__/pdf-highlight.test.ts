@@ -58,6 +58,39 @@ describe("findMatches", () => {
     const matches = findMatches({ amount: 156.68, date: "2026-03-27" }, pageInfos);
     expect(matches[0].hasDate).toBe(true);
   });
+
+  it("returns no matches when there are no pages at all", () => {
+    const matches = findMatches({ amount: 156.68, date: "2026-03-27" }, []);
+    expect(matches).toEqual([]);
+  });
+
+  it("returns no matches when the amount never appears on any page", () => {
+    const pageInfos = [makePageInfo([[item("Compra 10,00", 0, 100, 60)]])];
+    const matches = findMatches({ amount: 999.99, date: "2026-03-27" }, pageInfos);
+    expect(matches).toEqual([]);
+  });
+
+  it("finds every occurrence of the amount across multiple pages", () => {
+    const pageInfos = [
+      makePageInfo([[item("Compra 156,68", 0, 100, 60)]]),
+      makePageInfo([[item("Estorno 156,68", 0, 100, 60)]]),
+    ];
+    const matches = findMatches({ amount: 156.68, date: "2026-03-27" }, pageInfos);
+    expect(matches).toHaveLength(2);
+    expect(matches.map((m) => m.pageIdx)).toEqual([0, 1]);
+  });
+
+  it("matches an amount even when the line contains R$ and parentheses", () => {
+    const pageInfos = [makePageInfo([[item("Compra (loja) R$ 156,68", 0, 100, 60)]])];
+    const matches = findMatches({ amount: 156.68, date: "2026-03-27" }, pageInfos);
+    expect(matches).toHaveLength(1);
+  });
+
+  it("never sets hasDate when the transaction has no date", () => {
+    const pageInfos = [makePageInfo([[item("27/03 156,68", 0, 100, 60)]])];
+    const matches = findMatches({ amount: 156.68, date: "" }, pageInfos);
+    expect(matches[0].hasDate).toBe(false);
+  });
 });
 
 describe("pickBestMatch", () => {
@@ -97,6 +130,30 @@ describe("pickBestMatch", () => {
     );
     expect(best?.key).toBe("0:1");
   });
+
+  it("breaks a tie between multiple hasDate matches by taking the first one", () => {
+    const best = pickBestMatch(
+      [
+        { pageIdx: 0, lineIdx: 0, key: "0:0", hasDate: false },
+        { pageIdx: 0, lineIdx: 1, key: "0:1", hasDate: true },
+        { pageIdx: 0, lineIdx: 2, key: "0:2", hasDate: true },
+      ],
+      new Set()
+    );
+    expect(best?.key).toBe("0:1");
+  });
+
+  it("falls back to the full (already-claimed) pool when every match is claimed", () => {
+    const claimed = new Set(["0:0", "0:1"]);
+    const best = pickBestMatch(
+      [
+        { pageIdx: 0, lineIdx: 0, key: "0:0", hasDate: false },
+        { pageIdx: 0, lineIdx: 1, key: "0:1", hasDate: true },
+      ],
+      claimed
+    );
+    expect(best?.key).toBe("0:1"); // still prefers hasDate even among claimed lines
+  });
 });
 
 describe("expandRowBand", () => {
@@ -113,6 +170,26 @@ describe("expandRowBand", () => {
     const items = expandRowBand(lines, idx);
     expect(items.map((i) => i.str)).toEqual(["Row A"]);
   });
+
+  it("does not look above the first line (no out-of-bounds access)", () => {
+    const lines = groupLines([
+      item("Row A", 0, 100, 40, 10),
+      item("Row B", 0, 50, 40, 10),
+      item("Row C", 0, 0, 40, 10),
+    ]);
+    const items = expandRowBand(lines, 0);
+    expect(items.map((i) => i.str)).toEqual(["Row A"]);
+  });
+
+  it("does not look below the last line (no out-of-bounds access)", () => {
+    const lines = groupLines([
+      item("Row A", 0, 100, 40, 10),
+      item("Row B", 0, 50, 40, 10),
+      item("Row C", 0, 0, 40, 10),
+    ]);
+    const items = expandRowBand(lines, lines.length - 1);
+    expect(items.map((i) => i.str)).toEqual(["Row C"]);
+  });
 });
 
 describe("buildHighlightRect", () => {
@@ -122,5 +199,19 @@ describe("buildHighlightRect", () => {
     expect(rect.left).toBe(0);
     expect(rect.width).toBe(60);
     expect(rect.height).toBeGreaterThan(10); // includes vertical padding
+  });
+
+  it("spans left-to-right across multiple items on the same row", () => {
+    const pageInfos = [makePageInfo([[item("Compra", 0, 100, 20, 10), item("156,68", 30, 100, 25, 10)]])];
+    const rect = buildHighlightRect({ pageIdx: 0, lineIdx: 0, key: "0:0", hasDate: false }, pageInfos);
+    expect(rect.left).toBe(0);
+    expect(rect.width).toBe(55); // rightmost item's x (30) + its width (25)
+  });
+
+  it("produces a zero-width rect for a single zero-width item", () => {
+    const pageInfos = [makePageInfo([[item("", 10, 100, 0, 10)]])];
+    const rect = buildHighlightRect({ pageIdx: 0, lineIdx: 0, key: "0:0", hasDate: false }, pageInfos);
+    expect(rect.left).toBe(10);
+    expect(rect.width).toBe(0);
   });
 });

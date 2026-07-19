@@ -18,6 +18,7 @@ import {
   saveImportedTransactions,
   saveLlmFeedback,
   deleteStatement,
+  renameStatement,
 } from "@/lib/actions/statement";
 
 const mockAuth = vi.mocked(auth);
@@ -25,9 +26,14 @@ const mockDetectAndParse = vi.mocked(detectAndParse);
 const mockHealthCheck = vi.mocked(healthCheck);
 const mockExtract = vi.mocked(extract);
 
+type ExtendedStatement = typeof prismaMock.statement & {
+  updateMany: ReturnType<typeof vi.fn>;
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+  (prismaMock.statement as ExtendedStatement).updateMany = vi.fn().mockResolvedValue({});
 });
 
 // ── getStatements ─────────────────────────────────────────────────────────────
@@ -45,6 +51,11 @@ describe("getStatements", () => {
     expect(prismaMock.statement.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: "user-1" }, orderBy: { uploadedAt: "desc" } })
     );
+  });
+
+  it("returns an empty list when the user has no statements", async () => {
+    prismaMock.statement.findMany.mockResolvedValue([]);
+    expect(await getStatements()).toEqual([]);
   });
 });
 
@@ -108,6 +119,23 @@ describe("importStatement", () => {
     expect(result.llmAvailable).toBe(true);
     expect(result.llm).toEqual([{ index: 0, date: "2026-01-01", description: "Y", amount: 5 }]);
     expect(result.extractedText).toBe("llm text");
+  });
+
+  it("falls back to algo-derived extracted text when the LLM is online but returns nothing useful", async () => {
+    mockDetectAndParse.mockResolvedValue({ bank: "Bradesco", transactions: [] });
+    mockHealthCheck.mockResolvedValue(true);
+    prismaMock.lLMFeedback.findMany.mockResolvedValue([]);
+    mockExtract.mockResolvedValue({});
+    prismaMock.statement.create.mockResolvedValue({ id: "stmt-3" });
+
+    const fd = new FormData();
+    fd.set("pdf", new File(["%PDF-1.4"], "statement.pdf"));
+
+    const result = await importStatement(fd);
+
+    expect(result.llmAvailable).toBe(true);
+    expect(result.llm).toEqual([]);
+    expect(result.extractedText).toBe("extracted text");
   });
 });
 
@@ -179,6 +207,24 @@ describe("reopenStatement", () => {
     expect(result.llmAvailable).toBe(false);
     expect(result.extractedText).toBe("extracted text");
   });
+
+  it("does not persist a cache update when a fresh re-run yields no results and no text", async () => {
+    prismaMock.statement.findFirst.mockResolvedValue({
+      id: "stmt-1",
+      bank: "Nubank",
+      pdfData: Buffer.from("pdf"),
+      algoResults: [],
+      llmResults: [{ index: 0, date: "2026-01-01", description: "old", amount: 1 }],
+      extractedText: "old text",
+    });
+    mockHealthCheck.mockResolvedValue(true);
+    prismaMock.lLMFeedback.findMany.mockResolvedValue([]);
+    mockExtract.mockResolvedValue({});
+
+    await reopenStatement("stmt-1", { fresh: true });
+
+    expect(prismaMock.statement.update).not.toHaveBeenCalled();
+  });
 });
 
 // ── saveImportedTransactions ──────────────────────────────────────────────────
@@ -212,6 +258,48 @@ describe("saveImportedTransactions", () => {
     const result = await saveImportedTransactions([{ type: "bogus" }]);
     expect(result).toEqual({ created: 0 });
   });
+
+  it("truncates an overly long description/notes to the schema's max length", async () => {
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+
+    const longNotes = "n".repeat(600);
+    await saveImportedTransactions([
+      { type: "debt", personId: "p1", amount: "10.00", date: "2026-01-01", title: "T", notes: longNotes },
+    ]);
+
+    expect(prismaMock.debt.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ description: "n".repeat(500) }) })
+    );
+  });
+
+  it("falls back the debt title to the description, then to 'Importado' when both are absent", async () => {
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+
+    await saveImportedTransactions([
+      { type: "debt", personId: "p1", amount: "10.00", date: "2026-01-01", description: "Compra" },
+      { type: "debt", personId: "p1", amount: "20.00", date: "2026-01-02" },
+    ]);
+
+    expect(prismaMock.debt.create).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ data: expect.objectContaining({ title: "Compra" }) })
+    );
+    expect(prismaMock.debt.create).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ data: expect.objectContaining({ title: "Importado" }) })
+    );
+  });
+
+  it("skips items with an unparseable date", async () => {
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+
+    const result = await saveImportedTransactions([
+      { type: "debt", personId: "p1", amount: "10.00", date: "not-a-date" },
+    ]);
+
+    expect(result.created).toBe(0);
+    expect(prismaMock.debt.create).not.toHaveBeenCalled();
+  });
 });
 
 // ── saveLlmFeedback ───────────────────────────────────────────────────────────
@@ -235,6 +323,36 @@ describe("saveLlmFeedback", () => {
       })
     );
   });
+
+  it("defaults context to an empty string when omitted", async () => {
+    await saveLlmFeedback("Itaú", [{ date: "2026-01-01", description: "x", amount: "1.00" }]);
+
+    expect(prismaMock.lLMFeedback.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ context: "" }) })
+    );
+  });
+
+  it("truncates an overly long context to 2000 characters", async () => {
+    const longContext = "c".repeat(2500);
+    await saveLlmFeedback("Itaú", [
+      { date: "2026-01-01", description: "x", amount: "1.00", context: longContext },
+    ]);
+
+    expect(prismaMock.lLMFeedback.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ context: "c".repeat(2000) }) })
+    );
+  });
+
+  it("saves multiple valid corrections and reports the correct count when some are invalid", async () => {
+    const result = await saveLlmFeedback("Itaú", [
+      { date: "2026-01-01", description: "a", amount: "1.00" },
+      { description: "invalid, missing date/amount" },
+      { date: "2026-01-02", description: "b", amount: "2.00" },
+    ]);
+
+    expect(result.saved).toBe(2);
+    expect(prismaMock.lLMFeedback.create).toHaveBeenCalledTimes(2);
+  });
 });
 
 // ── deleteStatement ───────────────────────────────────────────────────────────
@@ -248,5 +366,36 @@ describe("deleteStatement", () => {
   it("deletes scoped to the user", async () => {
     await deleteStatement("stmt-1");
     expect(prismaMock.statement.deleteMany).toHaveBeenCalledWith({ where: { id: "stmt-1", userId: "user-1" } });
+  });
+
+  it("scopes the delete to a different authenticated user's ownership", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-2" } } as never);
+    await deleteStatement("stmt-9");
+    expect(prismaMock.statement.deleteMany).toHaveBeenCalledWith({ where: { id: "stmt-9", userId: "user-2" } });
+  });
+});
+
+// ── renameStatement ───────────────────────────────────────────────────────────
+
+describe("renameStatement", () => {
+  it("throws when not authenticated", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    await expect(renameStatement("stmt-1", "novo-nome.pdf")).rejects.toThrow("Not authenticated");
+  });
+
+  it("throws on an empty filename", async () => {
+    await expect(renameStatement("stmt-1", "  ")).rejects.toThrow();
+  });
+
+  it("updates the filename scoped to the user", async () => {
+    await renameStatement("stmt-1", "extrato-julho.pdf");
+    expect((prismaMock.statement as ExtendedStatement).updateMany).toHaveBeenCalledWith({
+      where: { id: "stmt-1", userId: "user-1" },
+      data: { filename: "extrato-julho.pdf" },
+    });
+  });
+
+  it("throws when the filename exceeds 255 characters", async () => {
+    await expect(renameStatement("stmt-1", "a".repeat(256))).rejects.toThrow();
   });
 });
