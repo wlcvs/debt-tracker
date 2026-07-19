@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest --watch",
     "test:run": "vitest --run",
+    "eval:llm": "node --env-file=.env --import tsx/esm scripts/eval-llm-extraction.mjs",
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {

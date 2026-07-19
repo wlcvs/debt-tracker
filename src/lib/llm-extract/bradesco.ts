@@ -4,7 +4,14 @@
 // the LLM (which just does a strict pass-through conversion to JSON — no
 // interpretation needed). Ported from banks/bradesco.py.
 import { extractTextPages } from "@/lib/importers/base";
-import { callLlm, type LlmCorrection, type LlmTransaction } from "./base";
+import {
+  callLlm,
+  chunkLines,
+  filterHallucinations,
+  mergeDedup,
+  type LlmCorrection,
+  type LlmTransaction,
+} from "./base";
 
 const SYSTEM_PROMPT_OVERRIDE = `\
 Convert each input line to a JSON object. Every line is a confirmed debit transaction — do NOT skip, filter, or deduplicate any of them.
@@ -24,7 +31,6 @@ const SKIP_RE = /TED-TRANSF ELET DISPON|PIX RECEBIDO|COD\. LANC\. 0|RENTAB\.INVE
 const AMOUNT_RE = /(\d{1,3}(?:\.\d{3})*,\d{2})/g;
 const DATE_PREFIX_RE = /^(\d{2}\/\d{2}\/(\d{4}))\s*/;
 const TYPE_LABEL_RE = /^[A-Z*][A-Z\s\-.*/]+$/;
-const CLEAN_LINE_RE = /^(\d{4}-\d{2}-\d{2}) .+ (\d+\.\d{2})$/;
 
 export async function extract(
   pdfBytes: Buffer | Uint8Array,
@@ -33,25 +39,25 @@ export async function extract(
   const text = await cleanLines(pdfBytes);
   if (!text) return [[], ""];
 
-  const txns = await callLlm(text, "Bradesco", {
-    systemOverride: SYSTEM_PROMPT_OVERRIDE,
-    maxTokens: 2048,
-    corrections,
-  });
-
+  const lines = text.split("\n");
   // The LLM's job here is a strict pass-through JSON conversion of lines
   // that are already unambiguous — small models can still fabricate an
   // extra entry despite the "do NOT skip/filter/dedupe" instruction (seen
-  // in practice: a duplicated amount under today's date). Whitelist the
-  // response against the actual pre-processed lines by date+amount to drop
-  // anything that doesn't correspond to a real line.
-  const validKeys = new Set(
-    text.split("\n").map((line) => {
-      const m = line.match(CLEAN_LINE_RE);
-      return m ? `${m[1]}|${m[2]}` : "";
-    })
-  );
-  const filtered = txns.filter((t) => validKeys.has(`${t.date}|${t.amount}`));
+  // in practice: a duplicated amount under today's date), and can shuffle
+  // values between lines once a call holds many of them at once. Chunking
+  // keeps each call small; filterHallucinations whitelists the response
+  // against the real pre-processed lines by date+amount.
+  const batches: LlmTransaction[][] = [];
+  for (const chunk of chunkLines(lines)) {
+    batches.push(
+      await callLlm(chunk.join("\n"), "Bradesco", {
+        systemOverride: SYSTEM_PROMPT_OVERRIDE,
+        maxTokens: 2048,
+        corrections,
+      })
+    );
+  }
+  const filtered = filterHallucinations(mergeDedup(batches), lines);
 
   return [filtered, text];
 }

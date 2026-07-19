@@ -4,6 +4,7 @@ import {
   AMOUNT_RE,
   DATE_SLASH_RE,
   findAllAmounts,
+  findYear,
   parseBrAmount,
   parseBrDate,
   extractPages,
@@ -11,8 +12,9 @@ import {
 } from "./base";
 
 const DEBIT_CREDIT_RE = /(\d{1,3}(?:\.\d{3})*,\d{2})\s*([DC])\b/;
-const TX_START_RE = /^(\d{2}\/\d{2})\s+(.+)/;
-const AMOUNT_FULL_RE = new RegExp(`^${AMOUNT_RE.source}$`);
+export const TX_START_RE = /^(\d{2}\/\d{2})\s+(.+)/;
+export const AMOUNT_FULL_RE = new RegExp(`^${AMOUNT_RE.source}$`);
+export const STOP_SECTION_RE = /Totalandos|Lançamentosno|LTotaldos|Totaldoslançamentos/;
 
 export async function parse(data: Buffer | Uint8Array): Promise<Transaction[]> {
   const pages = await extractPages(data);
@@ -35,8 +37,8 @@ function parseFatura(pagesText: string[]): Transaction[] {
   let year = new Date().getFullYear();
 
   for (const page of pagesText) {
-    const ym = page.match(/\b(20\d{2})\b/);
-    if (ym) year = Number(ym[1]);
+    const y = findYear([page]);
+    if (y) year = y;
 
     let inTxSection = false;
     let pendingDate: string | null = null;
@@ -58,7 +60,7 @@ function parseFatura(pagesText: string[]): Transaction[] {
       // that pdfplumber (which this pattern was written against) collapses —
       // without this, the section never closes and garbage from unrelated
       // sections later on the page gets appended to the last pending row.
-      if (inTxSection && /Totalandos|Lançamentosno|LTotaldos|Totaldoslançamentos/.test(line.replace(/\s+/g, ""))) {
+      if (inTxSection && STOP_SECTION_RE.test(line.replace(/\s+/g, ""))) {
         flush(transactions, pendingDate, pendingDesc, pendingAmount);
         pendingDate = null;
         pendingDesc = "";
