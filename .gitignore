@@ -37,3 +37,6 @@ next-env.d.ts
 # personal financial data, never commit
 *.pdf
 *.PDF
+
+# scripts/ollama.mjs's PID file
+/scripts/.ollama.pid

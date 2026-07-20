@@ -3,6 +3,7 @@ import { healthCheck, chatComplete } from "@/lib/llm-extract/ollama-client";
 
 const originalUrl = process.env.OLLAMA_BASE_URL;
 const originalModel = process.env.OLLAMA_MODEL;
+const originalApiKey = process.env.OLLAMA_API_KEY;
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
@@ -12,6 +13,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   process.env.OLLAMA_BASE_URL = originalUrl;
   process.env.OLLAMA_MODEL = originalModel;
+  process.env.OLLAMA_API_KEY = originalApiKey;
 });
 
 describe("healthCheck", () => {
@@ -32,6 +34,30 @@ describe("healthCheck", () => {
     process.env.OLLAMA_BASE_URL = "http://localhost:11434/v1";
     vi.mocked(fetch).mockRejectedValue(new Error("ECONNREFUSED"));
     expect(await healthCheck()).toBe(false);
+  });
+
+  it("sends an Authorization header when OLLAMA_API_KEY is set", async () => {
+    process.env.OLLAMA_BASE_URL = "https://api.groq.com/openai/v1";
+    process.env.OLLAMA_API_KEY = "gsk_test123";
+    vi.mocked(fetch).mockResolvedValue({ status: 200 } as Response);
+
+    await healthCheck();
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    expect(options).toMatchObject({ headers: { Authorization: "Bearer gsk_test123" } });
+  });
+
+  it("sends no Authorization header when OLLAMA_API_KEY is unset", async () => {
+    process.env.OLLAMA_BASE_URL = "http://localhost:11434/v1";
+    process.env.OLLAMA_API_KEY = "";
+    vi.mocked(fetch).mockResolvedValue({ status: 200 } as Response);
+
+    await healthCheck();
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    expect((options as { headers?: Record<string, string> }).headers).not.toHaveProperty(
+      "Authorization"
+    );
   });
 });
 
@@ -95,5 +121,38 @@ describe("chatComplete", () => {
     process.env.OLLAMA_BASE_URL = "http://localhost:11434/v1";
     vi.mocked(fetch).mockRejectedValue(new Error("timeout"));
     expect(await chatComplete("s", "u", 100)).toBeNull();
+  });
+
+  it("sends an Authorization header when OLLAMA_API_KEY is set", async () => {
+    process.env.OLLAMA_BASE_URL = "https://api.groq.com/openai/v1";
+    process.env.OLLAMA_MODEL = "llama-3.3-70b-versatile";
+    process.env.OLLAMA_API_KEY = "gsk_test123";
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: "hi" } }] }),
+    } as Response);
+
+    await chatComplete("s", "u", 100);
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    expect(options).toMatchObject({
+      headers: { "Content-Type": "application/json", Authorization: "Bearer gsk_test123" },
+    });
+  });
+
+  it("sends no Authorization header when OLLAMA_API_KEY is unset", async () => {
+    process.env.OLLAMA_BASE_URL = "http://localhost:11434/v1";
+    process.env.OLLAMA_API_KEY = "";
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: "hi" } }] }),
+    } as Response);
+
+    await chatComplete("s", "u", 100);
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    expect((options as { headers?: Record<string, string> }).headers).not.toHaveProperty(
+      "Authorization"
+    );
   });
 });

@@ -1,7 +1,9 @@
-// Direct client for Ollama's OpenAI-compatible API. Configure OLLAMA_BASE_URL
-// in .env (e.g. http://localhost:11434/v1 locally, or a tunnel URL such as a
-// Cloudflare Tunnel/Tailscale Funnel hostname when this app runs on Vercel).
-// If unset or the server is unreachable/slow, all calls resolve to null
+// Direct client for any OpenAI-compatible chat completions API. Configure
+// OLLAMA_BASE_URL in .env — either a local Ollama server (e.g.
+// http://localhost:11434/v1, no auth needed) or a hosted provider like Groq
+// (https://api.groq.com/openai/v1), in which case also set OLLAMA_API_KEY so
+// requests carry an Authorization: Bearer header. If OLLAMA_BASE_URL is
+// unset or the server is unreachable/slow, all calls resolve to null
 // silently so the import flow always falls back to algorithmic-only results.
 
 // Keep a couple seconds under the import route's `maxDuration` (see
@@ -19,12 +21,20 @@ function model(): string {
   return process.env.OLLAMA_MODEL || DEFAULT_MODEL;
 }
 
+function authHeaders(): Record<string, string> {
+  const key = process.env.OLLAMA_API_KEY;
+  return key ? { Authorization: `Bearer ${key}` } : {};
+}
+
 export async function healthCheck(): Promise<boolean> {
   const url = baseUrl();
   if (!url) return false;
 
   try {
-    const res = await fetch(`${url}/models`, { signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS) });
+    const res = await fetch(`${url}/models`, {
+      headers: authHeaders(),
+      signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
+    });
     return res.status === 200;
   } catch {
     return false;
@@ -42,7 +52,7 @@ export async function chatComplete(
   try {
     const res = await fetch(`${url}/chat/completions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
         model: model(),
         messages: [
