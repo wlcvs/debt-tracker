@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app does
 
-Personal debt tracker where the admin (Wallacy) logs debts and payments for people who owe him. Each person's `id` in the database serves as their access code for a read-only public view at `/public/[id]`.
+Personal debt tracker where the admin logs debts and payments for people who owe them. Each person's `id` in the database serves as their access code for a read-only public view at `/public/[id]`.
 
 This project was also rewritten once in Django (`debt-tracker-django`, a sibling repo). The two diverged; this repo (Next.js) is the one confirmed to keep receiving feature work — `debt-tracker-django` is frozen. Everything Django had that this repo didn't (debt `title`/`paid`, payment `description`, the bank statement import feature) has been ported over; if you're comparing behavior against the Django source, treat it as the reference for anything not yet covered here, but this repo is the target going forward.
 
@@ -180,7 +180,7 @@ OLLAMA_API_KEY=           # only needed when OLLAMA_BASE_URL points at a hosted 
 - **Every new env var** must also be added to `.env.example`.
 - **Design:** HUD/monochromatic (grayscale, no accent colors, no emojis). Use uppercase text instead of icons — no icons anywhere in the app, full stop (`"HIDE"` not `👁`, `"Fechar"` not `✕`, `"COPIADO"` not `"COPIADO ✓"`). This includes edit/delete affordances on list rows: no pencil/cross icon buttons, the whole row is a click target that opens a detail modal (view → edit → delete in one place; see `debt-detail-modal.tsx`/`payment-detail-modal.tsx`). Sort-direction indicators use `+`/`-` (ascending/descending), not arrow glyphs (`↑`/`↓`). Light bg is `#e8e8ed`, not white. Dark/light toggle exists — the toggle's own label text (e.g. "Tema escuro") is itself the full click target, not a separate static "Tema" label next to a smaller button. **The UI is in Brazilian Portuguese** — all labels, placeholders, buttons, and messages must be in pt-BR.
 - **Commits:** Conventional Commits in English (`feat:`, `fix:`, `chore:`, etc.).
-- **Never deploy** without Wallacy reviewing the feature first.
+- **Never deploy** without the admin reviewing the feature first.
 - **Keep it simple** — this is a single-admin personal app; avoid overengineering.
 - **Validate all inputs with Zod** — never use `as string` casts on FormData; always parse with an explicit schema. Use `formData.get("field") ?? undefined` when the field is optional so Zod's `.default()` fires correctly.
 - **Zod v4 formats** — use `z.email()` (standalone), not the deprecated `z.string().email()`.
