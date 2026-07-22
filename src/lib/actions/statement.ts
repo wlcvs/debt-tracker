@@ -6,13 +6,13 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { detectAndParse } from "@/lib/importers";
 import { extractTextPages } from "@/lib/importers/base";
-import { healthCheck, extract, type LlmCorrection } from "@/lib/llm-extract";
+import { healthCheck, extract, type LLMCorrection } from "@/lib/LLM-extract";
 
 // Note: `maxDuration` cannot be exported from this file — Next.js requires
 // every export of a "use server" module to be an async function, and a
 // non-function export here breaks the module's client bundle entirely (see
 // the (dashboard)/page.tsx route segment, which sets it instead). The LLM
-// client's own timeout (see src/lib/llm-extract/ollama-client.ts) is set a
+// client's own timeout (see src/lib/LLM-extract/ollama-client.ts) is set a
 // couple seconds under that ceiling, so a slow Ollama server always resolves
 // to the graceful-degradation path before the platform kills the whole function.
 
@@ -26,7 +26,7 @@ async function requireUserId(): Promise<string> {
   return session.user.id;
 }
 
-async function getCorrections(userId: string, bank: string): Promise<LlmCorrection[]> {
+async function getCorrections(userId: string, bank: string): Promise<LLMCorrection[]> {
   const feedback = await prisma.lLMFeedback.findMany({
     where: { userId, bank },
     orderBy: { createdAt: "desc" },
@@ -67,9 +67,9 @@ export interface ImportResult {
   statementId: string;
   bank: string;
   algorithm: Record<string, unknown>[];
-  llm: Record<string, unknown>[];
+  LLM: Record<string, unknown>[];
   extractedText: string;
-  llmAvailable: boolean;
+  LLMAvailable: boolean;
 }
 
 export async function importStatement(formData: FormData): Promise<ImportResult> {
@@ -84,11 +84,11 @@ export async function importStatement(formData: FormData): Promise<ImportResult>
   const { bank, transactions } = await detectAndParse(buffer);
   const algoResults = transactions.map((t, i) => ({ index: i, ...t }));
 
-  const llmOnline = await healthCheck();
-  const corrections = llmOnline ? await getCorrections(userId, bank) : [];
-  const llmData = llmOnline ? await extract(buffer, bank, corrections) : {};
-  const llmResults = "transactions" in llmData ? llmData.transactions : [];
-  let extractedText = "extractedText" in llmData ? llmData.extractedText : "";
+  const LLMOnline = await healthCheck();
+  const corrections = LLMOnline ? await getCorrections(userId, bank) : [];
+  const LLMData = LLMOnline ? await extract(buffer, bank, corrections) : {};
+  const LLMResults = "transactions" in LLMData ? LLMData.transactions : [];
+  let extractedText = "extractedText" in LLMData ? LLMData.extractedText : "";
 
   if (!extractedText) {
     const pages = await extractTextPages(buffer);
@@ -101,9 +101,9 @@ export async function importStatement(formData: FormData): Promise<ImportResult>
       bank,
       filename: file.name,
       pdfData: buffer,
-      transactionCount: Math.max(algoResults.length, llmResults.length),
+      transactionCount: Math.max(algoResults.length, LLMResults.length),
       algoResults: toJson(algoResults),
-      llmResults: toJson(llmResults),
+      LLMResults: toJson(LLMResults),
       extractedText,
     },
   });
@@ -114,9 +114,9 @@ export async function importStatement(formData: FormData): Promise<ImportResult>
     statementId: statement.id,
     bank,
     algorithm: algoResults,
-    llm: llmResults,
+    LLM: LLMResults,
     extractedText,
-    llmAvailable: llmOnline,
+    LLMAvailable: LLMOnline,
   };
 }
 
@@ -135,29 +135,29 @@ export async function reopenStatement(id: string, opts: { fresh?: boolean } = {}
   const bank = stmt.bank;
   const buffer = Buffer.from(stmt.pdfData);
   const algoResults = (stmt.algoResults as Record<string, unknown>[]) ?? [];
-  const cachedLlmResults = (stmt.llmResults as Record<string, unknown>[]) ?? [];
+  const cachedLLMResults = (stmt.LLMResults as Record<string, unknown>[]) ?? [];
 
-  let llmResults: Record<string, unknown>[];
+  let LLMResults: Record<string, unknown>[];
   let extractedText: string;
-  let llmOnline: boolean;
+  let LLMOnline: boolean;
 
-  if (opts.fresh || cachedLlmResults.length === 0) {
-    llmOnline = await healthCheck();
-    const corrections = llmOnline ? await getCorrections(userId, bank) : [];
-    const llmData = llmOnline ? await extract(buffer, bank, corrections) : {};
-    llmResults = "transactions" in llmData ? llmData.transactions : [];
-    extractedText = "extractedText" in llmData ? llmData.extractedText : "";
+  if (opts.fresh || cachedLLMResults.length === 0) {
+    LLMOnline = await healthCheck();
+    const corrections = LLMOnline ? await getCorrections(userId, bank) : [];
+    const LLMData = LLMOnline ? await extract(buffer, bank, corrections) : {};
+    LLMResults = "transactions" in LLMData ? LLMData.transactions : [];
+    extractedText = "extractedText" in LLMData ? LLMData.extractedText : "";
 
-    if (llmResults.length > 0 || extractedText) {
+    if (LLMResults.length > 0 || extractedText) {
       await prisma.statement.update({
         where: { id },
-        data: { llmResults: toJson(llmResults), extractedText },
+        data: { LLMResults: toJson(LLMResults), extractedText },
       });
     }
   } else {
-    llmResults = cachedLlmResults;
+    LLMResults = cachedLLMResults;
     extractedText = stmt.extractedText;
-    llmOnline = true;
+    LLMOnline = true;
   }
 
   if (!extractedText) {
@@ -169,10 +169,10 @@ export async function reopenStatement(id: string, opts: { fresh?: boolean } = {}
     statementId: stmt.id,
     bank,
     algorithm: algoResults,
-    llm: llmResults,
+    LLM: LLMResults,
     extractedText,
-    llmAvailable: llmOnline,
-    cached: !opts.fresh && cachedLlmResults.length > 0,
+    LLMAvailable: LLMOnline,
+    cached: !opts.fresh && cachedLLMResults.length > 0,
   };
 }
 
@@ -238,7 +238,7 @@ export async function saveImportedTransactions(items: unknown[]): Promise<{ crea
   return { created };
 }
 
-// ── saveLlmFeedback ──────────────────────────────────────────────────────────
+// ── saveLLMFeedback ──────────────────────────────────────────────────────────
 
 const correctionSchema = z.object({
   date: z.coerce.date(),
@@ -247,7 +247,7 @@ const correctionSchema = z.object({
   context: z.string().optional(),
 });
 
-export async function saveLlmFeedback(bank: string, corrections: unknown[]): Promise<{ saved: number }> {
+export async function saveLLMFeedback(bank: string, corrections: unknown[]): Promise<{ saved: number }> {
   const userId = await requireUserId();
 
   let saved = 0;

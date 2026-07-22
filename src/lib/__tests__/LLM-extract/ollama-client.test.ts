@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { healthCheck, chatComplete } from "@/lib/llm-extract/ollama-client";
+import { healthCheck, chatComplete } from "@/lib/LLM-extract/ollama-client";
 
 const originalUrl = process.env.OLLAMA_BASE_URL;
 const originalModel = process.env.OLLAMA_MODEL;

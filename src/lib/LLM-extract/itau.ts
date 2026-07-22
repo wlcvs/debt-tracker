@@ -3,7 +3,7 @@
 import { AMOUNT_FULL_RE, TX_START_RE } from "@/lib/importers/itau";
 import { extractPages, findAllAmounts, findYear, parseBrAmount, parseBrDate } from "@/lib/importers/base";
 import { lineText, type PdfLine, type PdfTextItem } from "@/lib/pdf/group-lines";
-import { extractChunked, type LlmCorrection, type LlmTransaction } from "./base";
+import { extractChunked, type LLMCorrection, type LLMTransaction } from "./base";
 
 const STOP_MARKERS = ["Totaldos", "LTotaldos", "Limitesdecr", "Fiqueaten"];
 
@@ -26,8 +26,8 @@ Include ALL lines without exception.`;
 
 export async function extract(
   pdfBytes: Buffer | Uint8Array,
-  corrections: LlmCorrection[]
-): Promise<[LlmTransaction[], string]> {
+  corrections: LLMCorrection[]
+): Promise<[LLMTransaction[], string]> {
   const text = await cleanRows(pdfBytes);
   if (!text) return [[], ""];
 

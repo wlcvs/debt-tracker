@@ -2,7 +2,7 @@
 // is sent to the LLM — ported from banks/mercadopago.py.
 import { detectYear, extractTextPages, parseBrAmount, parseBrDate } from "@/lib/importers/base";
 import { SKIP, TX_RE, YEAR_RE } from "@/lib/importers/mercadopago";
-import { extractChunked, type LlmCorrection, type LlmTransaction } from "./base";
+import { extractChunked, type LLMCorrection, type LLMTransaction } from "./base";
 
 // Strict pass-through prompt, mirroring bradesco.ts/itau.ts: dates/amounts are
 // already computed deterministically in cleanLines(), so the LLM's only job
@@ -23,8 +23,8 @@ Include ALL lines without exception.`;
 
 export async function extract(
   pdfBytes: Buffer | Uint8Array,
-  corrections: LlmCorrection[]
-): Promise<[LlmTransaction[], string]> {
+  corrections: LLMCorrection[]
+): Promise<[LLMTransaction[], string]> {
   const text = await cleanLines(pdfBytes);
   if (!text) return [[], ""];
 

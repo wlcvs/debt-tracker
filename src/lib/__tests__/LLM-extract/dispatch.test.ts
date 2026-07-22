@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { extract } from "@/lib/llm-extract/dispatch";
-import * as itau from "@/lib/llm-extract/itau";
-import * as nubank from "@/lib/llm-extract/nubank";
-import * as bradesco from "@/lib/llm-extract/bradesco";
-import * as mercadopago from "@/lib/llm-extract/mercadopago";
-import * as base from "@/lib/llm-extract/base";
+import { extract } from "@/lib/LLM-extract/dispatch";
+import * as itau from "@/lib/LLM-extract/itau";
+import * as nubank from "@/lib/LLM-extract/nubank";
+import * as bradesco from "@/lib/LLM-extract/bradesco";
+import * as mercadopago from "@/lib/LLM-extract/mercadopago";
+import * as base from "@/lib/LLM-extract/base";
 import * as importersBase from "@/lib/importers/base";
 
 afterEach(() => {

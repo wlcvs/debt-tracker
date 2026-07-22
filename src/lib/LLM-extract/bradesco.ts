@@ -4,7 +4,7 @@
 // the LLM (which just does a strict pass-through conversion to JSON — no
 // interpretation needed). Ported from banks/bradesco.py.
 import { extractTextPages } from "@/lib/importers/base";
-import { extractChunked, type LlmCorrection, type LlmTransaction } from "./base";
+import { extractChunked, type LLMCorrection, type LLMTransaction } from "./base";
 
 const SYSTEM_PROMPT_OVERRIDE = `\
 Convert each input line to a JSON object. Every line is a confirmed debit transaction — do NOT skip, filter, or deduplicate any of them.
@@ -27,8 +27,8 @@ const TYPE_LABEL_RE = /^[A-Z*][A-Z\s\-.*/]+$/;
 
 export async function extract(
   pdfBytes: Buffer | Uint8Array,
-  corrections: LlmCorrection[]
-): Promise<[LlmTransaction[], string]> {
+  corrections: LLMCorrection[]
+): Promise<[LLMTransaction[], string]> {
   const text = await cleanLines(pdfBytes);
   if (!text) return [[], ""];
 

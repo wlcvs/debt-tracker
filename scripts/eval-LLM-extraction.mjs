@@ -11,9 +11,9 @@
 // ~/.local/ollama/bin), prefix with: export PATH="$HOME/.local/ollama/bin:$PATH"
 //
 // Usage:
-//   npm run eval:llm
-//   MODELS=qwen2.5:3b,qwen2.5:1.5b npm run eval:llm
-//   LLM_CHUNK_SIZE=4 npm run eval:llm
+//   npm run eval:LLM
+//   MODELS=qwen2.5:3b,qwen2.5:1.5b npm run eval:LLM
+//   LLM_CHUNK_SIZE=4 npm run eval:LLM
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,7 +22,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(__dirname, "..");
 
 const { detectAndParse } = await import(path.join(REPO_ROOT, "src/lib/importers/index.ts"));
-const dispatch = await import(path.join(REPO_ROOT, "src/lib/llm-extract/dispatch.ts"));
+const dispatch = await import(path.join(REPO_ROOT, "src/lib/LLM-extract/dispatch.ts"));
 
 const FIXTURES_DIR = path.join(REPO_ROOT, "src/lib/__tests__/fixtures");
 const FILES = [
@@ -41,12 +41,12 @@ function norm(t) {
   return `${t.date}|${Number(t.amount).toFixed(2)}`;
 }
 
-function compare(algoTxns, llmTxns) {
+function compare(algoTxns, LLMTxns) {
   const algoKeys = new Set(algoTxns.map(norm));
-  const llmKeys = new Set(llmTxns.map(norm));
-  const matched = [...algoKeys].filter((k) => llmKeys.has(k));
-  const missed = [...algoKeys].filter((k) => !llmKeys.has(k));
-  const hallucinated = [...llmKeys].filter((k) => !algoKeys.has(k));
+  const LLMKeys = new Set(LLMTxns.map(norm));
+  const matched = [...algoKeys].filter((k) => LLMKeys.has(k));
+  const missed = [...algoKeys].filter((k) => !LLMKeys.has(k));
+  const hallucinated = [...LLMKeys].filter((k) => !algoKeys.has(k));
   return { matched: matched.length, total: algoKeys.size, missed, hallucinated: hallucinated.length, hallucinatedKeys: hallucinated };
 }
 
@@ -70,11 +70,11 @@ for (const model of MODELS) {
     const bank = algo.bank;
 
     const start = Date.now();
-    const [llmTxns] = await dispatch.extract(data, bank, []);
+    const [LLMTxns] = await dispatch.extract(data, bank, []);
     const elapsed = Date.now() - start;
     totalTimeMs += elapsed;
 
-    const cmp = compare(algo.transactions, llmTxns);
+    const cmp = compare(algo.transactions, LLMTxns);
     totalMatched += cmp.matched;
     totalExpected += cmp.total;
     totalHallucinated += cmp.hallucinated;

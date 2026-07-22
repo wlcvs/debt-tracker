@@ -6,17 +6,17 @@ vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/importers", () => ({ detectAndParse: vi.fn() }));
 vi.mock("@/lib/importers/base", () => ({ extractTextPages: vi.fn().mockResolvedValue(["extracted text"]) }));
-vi.mock("@/lib/llm-extract", () => ({ healthCheck: vi.fn(), extract: vi.fn() }));
+vi.mock("@/lib/LLM-extract", () => ({ healthCheck: vi.fn(), extract: vi.fn() }));
 
 import { auth } from "@/auth";
 import { detectAndParse } from "@/lib/importers";
-import { healthCheck, extract } from "@/lib/llm-extract";
+import { healthCheck, extract } from "@/lib/LLM-extract";
 import {
   getStatements,
   importStatement,
   reopenStatement,
   saveImportedTransactions,
-  saveLlmFeedback,
+  saveLLMFeedback,
   deleteStatement,
   renameStatement,
 } from "@/lib/actions/statement";
@@ -91,7 +91,7 @@ describe("importStatement", () => {
     const result = await importStatement(fd);
 
     expect(mockExtract).not.toHaveBeenCalled();
-    expect(result.llmAvailable).toBe(false);
+    expect(result.LLMAvailable).toBe(false);
     expect(result.algorithm).toEqual([{ index: 0, date: "2026-01-01", description: "X", amount: 10 }]);
     expect(result.extractedText).toBe("extracted text");
     expect(prismaMock.statement.create).toHaveBeenCalledWith(
@@ -107,7 +107,7 @@ describe("importStatement", () => {
     prismaMock.lLMFeedback.findMany.mockResolvedValue([]);
     mockExtract.mockResolvedValue({
       transactions: [{ index: 0, date: "2026-01-01", description: "Y", amount: 5 }],
-      extractedText: "llm text",
+      extractedText: "LLM text",
     });
     prismaMock.statement.create.mockResolvedValue({ id: "stmt-2" });
 
@@ -116,9 +116,9 @@ describe("importStatement", () => {
 
     const result = await importStatement(fd);
 
-    expect(result.llmAvailable).toBe(true);
-    expect(result.llm).toEqual([{ index: 0, date: "2026-01-01", description: "Y", amount: 5 }]);
-    expect(result.extractedText).toBe("llm text");
+    expect(result.LLMAvailable).toBe(true);
+    expect(result.LLM).toEqual([{ index: 0, date: "2026-01-01", description: "Y", amount: 5 }]);
+    expect(result.extractedText).toBe("LLM text");
   });
 
   it("falls back to algo-derived extracted text when the LLM is online but returns nothing useful", async () => {
@@ -133,8 +133,8 @@ describe("importStatement", () => {
 
     const result = await importStatement(fd);
 
-    expect(result.llmAvailable).toBe(true);
-    expect(result.llm).toEqual([]);
+    expect(result.LLMAvailable).toBe(true);
+    expect(result.LLM).toEqual([]);
     expect(result.extractedText).toBe("extracted text");
   });
 });
@@ -153,7 +153,7 @@ describe("reopenStatement", () => {
       bank: "Nubank",
       pdfData: Buffer.from("pdf"),
       algoResults: [{ index: 0, date: "2026-01-01", description: "X", amount: 10 }],
-      llmResults: [{ index: 0, date: "2026-01-01", description: "X", amount: 10 }],
+      LLMResults: [{ index: 0, date: "2026-01-01", description: "X", amount: 10 }],
       extractedText: "cached text",
     });
 
@@ -170,7 +170,7 @@ describe("reopenStatement", () => {
       bank: "Nubank",
       pdfData: Buffer.from("pdf"),
       algoResults: [],
-      llmResults: [{ index: 0, date: "2026-01-01", description: "old", amount: 1 }],
+      LLMResults: [{ index: 0, date: "2026-01-01", description: "old", amount: 1 }],
       extractedText: "old text",
     });
     mockHealthCheck.mockResolvedValue(true);
@@ -184,7 +184,7 @@ describe("reopenStatement", () => {
 
     expect(mockExtract).toHaveBeenCalled();
     expect(result.cached).toBe(false);
-    expect(result.llm).toEqual([{ index: 0, date: "2026-01-02", description: "new", amount: 2 }]);
+    expect(result.LLM).toEqual([{ index: 0, date: "2026-01-02", description: "new", amount: 2 }]);
     expect(prismaMock.statement.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "stmt-1" } })
     );
@@ -196,7 +196,7 @@ describe("reopenStatement", () => {
       bank: "Nubank",
       pdfData: Buffer.from("pdf"),
       algoResults: [],
-      llmResults: [],
+      LLMResults: [],
       extractedText: "",
     });
     mockHealthCheck.mockResolvedValue(false);
@@ -204,7 +204,7 @@ describe("reopenStatement", () => {
     const result = await reopenStatement("stmt-1");
 
     expect(mockHealthCheck).toHaveBeenCalled();
-    expect(result.llmAvailable).toBe(false);
+    expect(result.LLMAvailable).toBe(false);
     expect(result.extractedText).toBe("extracted text");
   });
 
@@ -214,7 +214,7 @@ describe("reopenStatement", () => {
       bank: "Nubank",
       pdfData: Buffer.from("pdf"),
       algoResults: [],
-      llmResults: [{ index: 0, date: "2026-01-01", description: "old", amount: 1 }],
+      LLMResults: [{ index: 0, date: "2026-01-01", description: "old", amount: 1 }],
       extractedText: "old text",
     });
     mockHealthCheck.mockResolvedValue(true);
@@ -302,16 +302,16 @@ describe("saveImportedTransactions", () => {
   });
 });
 
-// ── saveLlmFeedback ───────────────────────────────────────────────────────────
+// ── saveLLMFeedback ───────────────────────────────────────────────────────────
 
-describe("saveLlmFeedback", () => {
+describe("saveLLMFeedback", () => {
   it("throws when not authenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
-    await expect(saveLlmFeedback("Nubank", [])).rejects.toThrow("Not authenticated");
+    await expect(saveLLMFeedback("Nubank", [])).rejects.toThrow("Not authenticated");
   });
 
   it("saves valid corrections and skips invalid ones", async () => {
-    const result = await saveLlmFeedback("Nubank", [
+    const result = await saveLLMFeedback("Nubank", [
       { date: "2026-01-01", description: "x".repeat(300), amount: "9.99", context: "ctx" },
       { description: "missing date and amount" },
     ]);
@@ -325,7 +325,7 @@ describe("saveLlmFeedback", () => {
   });
 
   it("defaults context to an empty string when omitted", async () => {
-    await saveLlmFeedback("Itaú", [{ date: "2026-01-01", description: "x", amount: "1.00" }]);
+    await saveLLMFeedback("Itaú", [{ date: "2026-01-01", description: "x", amount: "1.00" }]);
 
     expect(prismaMock.lLMFeedback.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ context: "" }) })
@@ -334,7 +334,7 @@ describe("saveLlmFeedback", () => {
 
   it("truncates an overly long context to 2000 characters", async () => {
     const longContext = "c".repeat(2500);
-    await saveLlmFeedback("Itaú", [
+    await saveLLMFeedback("Itaú", [
       { date: "2026-01-01", description: "x", amount: "1.00", context: longContext },
     ]);
 
@@ -344,7 +344,7 @@ describe("saveLlmFeedback", () => {
   });
 
   it("saves multiple valid corrections and reports the correct count when some are invalid", async () => {
-    const result = await saveLlmFeedback("Itaú", [
+    const result = await saveLLMFeedback("Itaú", [
       { date: "2026-01-01", description: "a", amount: "1.00" },
       { description: "invalid, missing date/amount" },
       { date: "2026-01-02", description: "b", amount: "2.00" },

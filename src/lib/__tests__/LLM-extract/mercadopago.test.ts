@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { transactionSection, cleanLines, extract } from "@/lib/llm-extract/mercadopago";
-import * as ollamaClient from "@/lib/llm-extract/ollama-client";
+import { transactionSection, cleanLines, extract } from "@/lib/LLM-extract/mercadopago";
+import * as ollamaClient from "@/lib/LLM-extract/ollama-client";
 import * as importersBase from "@/lib/importers/base";
 
 const FIXTURES_DIR = path.join(__dirname, "..", "fixtures");

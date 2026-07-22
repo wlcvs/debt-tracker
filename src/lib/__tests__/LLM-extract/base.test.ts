@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { normDate, normAmount, parseResponse, callLlm, extractGeneric } from "@/lib/llm-extract/base";
-import * as ollamaClient from "@/lib/llm-extract/ollama-client";
+import { normDate, normAmount, parseResponse, callLLM, extractGeneric } from "@/lib/LLM-extract/base";
+import * as ollamaClient from "@/lib/LLM-extract/ollama-client";
 
 describe("normDate", () => {
   it("passes through an already-ISO date", () => {
@@ -86,7 +86,7 @@ describe("parseResponse", () => {
   });
 });
 
-describe("callLlm", () => {
+describe("callLLM", () => {
   beforeEach(() => {
     vi.spyOn(ollamaClient, "chatComplete");
   });
@@ -100,7 +100,7 @@ describe("callLlm", () => {
       '[{"date":"2026-05-11","description":"SUPERMERCADO ABC","amount":"89.90"}]'
     );
 
-    const result = await callLlm("statement text", "Nubank", {});
+    const result = await callLLM("statement text", "Nubank", {});
 
     expect(result).toEqual([{ date: "2026-05-11", description: "SUPERMERCADO ABC", amount: "89.90" }]);
     const [systemArg, userArg] = vi.mocked(ollamaClient.chatComplete).mock.calls[0];
@@ -111,14 +111,14 @@ describe("callLlm", () => {
 
   it("appends an extra hint to the system prompt", async () => {
     vi.mocked(ollamaClient.chatComplete).mockResolvedValue("[]");
-    await callLlm("text", "Itaú", { extraHint: "\n\nItaú hint" });
+    await callLLM("text", "Itaú", { extraHint: "\n\nItaú hint" });
     const [systemArg] = vi.mocked(ollamaClient.chatComplete).mock.calls[0];
     expect(systemArg).toContain("Itaú hint");
   });
 
   it("uses a system prompt override instead of the default when given", async () => {
     vi.mocked(ollamaClient.chatComplete).mockResolvedValue("[]");
-    await callLlm("text", "Bradesco", { systemOverride: "Custom override prompt" });
+    await callLLM("text", "Bradesco", { systemOverride: "Custom override prompt" });
     const [systemArg] = vi.mocked(ollamaClient.chatComplete).mock.calls[0];
     expect(systemArg).toContain("Custom override prompt");
     expect(systemArg).not.toContain("financial data extractor");
@@ -132,7 +132,7 @@ describe("callLlm", () => {
       amount: "10.00",
     }));
 
-    await callLlm("text", "Nubank", { corrections });
+    await callLLM("text", "Nubank", { corrections });
     const [systemArg] = vi.mocked(ollamaClient.chatComplete).mock.calls[0];
     expect(systemArg).toContain("Previously missed transactions for Nubank");
     expect(systemArg).toContain("MISSED 0");
@@ -141,7 +141,7 @@ describe("callLlm", () => {
 
   it("returns an empty array when the LLM is unreachable", async () => {
     vi.mocked(ollamaClient.chatComplete).mockResolvedValue(null);
-    expect(await callLlm("text", "Nubank", {})).toEqual([]);
+    expect(await callLLM("text", "Nubank", {})).toEqual([]);
   });
 });
 

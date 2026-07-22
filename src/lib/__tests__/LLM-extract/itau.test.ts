@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { transactionRows, cleanRows, extract } from "@/lib/llm-extract/itau";
-import * as ollamaClient from "@/lib/llm-extract/ollama-client";
+import { transactionRows, cleanRows, extract } from "@/lib/LLM-extract/itau";
+import * as ollamaClient from "@/lib/LLM-extract/ollama-client";
 import * as importersBase from "@/lib/importers/base";
 import type { PdfPage } from "@/lib/importers/base";
 

@@ -2,13 +2,13 @@
 // ported from bank-statement-extractor's banks/base.py.
 import { chatComplete } from "./ollama-client";
 
-export interface LlmTransaction {
+export interface LLMTransaction {
   date: string; // ISO yyyy-mm-dd
   description: string;
   amount: string; // positive decimal string, 2 places
 }
 
-export interface LlmCorrection {
+export interface LLMCorrection {
   date: string;
   description: string;
   amount: string;
@@ -32,14 +32,14 @@ Example: [{"date":"2026-05-11","description":"SUPERMERCADO ABC","amount":"89.90"
 const CREDIT_RE =
   /pagamento\s+da\s+fatura|pagamento\s+recebido|pix\s+recebido|ted\s+recebida?|transf(?:er[eê]ncia)?\s+recebida?|estorno|devolu[cç][aã]o|reembolso|cr[eé]dito\s+em\s+conta|rendimento|saldo\s+(anterior|final|inicial)|total\s+d[ao]s?\s+(fatura|lançamentos)|cod\.\s*lanc/i;
 
-export interface CallLlmOptions {
+export interface CallLLMOptions {
   extraHint?: string;
   maxTokens?: number;
   systemOverride?: string;
-  corrections?: LlmCorrection[];
+  corrections?: LLMCorrection[];
 }
 
-export async function callLlm(text: string, bank: string, opts: CallLlmOptions): Promise<LlmTransaction[]> {
+export async function callLLM(text: string, bank: string, opts: CallLLMOptions): Promise<LLMTransaction[]> {
   const { extraHint = "", maxTokens = 2048, systemOverride = "", corrections = [] } = opts;
 
   let system = systemOverride || SYSTEM_PROMPT + extraHint;
@@ -59,7 +59,7 @@ export async function callLlm(text: string, bank: string, opts: CallLlmOptions):
   return parseResponse(raw);
 }
 
-export function parseResponse(raw: string): LlmTransaction[] {
+export function parseResponse(raw: string): LLMTransaction[] {
   const cleaned = raw.replace(/```(?:json)?/g, "").trim();
   const match = cleaned.match(/\[[\s\S]*\]/);
   if (!match) return [];
@@ -71,7 +71,7 @@ export function parseResponse(raw: string): LlmTransaction[] {
     return [];
   }
 
-  const result: LlmTransaction[] = [];
+  const result: LLMTransaction[] = [];
   for (const item of items) {
     if (typeof item !== "object" || item === null) continue;
     const record = item as Record<string, unknown>;
@@ -119,13 +119,13 @@ export const CLEAN_LINE_RE = /^(\d{4}-\d{2}-\d{2}) .+ (\d+\.\d{2})$/;
  * real pre-processed line — eliminates hallucination by construction,
  * regardless of model quality (generalizes the guard bradesco.ts pioneered).
  *
- * One consequence: an LlmCorrection whose line isn't present in the current
+ * One consequence: an LLMCorrection whose line isn't present in the current
  * deterministic pre-processing output is unactionable — the LLM can't invent
  * a line outside its input, and this filter would drop it even if it tried.
  * If corrections stop appearing to "take," suspect the pre-processor's regex
  * missed that line's format, not this filter.
  */
-export function filterHallucinations(txns: LlmTransaction[], cleanLines: string[]): LlmTransaction[] {
+export function filterHallucinations(txns: LLMTransaction[], cleanLines: string[]): LLMTransaction[] {
   const validKeys = new Set(
     cleanLines.map((line) => {
       const m = line.match(CLEAN_LINE_RE);
@@ -157,9 +157,9 @@ export function chunkLines(lines: string[], chunkSize = Number(process.env.LLM_C
 }
 
 /** Merge per-chunk LLM results, deduping by date|description|amount. */
-export function mergeDedup(batches: LlmTransaction[][]): LlmTransaction[] {
+export function mergeDedup(batches: LLMTransaction[][]): LLMTransaction[] {
   const seen = new Set<string>();
-  const out: LlmTransaction[] = [];
+  const out: LLMTransaction[] = [];
   for (const batch of batches) {
     for (const t of batch) {
       const key = `${t.date}|${t.description}|${t.amount}`;
@@ -192,23 +192,23 @@ export function mergeDedup(batches: LlmTransaction[][]): LlmTransaction[] {
 export async function extractChunked(
   lines: string[],
   bank: string,
-  llmOptions: CallLlmOptions,
+  LLMOptions: CallLLMOptions,
   maxRetries = 2
-): Promise<LlmTransaction[]> {
+): Promise<LLMTransaction[]> {
   const keyOf = (line: string) => {
     const m = line.match(CLEAN_LINE_RE);
     return m ? `${m[1]}|${m[2]}` : "";
   };
 
-  const allBatches: LlmTransaction[][] = [];
+  const allBatches: LLMTransaction[][] = [];
 
   for (const chunk of chunkLines(lines)) {
     const chunkKeys = new Set(chunk.map(keyOf).filter(Boolean));
 
-    let best: LlmTransaction[] = [];
+    let best: LLMTransaction[] = [];
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       const attemptLines = attempt % 2 === 1 ? [...chunk].reverse() : chunk;
-      const raw = await callLlm(attemptLines.join("\n"), bank, llmOptions);
+      const raw = await callLLM(attemptLines.join("\n"), bank, LLMOptions);
       const valid = filterHallucinations(raw, lines);
       best = mergeDedup([best, valid]);
 
@@ -226,8 +226,8 @@ export async function extractChunked(
 export async function extractGeneric(
   fullText: string,
   bank: string,
-  corrections: LlmCorrection[]
-): Promise<[LlmTransaction[], string]> {
-  const txns = await callLlm(fullText, bank, { corrections });
+  corrections: LLMCorrection[]
+): Promise<[LLMTransaction[], string]> {
+  const txns = await callLLM(fullText, bank, { corrections });
   return [txns, fullText];
 }

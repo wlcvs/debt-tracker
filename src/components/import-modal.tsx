@@ -7,7 +7,7 @@ import {
   importStatement,
   reopenStatement,
   saveImportedTransactions,
-  saveLlmFeedback,
+  saveLLMFeedback,
 } from "@/lib/actions/statement";
 import { PdfViewerController, type PageInfo } from "@/lib/pdf-viewer-controller";
 import { buildHighlightRect, findMatches, pickBestMatch, type HighlightRect } from "@/lib/pdf-highlight";
@@ -55,7 +55,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   const [step, setStep] = useState<"upload" | "processing" | "review" | "saving">("upload");
   const [bank, setBank] = useState("");
   const [algoTxns, setAlgoTxns] = useState<Txn[]>([]);
-  const [llmTxns, setLlmTxns] = useState<Txn[]>([]);
+  const [LLMTxns, setLLMTxns] = useState<Txn[]>([]);
   const [error, setError] = useState("");
   const [statementId, setStatementId] = useState<string | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState("");
@@ -95,7 +95,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
     pdfBlobUrlRef.current = pdfBlobUrl;
   }, [pdfBlobUrl]);
 
-  const currentTxns = llmTxns.length ? llmTxns : algoTxns;
+  const currentTxns = LLMTxns.length ? LLMTxns : algoTxns;
   const pdfSrc = pdfBlobUrl || (statementId ? `/api/statements/${statementId}/pdf` : "");
 
   const filteredTransactions = useMemo(() => {
@@ -143,15 +143,15 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
     }
   }
 
-  function updateTxn(list: "algo" | "llm", index: number | string, patch: Partial<Txn>) {
-    const setter = list === "algo" ? setAlgoTxns : setLlmTxns;
+  function updateTxn(list: "algo" | "LLM", index: number | string, patch: Partial<Txn>) {
+    const setter = list === "algo" ? setAlgoTxns : setLLMTxns;
     setter((prev) => prev.map((t) => (t.index === index ? { ...t, ...patch } : t)));
   }
 
-  // currentTxns comes from llmTxns when non-empty, else algoTxns — find which
+  // currentTxns comes from LLMTxns when non-empty, else algoTxns — find which
   // list a given row actually lives in so edits land on the right one.
   function patchCurrentTxn(index: number | string, patch: Partial<Txn>) {
-    if (llmTxns.length) updateTxn("llm", index, patch);
+    if (LLMTxns.length) updateTxn("LLM", index, patch);
     else updateTxn("algo", index, patch);
   }
 
@@ -175,7 +175,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
     setStep("upload");
     setBank("");
     setAlgoTxns([]);
-    setLlmTxns([]);
+    setLLMTxns([]);
     setError("");
     setShowManualAdd(false);
     setManualDate("");
@@ -208,7 +208,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   interface ImportResultLike {
     bank: string;
     algorithm: Record<string, unknown>[];
-    llm: Record<string, unknown>[];
+    LLM: Record<string, unknown>[];
     statementId: string;
     cached?: boolean;
   }
@@ -218,7 +218,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
     setAlgoTxns(
       data.algorithm.map((t, i) => ({ ...t, index: i, personId: "", type: "ignore" }) as unknown as Txn)
     );
-    setLlmTxns(data.llm.map((t, i) => ({ ...t, index: i, personId: "", type: "ignore" }) as unknown as Txn));
+    setLLMTxns(data.LLM.map((t, i) => ({ ...t, index: i, personId: "", type: "ignore" }) as unknown as Txn));
     setStatementId(data.statementId);
     setStep("review");
   }
@@ -235,7 +235,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
 
     try {
       const data = await importStatement(fd);
-      if (!data.algorithm.length && !data.llm.length) {
+      if (!data.algorithm.length && !data.LLM.length) {
         throw new Error("Nenhuma transação encontrada neste PDF.");
       }
       loadData(data);
@@ -328,11 +328,11 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
       manual: true,
     };
 
-    setLlmTxns((prev) => [...prev, newTxn]);
+    setLLMTxns((prev) => [...prev, newTxn]);
     setShowManualAdd(false);
 
     try {
-      await saveLlmFeedback(bank, [{ date: manualDate, description: manualTitle, amount: manualAmount, context: "" }]);
+      await saveLLMFeedback(bank, [{ date: manualDate, description: manualTitle, amount: manualAmount, context: "" }]);
     } catch (e) {
       console.error("Failed to save correction:", e);
     }

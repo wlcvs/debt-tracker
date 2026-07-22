@@ -8,7 +8,7 @@ import {
   parseShortDate,
 } from "@/lib/importers/nubank";
 import { MONTHS_PT, detectYear, extractTextPages, parseBrAmount, parseBrDate } from "@/lib/importers/base";
-import { extractChunked, type LlmCorrection, type LlmTransaction } from "./base";
+import { extractChunked, type LLMCorrection, type LLMTransaction } from "./base";
 
 // Strict pass-through prompts, mirroring bradesco.ts/itau.ts/mercadopago.ts:
 // dates/amounts are already computed deterministically below, so the LLM's
@@ -43,8 +43,8 @@ Include ALL lines without exception.`;
 
 export async function extract(
   pdfBytes: Buffer | Uint8Array,
-  corrections: LlmCorrection[]
-): Promise<[LlmTransaction[], string]> {
+  corrections: LLMCorrection[]
+): Promise<[LLMTransaction[], string]> {
   const pages = await extractTextPages(pdfBytes);
   if (pages.join("\n").includes("Movimentações")) {
     return extractExtrato(pages, corrections);
@@ -55,8 +55,8 @@ export async function extract(
 /** Extrato has many transactions spread across pages — day-header state persists across page boundaries. */
 async function extractExtrato(
   pagesText: string[],
-  corrections: LlmCorrection[]
-): Promise<[LlmTransaction[], string]> {
+  corrections: LLMCorrection[]
+): Promise<[LLMTransaction[], string]> {
   const lines = cleanExtratoLines(pagesText);
   if (lines.length === 0) return [[], ""];
 
@@ -76,8 +76,8 @@ async function extractExtrato(
  */
 async function extractCartao(
   pagesText: string[],
-  corrections: LlmCorrection[]
-): Promise<[LlmTransaction[], string]> {
+  corrections: LLMCorrection[]
+): Promise<[LLMTransaction[], string]> {
   const year = detectYear(pagesText.slice(0, 3));
   const lines: string[] = [];
 

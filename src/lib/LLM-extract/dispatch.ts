@@ -3,20 +3,20 @@
 // passed in as a hint; this only routes to the matching bank module (falling
 // back to a generic full-text extraction for anything unrecognized).
 import { extractTextPages } from "@/lib/importers/base";
-import type { LlmCorrection, LlmTransaction } from "./base";
+import type { LLMCorrection, LLMTransaction } from "./base";
 import { extractGeneric } from "./base";
 import * as itau from "./itau";
 import * as nubank from "./nubank";
 import * as bradesco from "./bradesco";
 import * as mercadopago from "./mercadopago";
 
-export type { LlmCorrection, LlmTransaction } from "./base";
+export type { LLMCorrection, LLMTransaction } from "./base";
 
 export async function extract(
   pdfBytes: Buffer | Uint8Array,
   bank: string,
-  corrections: LlmCorrection[]
-): Promise<[LlmTransaction[], string]> {
+  corrections: LLMCorrection[]
+): Promise<[LLMTransaction[], string]> {
   if (bank.startsWith("Itaú") || bank.startsWith("Itau")) {
     return itau.extract(pdfBytes, corrections);
   }

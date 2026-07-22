@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { healthCheck, extract } from "@/lib/llm-extract";
-import * as ollamaClient from "@/lib/llm-extract/ollama-client";
-import * as dispatch from "@/lib/llm-extract/dispatch";
+import { healthCheck, extract } from "@/lib/LLM-extract";
+import * as ollamaClient from "@/lib/LLM-extract/ollama-client";
+import * as dispatch from "@/lib/LLM-extract/dispatch";
 
 beforeEach(() => {
   vi.spyOn(ollamaClient, "healthCheck");
@@ -20,7 +20,7 @@ describe("healthCheck", () => {
 });
 
 describe("extract", () => {
-  it("wraps dispatched transactions with an index, matching the llm-client.ts shape", async () => {
+  it("wraps dispatched transactions with an index, matching the LLM-client.ts shape", async () => {
     vi.mocked(dispatch.extract).mockResolvedValue([
       [{ date: "2026-03-27", description: "X", amount: "10.00" }],
       "some text",

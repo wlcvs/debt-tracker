@@ -16,7 +16,7 @@ model User {
   people       Person[]
   creditCards  CreditCard[]
   statements   Statement[]
-  llmFeedbacks LLMFeedback[]
+  LLMFeedbacks LLMFeedback[]
 }
 
 model Person {
@@ -86,7 +86,7 @@ model Statement {
   pdfData          Bytes
   transactionCount Int      @default(0)
   algoResults      Json     @default("[]")
-  llmResults       Json     @default("[]")
+  LLMResults       Json     @default("[]")
   extractedText    String   @default("")
   uploadedAt       DateTime @default(now())
 
