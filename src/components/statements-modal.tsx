@@ -173,7 +173,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
                   />
                 ) : (
                   <button
-                    onClick={() => startEditing(stmt)}
+                    onClick={() => onReopen(stmt.id)}
                     className="flex-1 text-xs text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white truncate min-w-0 text-left transition-colors cursor-pointer"
                   >
                     {stmt.filename}
@@ -182,6 +182,12 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
                 <span className="text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500 shrink-0">
                   {formatDateBR(new Date(stmt.uploadedAt))}
                 </span>
+                <button
+                  onClick={() => startEditing(stmt)}
+                  className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors shrink-0 cursor-pointer"
+                >
+                  Renomear
+                </button>
                 <button
                   onClick={() => onReopen(stmt.id)}
                   className="text-[10px] tracking-widest uppercase text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors shrink-0 cursor-pointer"
