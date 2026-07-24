@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { updatePerson } from "@/lib/actions/person";
 
 interface Props {
@@ -13,11 +13,32 @@ interface Props {
 
 export function EditablePersonHeader({ person }: Props) {
   const [editing, setEditing] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+
+    function onClickOutside(e: MouseEvent) {
+      if (formRef.current && !formRef.current.contains(e.target as Node)) {
+        setEditing(false);
+      }
+    }
+    function onEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setEditing(false);
+    }
+    document.addEventListener("click", onClickOutside);
+    window.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("click", onClickOutside);
+      window.removeEventListener("keydown", onEscape);
+    };
+  }, [editing]);
 
   if (editing) {
     return (
       <div className="flex items-start justify-between gap-4">
         <form
+          ref={formRef}
           action={async (fd) => { await updatePerson(fd); setEditing(false); }}
           className="flex items-center gap-2 flex-wrap"
         >
