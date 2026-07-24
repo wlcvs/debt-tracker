@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { updatePerson } from "@/lib/actions/person";
+import { useDismiss } from "@/lib/hooks/use-dismiss";
 
 interface Props {
   person: {
@@ -15,24 +16,7 @@ export function EditablePersonHeader({ person }: Props) {
   const [editing, setEditing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (!editing) return;
-
-    function onClickOutside(e: MouseEvent) {
-      if (formRef.current && !formRef.current.contains(e.target as Node)) {
-        setEditing(false);
-      }
-    }
-    function onEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setEditing(false);
-    }
-    document.addEventListener("click", onClickOutside);
-    window.addEventListener("keydown", onEscape);
-    return () => {
-      document.removeEventListener("click", onClickOutside);
-      window.removeEventListener("keydown", onEscape);
-    };
-  }, [editing]);
+  useDismiss(formRef, () => setEditing(false), { enabled: editing });
 
   if (editing) {
     return (
