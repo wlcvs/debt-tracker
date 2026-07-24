@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getStatements, deleteStatement, renameStatement, type StatementSummary } from "@/lib/actions/statement";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDateBR } from "@/lib/date-utils";
-import { useDismiss } from "@/lib/hooks/use-dismiss";
+import { useDismiss, useDismissGuard } from "@/lib/hooks/use-dismiss";
 
 interface Props {
   onClose: () => void;
@@ -28,12 +28,16 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
     getStatements().then(setStatements);
   }, []);
 
+  const { suppressNext, guard } = useDismissGuard();
   const dismissModal = useCallback(() => {
-    if (editingId) {
-      setEditingId(null);
-    } else {
-      onClose();
-    }
+    guard(() => {
+      if (editingId) {
+        setEditingId(null);
+      } else {
+        onClose();
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingId, onClose]);
   useDismiss(null, dismissModal, { outsideClick: false });
 
@@ -51,6 +55,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
   }
 
   async function commitEdit(id: string) {
+    suppressNext();
     const trimmed = editValue.trim();
     setEditingId(null);
     const original = statements.find((s) => s.id === id)?.filename;

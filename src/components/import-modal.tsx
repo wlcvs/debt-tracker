@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDismiss } from "@/lib/hooks/use-dismiss";
+import { useDismiss, useDismissGuard } from "@/lib/hooks/use-dismiss";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -89,6 +89,8 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   const [highlights, setHighlights] = useState<HighlightEntry[]>([]);
   const [pageInfoList, setPageInfoList] = useState<PageInfo[]>([]);
 
+  const { suppressNext: suppressNextDismiss, guard: guardDismiss } = useDismissGuard();
+
   const [controller] = useState(() => new PdfViewerController());
   const containerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -164,6 +166,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   }
 
   function commitEditingDesc(index: number | string) {
+    suppressNextDismiss();
     setEditingDescIndex(null);
     const trimmed = editingDescValue.trim();
     if (trimmed) patchCurrentTxn(index, { description: trimmed });
@@ -464,11 +467,13 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   }, [controller]);
 
   const dismissModal = useCallback(() => {
-    if (editingDescIndex !== null) {
-      setEditingDescIndex(null);
-    } else {
-      handleClose();
-    }
+    guardDismiss(() => {
+      if (editingDescIndex !== null) {
+        setEditingDescIndex(null);
+      } else {
+        handleClose();
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingDescIndex]);
   useDismiss(null, dismissModal, { outsideClick: false });

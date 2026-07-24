@@ -55,3 +55,34 @@ export function useDismiss(
     };
   }, [ref, enabled, outsideClick, escape]);
 }
+
+/**
+ * For a dismissable nested inside another (an inline row-edit inside a modal, a
+ * dropdown inside a panel): checking the inner dismissable's state from the outer
+ * one's dismiss handler does NOT work if the inner one commits/cancels on blur —
+ * clicking outside always fires `blur` on the focused input *before* the click
+ * event reaches the outer dismissable (browser event order: mousedown → blur →
+ * mouseup → click), so the inner state has already reset to "inactive" by the time
+ * the outer handler checks it, and the outer one closes too even though the click
+ * only meant to end the inner edit.
+ *
+ * Call `suppressNext()` synchronously inside the inner dismissable's own commit/
+ * cancel handler (its `onBlur`), then wrap the outer dismissable's close logic in
+ * `guard(() => ...)` — the first outer dismiss attempt after a suppress is swallowed
+ * once (the inner blur already handled this gesture), and every one after that
+ * behaves normally.
+ */
+export function useDismissGuard() {
+  const suppressedRef = useRef(false);
+  function suppressNext() {
+    suppressedRef.current = true;
+  }
+  function guard(fn: () => void) {
+    if (suppressedRef.current) {
+      suppressedRef.current = false;
+      return;
+    }
+    fn();
+  }
+  return { suppressNext, guard };
+}
