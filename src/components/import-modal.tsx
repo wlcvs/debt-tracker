@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions/statement";
 import { PdfViewerController, type PageInfo } from "@/lib/pdf-viewer-controller";
 import { buildHighlightRect, findMatches, pickBestMatch, type HighlightRect } from "@/lib/pdf-highlight";
+import { PersonSelect } from "@/components/person-select";
 
 const HIGHLIGHT_BASE =
   "bg-zinc-400/30 dark:bg-zinc-300/20 border border-zinc-500/50 dark:border-zinc-400/40";
@@ -52,6 +53,7 @@ function formatAmount(s: number | string): string {
 export function ImportModal({ people, reopenStatementId, cameFromStatements, onClose, onBackToStatements }: Props) {
   const router = useRouter();
 
+  const [localPeople, setLocalPeople] = useState(people);
   const [step, setStep] = useState<"upload" | "processing" | "review" | "saving">("upload");
   const [bank, setBank] = useState("");
   const [algoTxns, setAlgoTxns] = useState<Txn[]>([]);
@@ -602,7 +604,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
                         <tr
                           key={t.index}
                           data-txn-index={t.index}
-                          className={`border-b border-zinc-100 dark:border-zinc-800/60 transition-all cursor-pointer ${t.type === "ignore" ? "opacity-30" : ""} ${
+                          className={`border-b border-zinc-100 dark:border-zinc-800/60 transition-all cursor-pointer ${t.type === "ignore" || !t.personId ? "opacity-30" : ""} ${
                             t.index === selectedTxnIndex ? "bg-zinc-300/60 dark:bg-zinc-700/50" : ""
                           }`}
                           onClick={() => highlightTransaction(t)}
@@ -645,20 +647,17 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
                           <td className="pl-1 pr-3 py-1.5 text-left tabular-nums text-zinc-900 dark:text-zinc-100 whitespace-nowrap text-[11px]">
                             R${formatAmount(t.amount)}
                           </td>
-                          <td className="px-1 py-1.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                            <select
+                          <td className="px-1 py-1.5 overflow-visible" onClick={(e) => e.stopPropagation()}>
+                            <PersonSelect
+                              people={localPeople}
                               value={t.personId}
-                              onChange={(e) => {
-                                const personId = e.target.value;
-                                patchCurrentTxn(t.index, { personId, type: personId && t.type === "ignore" ? "debt" : t.type });
-                              }}
-                              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
-                            >
-                              <option value="">—</option>
-                              {people.map((p) => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                              ))}
-                            </select>
+                              onChange={(personId) =>
+                                patchCurrentTxn(t.index, { personId, type: personId && t.type === "ignore" ? "debt" : t.type })
+                              }
+                              onPersonCreated={(p) =>
+                                setLocalPeople((prev) => [...prev, p].sort((a, b) => a.name.localeCompare(b.name)))
+                              }
+                            />
                           </td>
                           <td className="pl-1 pr-3 py-1.5 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                             <select

@@ -5,17 +5,19 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
-export async function createPerson(formData: FormData) {
+export async function createPerson(formData: FormData): Promise<{ id: string; name: string }> {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Not authenticated");
 
   const name = z.string().trim().min(1, "Name is required").parse(formData.get("name"));
 
-  await prisma.person.create({
+  const person = await prisma.person.create({
     data: { name, userId: session.user.id },
   });
 
   revalidatePath("/");
+
+  return { id: person.id, name: person.name };
 }
 
 export interface PersonWithBalance {
