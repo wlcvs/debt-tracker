@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useDismiss } from "@/lib/hooks/use-dismiss";
 
 export interface MethodOption {
   value: string;
@@ -20,15 +21,7 @@ export function MethodSelect({ name, options, value, onChange, error, placeholde
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("click", onClickOutside);
-    return () => document.removeEventListener("click", onClickOutside);
-  }, []);
+  useDismiss(wrapperRef, () => setOpen(false));
 
   const selected = options.find((o) => o.value === value);
 

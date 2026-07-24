@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -462,14 +463,15 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
     };
   }, [controller]);
 
-  useEffect(() => {
-    function onEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") handleClose();
+  const dismissModal = useCallback(() => {
+    if (editingDescIndex !== null) {
+      setEditingDescIndex(null);
+    } else {
+      handleClose();
     }
-    window.addEventListener("keydown", onEscape);
-    return () => window.removeEventListener("keydown", onEscape);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [editingDescIndex]);
+  useDismiss(null, dismissModal, { outsideClick: false });
 
   return (
     <div className="fixed inset-0 z-50 flex p-0 lg:p-6" style={{ alignItems: step === "review" ? "stretch" : "center", justifyContent: step === "review" ? undefined : "center", padding: step === "review" ? undefined : "1rem" }}>
@@ -840,16 +842,7 @@ interface FilterToolbarProps {
 function FilterToolbar(props: FilterToolbarProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        props.setShowFilters(false);
-      }
-    }
-    document.addEventListener("click", onClickOutside);
-    return () => document.removeEventListener("click", onClickOutside);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useDismiss(wrapperRef, () => props.setShowFilters(false), { escape: false });
 
   return (
     <div ref={wrapperRef}>

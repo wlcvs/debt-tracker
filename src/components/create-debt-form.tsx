@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createDebt } from "@/lib/actions/debt";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
 import { Checkbox } from "@/components/checkbox";
 import { splitInstallmentAmounts, installmentDate, type InstallmentDirection } from "@/lib/installments";
 import { formatDateBR } from "@/lib/date-utils";
+import { useDismiss } from "@/lib/hooks/use-dismiss";
 
 const inputClass =
   "bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors";
@@ -28,13 +29,7 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
   const [paidIndexes, setPaidIndexes] = useState<Set<number>>(new Set());
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) reset();
-    }
-    document.addEventListener("click", onClickOutside);
-    return () => document.removeEventListener("click", onClickOutside);
-  }, []);
+  useDismiss(wrapperRef, () => reset());
 
   const methodOptions: MethodOption[] = [
     { value: "PIX", label: "Pix" },

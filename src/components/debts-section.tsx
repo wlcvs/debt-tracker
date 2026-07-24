@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { EditableDebt } from "@/components/editable-debt";
 import { CreateDebtForm } from "@/components/create-debt-form";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import { getMonthKey } from "@/lib/date-utils";
+import { useDismiss } from "@/lib/hooks/use-dismiss";
 
 interface Debt {
   id: string;
@@ -47,13 +48,7 @@ export function DebtsSection({ personId, debts, creditCards, selectedMonth }: Pr
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setShowFilters(false);
-    }
-    document.addEventListener("click", onClickOutside);
-    return () => document.removeEventListener("click", onClickOutside);
-  }, []);
+  useDismiss(wrapperRef, () => setShowFilters(false));
 
   function setSort(key: "date" | "amount") {
     if (sortKey === key) {

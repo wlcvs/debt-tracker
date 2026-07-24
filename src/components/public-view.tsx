@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import type { PersonWithBalance } from "@/lib/actions/person";
 import { getAvailableMonths, getMonthKey, formatDateBR } from "@/lib/date-utils";
@@ -81,13 +82,7 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
   const { sortKey, sortDir, setSort, setSortKey, setSortDir } = useSort();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setShowFilters(false);
-    }
-    document.addEventListener("click", onClickOutside);
-    return () => document.removeEventListener("click", onClickOutside);
-  }, []);
+  useDismiss(wrapperRef, () => setShowFilters(false), { escape: false });
 
   function clearFilters() {
     setSearch("");
@@ -221,13 +216,7 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
   const { sortKey, sortDir, setSort, setSortKey, setSortDir } = useSort();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setShowFilters(false);
-    }
-    document.addEventListener("click", onClickOutside);
-    return () => document.removeEventListener("click", onClickOutside);
-  }, []);
+  useDismiss(wrapperRef, () => setShowFilters(false), { escape: false });
 
   function clearFilters() {
     setSearch("");
