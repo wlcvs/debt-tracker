@@ -23,8 +23,15 @@ export function EditablePersonHeader({ person }: Props) {
         setEditing(false);
       }
     }
+    function onEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setEditing(false);
+    }
     document.addEventListener("click", onClickOutside);
-    return () => document.removeEventListener("click", onClickOutside);
+    window.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("click", onClickOutside);
+      window.removeEventListener("keydown", onEscape);
+    };
   }, [editing]);
 
   if (editing) {
