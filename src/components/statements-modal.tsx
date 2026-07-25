@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getStatements, deleteStatement, renameStatement, type StatementSummary } from "@/lib/actions/statement";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDateBR } from "@/lib/date-utils";
+import { useDismiss, useDismissGuard } from "@/lib/hooks/use-dismiss";
 
 interface Props {
   onClose: () => void;
@@ -27,28 +28,20 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
     getStatements().then(setStatements);
   }, []);
 
-  useEffect(() => {
-    function onEscape(e: KeyboardEvent) {
-      if (e.key !== "Escape") return;
+  const { suppressNext, guard } = useDismissGuard();
+  const dismissModal = useCallback(() => {
+    guard(() => {
       if (editingId) {
         setEditingId(null);
       } else {
         onClose();
       }
-    }
-    window.addEventListener("keydown", onEscape);
-    return () => window.removeEventListener("keydown", onEscape);
-  }, [onClose, editingId]);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingId, onClose]);
+  useDismiss(null, dismissModal, { outsideClick: false });
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setShowFilters(false);
-      }
-    }
-    document.addEventListener("click", onClickOutside);
-    return () => document.removeEventListener("click", onClickOutside);
-  }, []);
+  useDismiss(wrapperRef, () => setShowFilters(false), { escape: false });
 
   async function handleDelete(id: string) {
     await deleteStatement(id);
@@ -62,6 +55,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
   }
 
   async function commitEdit(id: string) {
+    suppressNext();
     const trimmed = editValue.trim();
     setEditingId(null);
     const original = statements.find((s) => s.id === id)?.filename;
@@ -83,7 +77,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={() => (editingId ? setEditingId(null) : onClose())}
+        onClick={dismissModal}
       />
 
       <div className="relative flex flex-col bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 w-full max-w-2xl max-h-[80vh]">

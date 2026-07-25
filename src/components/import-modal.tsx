@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDismiss, useDismissGuard } from "@/lib/hooks/use-dismiss";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -88,6 +89,8 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   const [highlights, setHighlights] = useState<HighlightEntry[]>([]);
   const [pageInfoList, setPageInfoList] = useState<PageInfo[]>([]);
 
+  const { suppressNext: suppressNextDismiss, guard: guardDismiss } = useDismissGuard();
+
   const [controller] = useState(() => new PdfViewerController());
   const containerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
@@ -163,6 +166,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   }
 
   function commitEditingDesc(index: number | string) {
+    suppressNextDismiss();
     setEditingDescIndex(null);
     const trimmed = editingDescValue.trim();
     if (trimmed) patchCurrentTxn(index, { description: trimmed });
@@ -462,14 +466,17 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
     };
   }, [controller]);
 
-  useEffect(() => {
-    function onEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") handleClose();
-    }
-    window.addEventListener("keydown", onEscape);
-    return () => window.removeEventListener("keydown", onEscape);
+  const dismissModal = useCallback(() => {
+    guardDismiss(() => {
+      if (editingDescIndex !== null) {
+        setEditingDescIndex(null);
+      } else {
+        handleClose();
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [editingDescIndex]);
+  useDismiss(null, dismissModal, { outsideClick: false });
 
   return (
     <div className="fixed inset-0 z-50 flex p-0 lg:p-6" style={{ alignItems: step === "review" ? "stretch" : "center", justifyContent: step === "review" ? undefined : "center", padding: step === "review" ? undefined : "1rem" }}>
@@ -840,16 +847,7 @@ interface FilterToolbarProps {
 function FilterToolbar(props: FilterToolbarProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        props.setShowFilters(false);
-      }
-    }
-    document.addEventListener("click", onClickOutside);
-    return () => document.removeEventListener("click", onClickOutside);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useDismiss(wrapperRef, () => props.setShowFilters(false), { escape: false });
 
   return (
     <div ref={wrapperRef}>

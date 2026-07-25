@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createPayment } from "@/lib/actions/payment";
 import { PAYMENT_METHODS } from "@/lib/payment-methods";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
+import { useDismiss } from "@/lib/hooks/use-dismiss";
 
 const inputClass =
   "bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors";
@@ -18,6 +19,7 @@ export function CreatePaymentForm({ personId }: Props) {
   const [open, setOpen] = useState(false);
   const [method, setMethod] = useState("");
   const [methodError, setMethodError] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   function reset() {
     setMethod("");
@@ -25,8 +27,10 @@ export function CreatePaymentForm({ personId }: Props) {
     setOpen(false);
   }
 
+  useDismiss(wrapperRef, reset);
+
   return (
-    <div>
+    <div ref={wrapperRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
