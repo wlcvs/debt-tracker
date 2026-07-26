@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { splitInstallmentAmounts, installmentDate } from "@/lib/installments";
 import { requireUserId } from "@/lib/auth-utils";
+import { amountSchema, dateSchema } from "@/lib/schemas";
 
 const DEBT_METHODS = ["PIX", "CASH"] as const;
 
@@ -18,10 +19,10 @@ function resolveDebtMethod(debtMethod: string | undefined): { method: "PIX" | "C
 
 const createDebtSchema = z.object({
   personId: z.string().min(1),
-  amount: z.coerce.number().positive("Amount must be greater than zero"),
+  amount: amountSchema("Amount must be greater than zero"),
   title: z.string().trim().min(1, "Title is required"),
   description: z.string().trim().default(""),
-  date: z.coerce.date(),
+  date: dateSchema,
   debtMethod: z.string().optional(),
   paid: z.coerce.boolean().default(false),
   installments: z.coerce.number().int().min(1).max(60).default(1),
@@ -115,10 +116,10 @@ export async function deleteDebtInstallmentGroup(formData: FormData) {
 
 const updateDebtSchema = z.object({
   id: z.string().min(1),
-  amount: z.coerce.number().positive(),
+  amount: amountSchema(),
   title: z.string().trim().min(1),
   description: z.string().trim().default(""),
-  date: z.coerce.date(),
+  date: dateSchema,
   debtMethod: z.string().optional(),
 });
 

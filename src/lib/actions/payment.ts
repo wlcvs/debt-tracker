@@ -4,14 +4,15 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireUserId } from "@/lib/auth-utils";
+import { amountSchema, dateSchema } from "@/lib/schemas";
 
 const methodSchema = z.enum(["PIX", "CASH"]).default("CASH");
 
 const createPaymentSchema = z.object({
   personId: z.string().min(1),
-  amount: z.coerce.number().positive("Amount must be greater than zero"),
+  amount: amountSchema("Amount must be greater than zero"),
   description: z.string().trim().default(""),
-  date: z.coerce.date(),
+  date: dateSchema,
   method: methodSchema,
 });
 
@@ -56,9 +57,9 @@ export async function deletePayment(formData: FormData) {
 
 const updatePaymentSchema = z.object({
   id: z.string().min(1),
-  amount: z.coerce.number().positive(),
+  amount: amountSchema(),
   description: z.string().trim().default(""),
-  date: z.coerce.date(),
+  date: dateSchema,
   method: methodSchema,
 });
 
