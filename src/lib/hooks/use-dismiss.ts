@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 
-interface UseDismissOptions {
+export interface UseDismissOptions {
   /** Set to false to detach both listeners (e.g. while an inner dismissable — a nested
    * dropdown, an inline edit — should handle its own outside-click/Escape first). */
   enabled?: boolean;
@@ -39,7 +39,13 @@ export function useDismiss(
     if (!enabled) return;
 
     function onClickOutside(e: MouseEvent) {
-      if (ref?.current && !ref.current.contains(e.target as Node)) {
+      // Uses composedPath() (the path captured at dispatch time), not e.target —
+      // a nested dismissable that removes its own DOM node as a side effect of the
+      // click that selects it (e.g. a dropdown closing when an option is chosen)
+      // leaves e.target detached from the document by the time this listener runs,
+      // so ref.contains(e.target) would wrongly read as "outside" even though the
+      // click originated inside ref's subtree.
+      if (ref?.current && !e.composedPath().includes(ref.current)) {
         onDismissRef.current();
       }
     }
