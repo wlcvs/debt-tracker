@@ -2,11 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
+import { useFilteredSortedList } from "@/lib/hooks/use-list-filter-sort";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import type { PersonWithBalance } from "@/lib/actions/person";
 import { getAvailableMonths, getMonthKey, formatDateBR } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format-utils";
 import { MonthCarousel } from "@/components/month-carousel";
+import { FilterFields } from "@/components/filter-fields";
 
 type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "debts" | "payments">;
 
@@ -18,27 +20,6 @@ type Debt = DebtorView["debts"][number];
 type Payment = DebtorView["payments"][number];
 
 const methodLabel = (m: string) => PAYMENT_METHODS[m as PaymentMethodKey] ?? m;
-
-function parseAmountFilter(s: string): { val: number; isInt: boolean } {
-  const n = s.replace(",", ".");
-  return { val: parseFloat(n), isInt: !n.includes(".") };
-}
-
-function useSort() {
-  const [sortKey, setSortKey] = useState<"date" | "amount">("date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
-  function setSort(key: "date" | "amount") {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("desc");
-    }
-  }
-
-  return { sortKey, sortDir, setSort, setSortKey, setSortDir };
-}
 
 export function PublicView({ debtor }: Props) {
   const [openDebt, setOpenDebt] = useState<Debt | null>(null);
@@ -76,58 +57,41 @@ export function PublicView({ debtor }: Props) {
 
 function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d: Debt) => void; selectedMonth: string }) {
   const [showFilters, setShowFilters] = useState(false);
-  const [search, setSearch] = useState("");
-  const [amountMin, setAmountMin] = useState("");
-  const [amountMax, setAmountMax] = useState("");
-  const [paidFilter, setPaidFilter] = useState<"all" | "paid" | "unpaid">("all");
-  const { sortKey, sortDir, setSort, setSortKey, setSortDir } = useSort();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useDismiss(wrapperRef, () => setShowFilters(false), { escape: false });
 
-  function clearFilters() {
-    setSearch("");
-    setAmountMin("");
-    setAmountMax("");
-    setPaidFilter("all");
-    setSortKey("date");
-    setSortDir("desc");
-  }
+  const {
+    monthItems: monthDebts,
+    filtered,
+    filtersActive: filterValuesActive,
+    search,
+    setSearch,
+    amountMin,
+    setAmountMin,
+    amountMax,
+    setAmountMax,
+    paidFilter,
+    setPaidFilter,
+    sortKey,
+    sortDir,
+    setSort,
+    clearFilters,
+  } = useFilteredSortedList({
+    items: debts,
+    selectedMonth,
+    getDate: (d) => d.date,
+    getAmount: (d) => d.amount,
+    getPaid: (d) => d.paid,
+    getSearchText: (d) => [
+      d.title,
+      d.description,
+      d.creditCardLabel ?? (d.method ? methodLabel(d.method) : ""),
+      formatCurrency(d.amount).replace(".", ","),
+    ],
+  });
 
-  const monthDebts = useMemo(() => debts.filter((d) => getMonthKey(d.date) === selectedMonth), [debts, selectedMonth]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const amtMin = amountMin ? parseAmountFilter(amountMin) : null;
-    const amtMax = amountMax ? parseAmountFilter(amountMax) : null;
-
-    const list = monthDebts.filter((d) => {
-      if (paidFilter === "paid" && !d.paid) return false;
-      if (paidFilter === "unpaid" && d.paid) return false;
-      const method = d.creditCardLabel ?? (d.method ? methodLabel(d.method) : "");
-      if (q) {
-        const amtStr = formatCurrency(d.amount).replace(".", ",");
-        const hit = [d.title, d.description, method, amtStr].some((s) => s.toLowerCase().includes(q));
-        if (!hit) return false;
-      }
-      if (amtMin && !isNaN(amtMin.val)) {
-        if ((amtMin.isInt ? Math.floor(d.amount) : d.amount) < amtMin.val) return false;
-      }
-      if (amtMax && !isNaN(amtMax.val)) {
-        if ((amtMax.isInt ? Math.floor(d.amount) : d.amount) > amtMax.val) return false;
-      }
-      return true;
-    });
-
-    return [...list].sort((a, b) => {
-      const av = sortKey === "amount" ? a.amount : a.date.getTime();
-      const bv = sortKey === "amount" ? b.amount : b.date.getTime();
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [monthDebts, search, amountMin, amountMax, paidFilter, sortKey, sortDir]);
-
-  const filtersActive = Boolean(showFilters || search || amountMin || amountMax || paidFilter !== "all");
+  const filtersActive = Boolean(showFilters || filterValuesActive);
 
   return (
     <div className="mb-2">
@@ -148,21 +112,23 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
         </div>
 
         {showFilters && (
-          <FilterFields
-            search={search}
-            setSearch={setSearch}
-            amountMin={amountMin}
-            setAmountMin={setAmountMin}
-            amountMax={amountMax}
-            setAmountMax={setAmountMax}
-            paidFilter={paidFilter}
-            setPaidFilter={setPaidFilter}
-            sortKey={sortKey}
-            sortDir={sortDir}
-            setSort={setSort}
-            onClear={clearFilters}
-            searchPlaceholder="Pesquisar dívidas..."
-          />
+          <div className="mb-3">
+            <FilterFields
+              search={search}
+              setSearch={setSearch}
+              amountMin={amountMin}
+              setAmountMin={setAmountMin}
+              amountMax={amountMax}
+              setAmountMax={setAmountMax}
+              paidFilter={paidFilter}
+              setPaidFilter={setPaidFilter}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              setSort={setSort}
+              onClear={clearFilters}
+              searchPlaceholder="Pesquisar dívidas..."
+            />
+          </div>
         )}
       </div>
 
@@ -211,53 +177,33 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
 
 function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]; onOpen: (p: Payment) => void; selectedMonth: string }) {
   const [showFilters, setShowFilters] = useState(false);
-  const [search, setSearch] = useState("");
-  const [amountMin, setAmountMin] = useState("");
-  const [amountMax, setAmountMax] = useState("");
-  const { sortKey, sortDir, setSort, setSortKey, setSortDir } = useSort();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useDismiss(wrapperRef, () => setShowFilters(false), { escape: false });
 
-  function clearFilters() {
-    setSearch("");
-    setAmountMin("");
-    setAmountMax("");
-    setSortKey("date");
-    setSortDir("desc");
-  }
+  const {
+    monthItems: monthPayments,
+    filtered,
+    filtersActive: filterValuesActive,
+    search,
+    setSearch,
+    amountMin,
+    setAmountMin,
+    amountMax,
+    setAmountMax,
+    sortKey,
+    sortDir,
+    setSort,
+    clearFilters,
+  } = useFilteredSortedList({
+    items: payments,
+    selectedMonth,
+    getDate: (p) => p.date,
+    getAmount: (p) => p.amount,
+    getSearchText: (p) => [p.description, methodLabel(p.method), formatCurrency(p.amount).replace(".", ",")],
+  });
 
-  const monthPayments = useMemo(() => payments.filter((p) => getMonthKey(p.date) === selectedMonth), [payments, selectedMonth]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const amtMin = amountMin ? parseAmountFilter(amountMin) : null;
-    const amtMax = amountMax ? parseAmountFilter(amountMax) : null;
-
-    const list = monthPayments.filter((p) => {
-      if (q) {
-        const amtStr = formatCurrency(p.amount).replace(".", ",");
-        const hit = [p.description, methodLabel(p.method), amtStr].some((s) => s.toLowerCase().includes(q));
-        if (!hit) return false;
-      }
-      if (amtMin && !isNaN(amtMin.val)) {
-        if ((amtMin.isInt ? Math.floor(p.amount) : p.amount) < amtMin.val) return false;
-      }
-      if (amtMax && !isNaN(amtMax.val)) {
-        if ((amtMax.isInt ? Math.floor(p.amount) : p.amount) > amtMax.val) return false;
-      }
-      return true;
-    });
-
-    return [...list].sort((a, b) => {
-      const av = sortKey === "amount" ? a.amount : a.date.getTime();
-      const bv = sortKey === "amount" ? b.amount : b.date.getTime();
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [monthPayments, search, amountMin, amountMax, sortKey, sortDir]);
-
-  const filtersActive = Boolean(showFilters || search || amountMin || amountMax);
+  const filtersActive = Boolean(showFilters || filterValuesActive);
 
   return (
     <div className="mb-2">
@@ -278,19 +224,21 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
         </div>
 
         {showFilters && (
-          <FilterFields
-            search={search}
-            setSearch={setSearch}
-            amountMin={amountMin}
-            setAmountMin={setAmountMin}
-            amountMax={amountMax}
-            setAmountMax={setAmountMax}
-            sortKey={sortKey}
-            sortDir={sortDir}
-            setSort={setSort}
-            onClear={clearFilters}
-            searchPlaceholder="Pesquisar pagamentos..."
-          />
+          <div className="mb-3">
+            <FilterFields
+              search={search}
+              setSearch={setSearch}
+              amountMin={amountMin}
+              setAmountMin={setAmountMin}
+              amountMax={amountMax}
+              setAmountMax={setAmountMax}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              setSort={setSort}
+              onClear={clearFilters}
+              searchPlaceholder="Pesquisar pagamentos..."
+            />
+          </div>
         )}
       </div>
 
