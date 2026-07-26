@@ -2,9 +2,9 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { splitInstallmentAmounts, installmentDate } from "@/lib/installments";
+import { requireUserId } from "@/lib/auth-utils";
 
 const DEBT_METHODS = ["PIX", "CASH"] as const;
 
@@ -22,8 +22,7 @@ const createDebtSchema = z.object({
 });
 
 export async function createDebt(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const parsed = createDebtSchema.parse({
     personId: formData.get("personId"),
@@ -39,7 +38,7 @@ export async function createDebt(formData: FormData) {
   });
 
   const person = await prisma.person.findFirst({
-    where: { id: parsed.personId, userId: session.user.id },
+    where: { id: parsed.personId, userId },
   });
   if (!person) throw new Error("Person not found");
 
@@ -89,23 +88,21 @@ export async function createDebt(formData: FormData) {
 }
 
 export async function deleteDebt(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const id = z.string().min(1).parse(formData.get("id"));
   await prisma.debt.deleteMany({
-    where: { id, person: { userId: session.user.id } },
+    where: { id, person: { userId } },
   });
   revalidatePath("/");
 }
 
 export async function deleteDebtInstallmentGroup(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const installmentGroupId = z.string().min(1).parse(formData.get("installmentGroupId"));
   await prisma.debt.deleteMany({
-    where: { installmentGroupId, person: { userId: session.user.id } },
+    where: { installmentGroupId, person: { userId } },
   });
   revalidatePath("/");
 }
@@ -120,8 +117,7 @@ const updateDebtSchema = z.object({
 });
 
 export async function updateDebt(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const parsed = updateDebtSchema.parse({
     id: formData.get("id"),
@@ -137,7 +133,7 @@ export async function updateDebt(formData: FormData) {
   const creditCardId = !isEnumMethod && parsed.debtMethod ? parsed.debtMethod : null;
 
   await prisma.debt.updateMany({
-    where: { id: parsed.id, person: { userId: session.user.id } },
+    where: { id: parsed.id, person: { userId } },
     data: {
       amount: parsed.amount,
       title: parsed.title,
@@ -151,13 +147,12 @@ export async function updateDebt(formData: FormData) {
 }
 
 export async function toggleDebtPaid(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const id = z.string().min(1).parse(formData.get("id"));
 
   const debt = await prisma.debt.findFirst({
-    where: { id, person: { userId: session.user.id } },
+    where: { id, person: { userId } },
   });
   if (!debt) throw new Error("Debt not found");
 
@@ -166,25 +161,23 @@ export async function toggleDebtPaid(formData: FormData) {
 }
 
 export async function toggleDebtsPaidBulk(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const idsRaw = z.string().min(1).parse(formData.get("debtIds"));
   const ids = z.array(z.string().min(1)).min(1).parse(JSON.parse(idsRaw));
 
   await prisma.debt.updateMany({
-    where: { id: { in: ids }, person: { userId: session.user.id } },
+    where: { id: { in: ids }, person: { userId } },
     data: { paid: true },
   });
   revalidatePath("/");
 }
 
 export async function getDebtInstallmentGroup(installmentGroupId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const debts = await prisma.debt.findMany({
-    where: { installmentGroupId, person: { userId: session.user.id } },
+    where: { installmentGroupId, person: { userId } },
     orderBy: { installmentIndex: "asc" },
   });
 
