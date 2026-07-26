@@ -5,6 +5,7 @@ import { getStatements, deleteStatement, renameStatement, type StatementSummary 
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDateBR, toDateInputValue, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 import { useDismiss, useDismissGuard } from "@/lib/hooks/use-dismiss";
+import { useConfirmDelete } from "@/lib/hooks/use-confirm-delete";
 
 interface Props {
   onClose: () => void;
@@ -18,7 +19,6 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState<StatementSummary | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -43,11 +43,14 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
 
   useDismiss(wrapperRef, () => setShowFilters(false), { escape: false });
 
-  async function handleDelete(id: string) {
-    await deleteStatement(id);
-    setStatements((prev) => prev.filter((s) => s.id !== id));
-    setConfirmDelete(null);
-  }
+  const {
+    confirming: confirmDelete,
+    setConfirming: setConfirmDelete,
+    confirmDelete: performDelete,
+  } = useConfirmDelete<StatementSummary>(async (s) => {
+    await deleteStatement(s.id);
+    setStatements((prev) => prev.filter((x) => x.id !== s.id));
+  });
 
   function startEditing(stmt: StatementSummary) {
     setEditingId(stmt.id);
@@ -225,7 +228,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
           description={`${confirmDelete.filename} será removido permanentemente.`}
           confirmLabel="EXCLUIR"
           onCancel={() => setConfirmDelete(null)}
-          onConfirm={() => handleDelete(confirmDelete.id)}
+          onConfirm={performDelete}
         />
       )}
     </div>

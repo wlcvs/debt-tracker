@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { deleteCreditCard } from "@/lib/actions/credit-card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useConfirmDelete } from "@/lib/hooks/use-confirm-delete";
 
 interface CreditCard {
   id: string;
@@ -10,22 +10,11 @@ interface CreditCard {
 }
 
 export function CreditCardList({ cards }: { cards: CreditCard[] }) {
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleDelete(id: string) {
+  const { confirming, setConfirming, error, setError, confirmDelete } = useConfirmDelete<CreditCard>((card) => {
     const fd = new FormData();
-    fd.append("id", id);
-    try {
-      await deleteCreditCard(fd);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao excluir cartão.");
-    }
-    setConfirmId(null);
-  }
-
-  const confirmCard = cards.find((c) => c.id === confirmId);
+    fd.append("id", card.id);
+    return deleteCreditCard(fd);
+  });
 
   return (
     <>
@@ -40,7 +29,7 @@ export function CreditCardList({ cards }: { cards: CreditCard[] }) {
           >
             <span>{card.label}</span>
             <button
-              onClick={() => { setError(null); setConfirmId(card.id); }}
+              onClick={() => { setError(null); setConfirming(card); }}
               className="tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
             >
               Excluir
@@ -49,13 +38,13 @@ export function CreditCardList({ cards }: { cards: CreditCard[] }) {
         ))}
       </ul>
 
-      {confirmCard && (
+      {confirming && (
         <ConfirmDialog
-          title={`Excluir ${confirmCard.label}?`}
+          title={`Excluir ${confirming.label}?`}
           description="Esta ação não pode ser desfeita."
           confirmLabel="EXCLUIR"
-          onCancel={() => setConfirmId(null)}
-          onConfirm={() => handleDelete(confirmCard.id)}
+          onCancel={() => setConfirming(null)}
+          onConfirm={confirmDelete}
         />
       )}
     </>
