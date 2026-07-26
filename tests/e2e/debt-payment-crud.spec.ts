@@ -61,6 +61,6 @@ test("add a debt and a payment for a newly created person", async ({ page }) => 
   // dashboard's debtor list.
   await page.getByRole("button", { name: "Excluir devedor" }).click();
   await page.getByRole("button", { name: "EXCLUIR", exact: true }).click();
-  await page.goto("/");
+  await page.waitForURL("/");
   await expect(page.getByRole("link", { name: personName })).not.toBeVisible();
 });

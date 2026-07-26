@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { deletePerson } from "@/lib/actions/person";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function PersonActions({ person }: Props) {
+  const router = useRouter();
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -30,6 +32,7 @@ export function PersonActions({ person }: Props) {
             const fd = new FormData();
             fd.append("id", person.id);
             await deletePerson(fd);
+            router.push("/");
           }}
         />
       )}
