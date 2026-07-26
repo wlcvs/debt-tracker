@@ -3,6 +3,7 @@ import { getPersonById } from "@/lib/actions/person";
 import { getCreditCards } from "@/lib/actions/credit-card";
 import { EditablePersonHeader } from "@/components/editable-person-header";
 import { ShareButton } from "@/components/share-button";
+import { PersonVisibilityToggle } from "@/components/person-visibility-toggle";
 import { PersonActions } from "@/components/person-actions";
 import { PersonMonthView } from "@/components/person-month-view";
 
@@ -26,6 +27,7 @@ export default async function PersonPage({
         <EditablePersonHeader person={person} />
         <div className="flex items-center gap-3">
           <ShareButton personId={person.id} />
+          <PersonVisibilityToggle personId={person.id} publicVisible={person.publicVisible} />
           <PersonActions person={person} />
         </div>
       </div>

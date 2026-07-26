@@ -14,6 +14,7 @@ import {
   getPersonById,
   getOverviewStats,
   getDebtorViewById,
+  togglePersonPublicVisibility,
 } from "@/lib/actions/person";
 
 const mockAuth = vi.mocked(auth);
@@ -374,5 +375,60 @@ describe("getDebtorViewById", () => {
 
     const result = await getDebtorViewById("valid-id");
     expect(result!.totalOwed).toBe(200);
+  });
+
+  it("scopes the query to only publicly visible people", async () => {
+    prismaMock.person.findUnique.mockResolvedValue({
+      name: "Maria",
+      debts: [],
+      payments: [],
+    } as never);
+
+    await getDebtorViewById("some-id");
+    expect(prismaMock.person.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "some-id", publicVisible: true } })
+    );
+  });
+});
+
+// ── togglePersonPublicVisibility ─────────────────────────────────────────────
+
+describe("togglePersonPublicVisibility", () => {
+  it("throws when not authenticated", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    await expect(togglePersonPublicVisibility(new FormData())).rejects.toThrow("Not authenticated");
+  });
+
+  it("throws when person does not belong to user", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue(null);
+    const form = new FormData();
+    form.set("id", "person-1");
+    await expect(togglePersonPublicVisibility(form)).rejects.toThrow("Person not found");
+  });
+
+  it("flips publicVisible from true to false", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", publicVisible: true } as never);
+    const form = new FormData();
+    form.set("id", "person-1");
+    await togglePersonPublicVisibility(form);
+    expect(prismaMock.person.findFirst).toHaveBeenCalledWith({ where: { id: "person-1", userId: "user-1" } });
+    expect(prismaMock.person.update).toHaveBeenCalledWith({
+      where: { id: "person-1" },
+      data: { publicVisible: false },
+    });
+  });
+
+  it("flips publicVisible from false to true", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", publicVisible: false } as never);
+    const form = new FormData();
+    form.set("id", "person-1");
+    await togglePersonPublicVisibility(form);
+    expect(prismaMock.person.update).toHaveBeenCalledWith({
+      where: { id: "person-1" },
+      data: { publicVisible: true },
+    });
   });
 });

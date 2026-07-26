@@ -20,10 +20,11 @@ model User {
 }
 
 model Person {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  publicVisible Boolean  @default(true)
+  createdAt     DateTime @default(now())
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   debts    Debt[]
