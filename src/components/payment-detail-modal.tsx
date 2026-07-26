@@ -9,6 +9,7 @@ import { MethodSelect, type MethodOption } from "@/components/method-select";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ModalShell } from "@/components/modal-shell";
 import { AmountDateFields } from "@/components/amount-date-fields";
+import { Badge } from "@/components/badge";
 
 interface PaymentLike {
   id: string;
@@ -44,9 +45,7 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
           )}
           <div className="flex items-center gap-3 mb-6">
             <span className="text-xs text-zinc-400 dark:text-zinc-600">{formatDateBR(payment.date)}</span>
-            <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
-              {methodLabel}
-            </span>
+            <Badge>{methodLabel}</Badge>
           </div>
           <div className="flex gap-3">
             <button

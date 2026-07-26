@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/format-utils";
 import { MonthCarousel } from "@/components/month-carousel";
 import { FilterFields } from "@/components/filter-fields";
 import { ModalShell } from "@/components/modal-shell";
+import { Badge } from "@/components/badge";
 
 type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "debts" | "payments">;
 
@@ -153,9 +154,9 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
                   <span className={`flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 truncate${debt.paid ? " line-through opacity-50" : ""}`}>
                     {debt.title}
                     {debt.installmentGroupId && (
-                      <span className="shrink-0 text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1 py-0.5 no-underline">
+                      <Badge className="px-1 shrink-0 no-underline">
                         {debt.installmentIndex}/{debt.installmentTotal}
-                      </span>
+                      </Badge>
                     )}
                   </span>
                   {debt.description && (
@@ -294,15 +295,11 @@ function PublicDebtModal({ debt, onClose }: { debt: Debt; onClose: () => void })
           )}
           <div className="flex items-center gap-3 mb-4 flex-wrap">
             <span className="text-xs text-zinc-400 dark:text-zinc-600">{formatDateBR(debt.date)}</span>
-            {badgeLabel && (
-              <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
-                {badgeLabel}
-              </span>
-            )}
+            {badgeLabel && <Badge>{badgeLabel}</Badge>}
             {debt.installmentGroupId && (
-              <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
+              <Badge>
                 Parcela {debt.installmentIndex}/{debt.installmentTotal}
-              </span>
+              </Badge>
             )}
           </div>
           {debt.paid && <p className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600">Paga</p>}
@@ -321,9 +318,7 @@ function PublicPaymentModal({ payment, onClose }: { payment: Payment; onClose: (
           )}
           <div className="flex items-center gap-3">
             <span className="text-xs text-zinc-400 dark:text-zinc-600">{formatDateBR(payment.date)}</span>
-            <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
-              {methodLabel(payment.method)}
-            </span>
+            <Badge>{methodLabel(payment.method)}</Badge>
           </div>
         </div>
     </ModalShell>
