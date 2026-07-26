@@ -9,6 +9,7 @@ import { getAvailableMonths, getMonthKey, formatDateBR } from "@/lib/date-utils"
 import { formatCurrency } from "@/lib/format-utils";
 import { MonthCarousel } from "@/components/month-carousel";
 import { FilterFields } from "@/components/filter-fields";
+import { ModalShell } from "@/components/modal-shell";
 
 type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "debts" | "payments">;
 
@@ -274,122 +275,13 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
   );
 }
 
-// ── Shared filter fields ─────────────────────────────────────────────────────
-
-interface FilterFieldsProps {
-  search: string;
-  setSearch: (v: string) => void;
-  amountMin: string;
-  setAmountMin: (v: string) => void;
-  amountMax: string;
-  setAmountMax: (v: string) => void;
-  paidFilter?: "all" | "paid" | "unpaid";
-  setPaidFilter?: (v: "all" | "paid" | "unpaid") => void;
-  sortKey: "date" | "amount";
-  sortDir: "asc" | "desc";
-  setSort: (key: "date" | "amount") => void;
-  onClear: () => void;
-  searchPlaceholder: string;
-}
-
-function FilterFields(props: FilterFieldsProps) {
-  return (
-    <div className="flex flex-col gap-2 mb-3">
-      <input
-        type="search"
-        value={props.search}
-        onChange={(e) => props.setSearch(e.target.value)}
-        placeholder={props.searchPlaceholder}
-        className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-      />
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Valor mín.</p>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={props.amountMin}
-            onChange={(e) => props.setAmountMin(e.target.value)}
-            placeholder="0,00"
-            className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs placeholder:text-zinc-300 dark:placeholder:text-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-          />
-        </div>
-        <div className="flex-1">
-          <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Valor máx.</p>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={props.amountMax}
-            onChange={(e) => props.setAmountMax(e.target.value)}
-            placeholder="0,00"
-            className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs placeholder:text-zinc-300 dark:placeholder:text-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-          />
-        </div>
-      </div>
-      {props.paidFilter && props.setPaidFilter && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <p className="text-[10px] tracking-widest uppercase text-zinc-400">Status</p>
-          {(["all", "paid", "unpaid"] as const).map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => props.setPaidFilter?.(key)}
-              className={`text-[10px] tracking-widest uppercase transition-colors cursor-pointer ${
-                props.paidFilter === key ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
-              }`}
-            >
-              {key === "all" ? "Todas" : key === "paid" ? "Pagas" : "Não pagas"}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="flex items-center gap-3 flex-wrap">
-        <p className="text-[10px] tracking-widest uppercase text-zinc-400">Ordenar</p>
-        <button
-          type="button"
-          onClick={() => props.setSort("date")}
-          className={`text-[10px] tracking-widest uppercase transition-colors cursor-pointer ${
-            props.sortKey === "date" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
-          }`}
-        >
-          Data {props.sortKey === "date" ? (props.sortDir === "asc" ? "+" : "-") : ""}
-        </button>
-        <button
-          type="button"
-          onClick={() => props.setSort("amount")}
-          className={`text-[10px] tracking-widest uppercase transition-colors cursor-pointer ${
-            props.sortKey === "amount" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
-          }`}
-        >
-          Valor {props.sortKey === "amount" ? (props.sortDir === "asc" ? "+" : "-") : ""}
-        </button>
-        <button
-          type="button"
-          onClick={props.onClear}
-          className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors ml-auto cursor-pointer"
-        >
-          Limpar
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ── Modals (read-only) ───────────────────────────────────────────────────────
 
 function PublicDebtModal({ debt, onClose }: { debt: Debt; onClose: () => void }) {
   const badgeLabel = debt.creditCardLabel ?? (debt.method ? methodLabel(debt.method) : null);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" onKeyDown={(e) => e.key === "Escape" && onClose()}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 w-full max-w-sm max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center px-6 pt-5 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-          <p className="text-[10px] tracking-[0.3em] uppercase text-zinc-400 dark:text-zinc-500">Dívida</p>
-          <button onClick={onClose} className="text-[10px] tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
-            Fechar
-          </button>
-        </div>
+    <ModalShell eyebrow="Dívida" onClose={onClose}>
         <div className="px-6 py-5">
           <p className={`text-sm tracking-widest uppercase mb-1 ${debt.paid ? "text-zinc-400 dark:text-zinc-600" : "text-zinc-900 dark:text-white"}`}>
             {debt.title}
@@ -415,22 +307,13 @@ function PublicDebtModal({ debt, onClose }: { debt: Debt; onClose: () => void })
           </div>
           {debt.paid && <p className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600">Paga</p>}
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 
 function PublicPaymentModal({ payment, onClose }: { payment: Payment; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" onKeyDown={(e) => e.key === "Escape" && onClose()}>
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 w-full max-w-sm max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center px-6 pt-5 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-          <p className="text-[10px] tracking-[0.3em] uppercase text-zinc-400 dark:text-zinc-500">Pagamento</p>
-          <button onClick={onClose} className="text-[10px] tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
-            Fechar
-          </button>
-        </div>
+    <ModalShell eyebrow="Pagamento" onClose={onClose}>
         <div className="px-6 py-5">
           <p className="text-3xl tracking-tight text-zinc-900 dark:text-white mb-3">R$ {formatCurrency(payment.amount)}</p>
           {payment.description && (
@@ -443,8 +326,7 @@ function PublicPaymentModal({ payment, onClose }: { payment: Payment; onClose: (
             </span>
           </div>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 

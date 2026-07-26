@@ -32,6 +32,19 @@ test("add a debt and a payment for a newly created person", async ({ page }) => 
   await expect(debtRow).toBeVisible();
   await expect(debtRow).toContainText("R$ 199.90");
 
+  // --- Open the debt's detail modal (ModalShell) and close it both ways ---
+  await debtRow.click();
+  await expect(page.getByText("Dívida", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Marcar como paga" })).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Dívida", { exact: true })).not.toBeVisible();
+
+  await debtRow.click();
+  await expect(page.getByText("Dívida", { exact: true })).toBeVisible();
+  await page.mouse.click(5, 5); // backdrop click
+  await expect(page.getByText("Dívida", { exact: true })).not.toBeVisible();
+
   // --- Add a payment ---
   await page.getByRole("button", { name: "+ Adicionar pagamento" }).click();
   await page.locator('input[name="amount"]').fill("50.00");
