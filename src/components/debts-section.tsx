@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { EditableDebt } from "@/components/editable-debt";
 import { CreateDebtForm } from "@/components/create-debt-form";
+import { FilterFields } from "@/components/filter-fields";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
-import { getMonthKey, toDateInputValue } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
+import { useFilteredSortedList } from "@/lib/hooks/use-list-filter-sort";
 
 interface Debt {
   id: string;
@@ -30,89 +31,47 @@ interface Props {
   selectedMonth?: string;
 }
 
-type PaidFilter = "all" | "paid" | "unpaid";
-
-function parseAmountFilter(s: string): { val: number; isInt: boolean } {
-  const n = s.replace(",", ".");
-  return { val: parseFloat(n), isInt: !n.includes(".") };
-}
-
 export function DebtsSection({ personId, debts, creditCards, selectedMonth }: Props) {
   const [showFilters, setShowFilters] = useState(false);
-  const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [amountMin, setAmountMin] = useState("");
-  const [amountMax, setAmountMax] = useState("");
-  const [paidFilter, setPaidFilter] = useState<PaidFilter>("all");
-  const [sortKey, setSortKey] = useState<"date" | "amount">("date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useDismiss(wrapperRef, () => setShowFilters(false));
 
-  function setSort(key: "date" | "amount") {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("desc");
-    }
-  }
+  const {
+    filtered,
+    filtersActive: filterValuesActive,
+    search,
+    setSearch,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
+    amountMin,
+    setAmountMin,
+    amountMax,
+    setAmountMax,
+    paidFilter,
+    setPaidFilter,
+    sortKey,
+    sortDir,
+    setSort,
+    clearFilters,
+  } = useFilteredSortedList({
+    items: debts,
+    selectedMonth,
+    hasDateRange: true,
+    getDate: (d) => d.date,
+    getAmount: (d) => d.amount,
+    getPaid: (d) => d.paid,
+    getSearchText: (d) => [
+      d.title,
+      d.description,
+      d.creditCardLabel ?? (d.method ? PAYMENT_METHODS[d.method as PaymentMethodKey] ?? d.method : ""),
+      formatCurrency(d.amount).replace(".", ","),
+    ],
+  });
 
-  function clearFilters() {
-    setSearch("");
-    setDateFrom("");
-    setDateTo("");
-    setAmountMin("");
-    setAmountMax("");
-    setPaidFilter("all");
-    setSortKey("date");
-    setSortDir("desc");
-  }
-
-  const monthDebts = useMemo(
-    () => (selectedMonth ? debts.filter((d) => getMonthKey(d.date) === selectedMonth) : debts),
-    [debts, selectedMonth]
-  );
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const amtMin = amountMin ? parseAmountFilter(amountMin) : null;
-    const amtMax = amountMax ? parseAmountFilter(amountMax) : null;
-
-    const list = monthDebts.filter((d) => {
-      if (paidFilter === "paid" && !d.paid) return false;
-      if (paidFilter === "unpaid" && d.paid) return false;
-      if (q) {
-        const methodStr = d.creditCardLabel ?? (d.method ? PAYMENT_METHODS[d.method as PaymentMethodKey] ?? d.method : "");
-        const amtStr = formatCurrency(d.amount).replace(".", ",");
-        const hit = [d.title, d.description, methodStr, amtStr].some((s) => s.toLowerCase().includes(q));
-        if (!hit) return false;
-      }
-      const dateStr = toDateInputValue(d.date);
-      if (dateFrom && dateStr < dateFrom) return false;
-      if (dateTo && dateStr > dateTo) return false;
-      if (amtMin && !isNaN(amtMin.val)) {
-        const v = amtMin.isInt ? Math.floor(d.amount) : d.amount;
-        if (v < amtMin.val) return false;
-      }
-      if (amtMax && !isNaN(amtMax.val)) {
-        const v = amtMax.isInt ? Math.floor(d.amount) : d.amount;
-        if (v > amtMax.val) return false;
-      }
-      return true;
-    });
-
-    return [...list].sort((a, b) => {
-      const av = sortKey === "amount" ? a.amount : a.date.getTime();
-      const bv = sortKey === "amount" ? b.amount : b.date.getTime();
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [monthDebts, search, dateFrom, dateTo, amountMin, amountMax, paidFilter, sortKey, sortDir]);
-
-  const filtersActive = Boolean(showFilters || search || dateFrom || dateTo || amountMin || amountMax || paidFilter !== "all");
+  const filtersActive = Boolean(showFilters || filterValuesActive);
 
   return (
     <section className="flex flex-col gap-4 border border-zinc-300 dark:border-zinc-700 p-4">
@@ -131,101 +90,26 @@ export function DebtsSection({ personId, debts, creditCards, selectedMonth }: Pr
         </div>
 
         {showFilters && (
-          <div className="flex flex-col gap-2 mt-3">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Pesquisar dívidas..."
-              className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
+          <div className="mt-3">
+            <FilterFields
+              search={search}
+              setSearch={setSearch}
+              dateFrom={dateFrom}
+              setDateFrom={setDateFrom}
+              dateTo={dateTo}
+              setDateTo={setDateTo}
+              amountMin={amountMin}
+              setAmountMin={setAmountMin}
+              amountMax={amountMax}
+              setAmountMax={setAmountMax}
+              paidFilter={paidFilter}
+              setPaidFilter={setPaidFilter}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              setSort={setSort}
+              onClear={clearFilters}
+              searchPlaceholder="Pesquisar dívidas..."
             />
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">De</p>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-                />
-              </div>
-              <div className="flex-1">
-                <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Até</p>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Valor mín.</p>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={amountMin}
-                  onChange={(e) => setAmountMin(e.target.value)}
-                  placeholder="0,00"
-                  className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs placeholder:text-zinc-300 dark:placeholder:text-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-                />
-              </div>
-              <div className="flex-1">
-                <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Valor máx.</p>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={amountMax}
-                  onChange={(e) => setAmountMax(e.target.value)}
-                  placeholder="0,00"
-                  className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs placeholder:text-zinc-300 dark:placeholder:text-zinc-700 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-[10px] tracking-widest uppercase text-zinc-400">Status</p>
-              {(["all", "paid", "unpaid"] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setPaidFilter(key)}
-                  className={`text-[10px] tracking-widest uppercase transition-colors cursor-pointer ${
-                    paidFilter === key ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
-                  }`}
-                >
-                  {key === "all" ? "Todas" : key === "paid" ? "Pagas" : "Não pagas"}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <p className="text-[10px] tracking-widest uppercase text-zinc-400">Ordenar</p>
-              <button
-                type="button"
-                onClick={() => setSort("date")}
-                className={`text-[10px] tracking-widest uppercase transition-colors cursor-pointer ${
-                  sortKey === "date" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
-                }`}
-              >
-                Data {sortKey === "date" ? (sortDir === "asc" ? "+" : "-") : ""}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSort("amount")}
-                className={`text-[10px] tracking-widest uppercase transition-colors cursor-pointer ${
-                  sortKey === "amount" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
-                }`}
-              >
-                Valor {sortKey === "amount" ? (sortDir === "asc" ? "+" : "-") : ""}
-              </button>
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400 transition-colors ml-auto cursor-pointer"
-              >
-                Limpar
-              </button>
-            </div>
           </div>
         )}
       </div>
