@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
+import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 
 interface FilterToolbarProps {
   showFilters: boolean;
@@ -69,6 +70,8 @@ export function FilterToolbar(props: FilterToolbarProps) {
             title="Data inicial"
             value={props.filterDateFrom}
             onChange={(e) => props.setFilterDateFrom(e.target.value)}
+            min={DATE_INPUT_MIN}
+            max={DATE_INPUT_MAX}
             className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors scheme-light dark:scheme-dark"
           />
           <input
@@ -76,6 +79,8 @@ export function FilterToolbar(props: FilterToolbarProps) {
             title="Data final"
             value={props.filterDateTo}
             onChange={(e) => props.setFilterDateTo(e.target.value)}
+            min={DATE_INPUT_MIN}
+            max={DATE_INPUT_MAX}
             className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors scheme-light dark:scheme-dark"
           />
           <input

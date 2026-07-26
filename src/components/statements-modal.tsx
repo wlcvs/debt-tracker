@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getStatements, deleteStatement, renameStatement, type StatementSummary } from "@/lib/actions/statement";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { formatDateBR, toDateInputValue } from "@/lib/date-utils";
+import { formatDateBR, toDateInputValue, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 import { useDismiss, useDismissGuard } from "@/lib/hooks/use-dismiss";
 
 interface Props {
@@ -124,6 +124,8 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
+                  min={DATE_INPUT_MIN}
+                  max={DATE_INPUT_MAX}
                   className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
                 />
               </div>
@@ -133,6 +135,8 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
+                  min={DATE_INPUT_MIN}
+                  max={DATE_INPUT_MAX}
                   className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
                 />
               </div>

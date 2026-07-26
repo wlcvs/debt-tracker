@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getDebtInstallmentGroup, toggleDebtsPaidBulk } from "@/lib/actions/debt";
 import { createPayment } from "@/lib/actions/payment";
-import { formatDateBR, toDateInputValue } from "@/lib/date-utils";
+import { formatDateBR, toDateInputValue, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format-utils";
 import { Checkbox } from "@/components/checkbox";
 import { ModalShell } from "@/components/modal-shell";
@@ -179,6 +179,8 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
                         type="date"
                         value={paymentDate}
                         onChange={(e) => setPaymentDate(e.target.value)}
+                        min={DATE_INPUT_MIN}
+                        max={DATE_INPUT_MAX}
                         className="flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
                       />
                       <div className="flex gap-2">

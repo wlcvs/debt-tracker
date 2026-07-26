@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { saveLLMFeedback } from "@/lib/actions/statement";
 import type { Txn } from "@/lib/import-modal-types";
+import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 
 interface Props {
   bank: string;
@@ -49,7 +50,15 @@ export function ManualAddDialog({ bank, onClose, onAdd }: Props) {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 mb-1.5">Data</label>
-              <input type="date" required value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors" />
+              <input
+                type="date"
+                required
+                value={manualDate}
+                onChange={(e) => setManualDate(e.target.value)}
+                min={DATE_INPUT_MIN}
+                max={DATE_INPUT_MAX}
+                className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
+              />
             </div>
             <div>
               <label className="block text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 mb-1.5">Valor (R$)</label>

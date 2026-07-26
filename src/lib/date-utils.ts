@@ -39,3 +39,11 @@ export function getAvailableMonths(dates: Date[], alwaysInclude?: Date): string[
 export function toDateInputValue(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
+
+// Bounds for every native <input type="date"> in the app — without a max,
+// Chrome's date picker lets the year segment accept arbitrarily many
+// digits (e.g. typing a 6-digit year). These are generous enough for any
+// real debt/payment/installment date (installments run up to 60 months
+// out, per create-debt-form.tsx) while still catching fat-fingered input.
+export const DATE_INPUT_MIN = "1900-01-01";
+export const DATE_INPUT_MAX = "2100-12-31";

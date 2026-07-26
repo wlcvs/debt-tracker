@@ -1,6 +1,7 @@
 "use client";
 
 import type { PaidFilter, SortDir, SortKey } from "@/lib/hooks/use-list-filter-sort";
+import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 
 interface FilterFieldsProps {
   search: string;
@@ -40,6 +41,8 @@ export function FilterFields(props: FilterFieldsProps) {
               type="date"
               value={props.dateFrom}
               onChange={(e) => props.setDateFrom?.(e.target.value)}
+              min={DATE_INPUT_MIN}
+              max={DATE_INPUT_MAX}
               className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
             />
           </div>
@@ -49,6 +52,8 @@ export function FilterFields(props: FilterFieldsProps) {
               type="date"
               value={props.dateTo}
               onChange={(e) => props.setDateTo?.(e.target.value)}
+              min={DATE_INPUT_MIN}
+              max={DATE_INPUT_MAX}
               className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
             />
           </div>

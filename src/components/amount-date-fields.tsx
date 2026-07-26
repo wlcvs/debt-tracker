@@ -1,7 +1,7 @@
 "use client";
 
 import { formatCurrency } from "@/lib/format-utils";
-import { toDateInputValue } from "@/lib/date-utils";
+import { toDateInputValue, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 
 interface Props {
   amount: number;
@@ -30,6 +30,8 @@ export function AmountDateFields({ amount, date }: Props) {
           name="date"
           defaultValue={toDateInputValue(date)}
           required
+          min={DATE_INPUT_MIN}
+          max={DATE_INPUT_MAX}
           className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
         />
       </div>

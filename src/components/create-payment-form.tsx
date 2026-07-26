@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { createPayment } from "@/lib/actions/payment";
 import { PAYMENT_METHODS } from "@/lib/payment-methods";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
+import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 
 const inputClass =
@@ -59,7 +60,14 @@ export function CreatePaymentForm({ personId }: Props) {
           <div className="flex gap-2 items-start">
             <input type="text" inputMode="decimal" name="amount" placeholder="VALOR" required className={`w-28 ${inputClass}`} />
             <div className="flex-1">
-              <input type="date" name="date" required className={`w-full ${inputClass} text-zinc-500 dark:text-zinc-400`} />
+              <input
+                type="date"
+                name="date"
+                required
+                min={DATE_INPUT_MIN}
+                max={DATE_INPUT_MAX}
+                className={`w-full ${inputClass} text-zinc-500 dark:text-zinc-400`}
+              />
             </div>
           </div>
 

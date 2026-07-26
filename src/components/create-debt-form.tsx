@@ -5,7 +5,7 @@ import { createDebt } from "@/lib/actions/debt";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
 import { Checkbox } from "@/components/checkbox";
 import { splitInstallmentAmounts, installmentDate, type InstallmentDirection } from "@/lib/installments";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 
@@ -126,6 +126,8 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
                 type="date"
                 name="date"
                 required
+                min={DATE_INPUT_MIN}
+                max={DATE_INPUT_MAX}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className={`w-full ${inputClass} text-zinc-500 dark:text-zinc-400`}
