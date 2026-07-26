@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ModalShell } from "@/components/modal-shell";
 import { AmountDateFields } from "@/components/amount-date-fields";
 import { Badge } from "@/components/badge";
+import { useConfirmDelete } from "@/lib/hooks/use-confirm-delete";
 
 interface PaymentLike {
   id: string;
@@ -28,8 +29,12 @@ const METHOD_OPTIONS: MethodOption[] = Object.entries(PAYMENT_METHODS).map(([val
 
 export function PaymentDetailModal({ payment, onClose }: Props) {
   const [editing, setEditing] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [method, setMethod] = useState(payment.method);
+  const { confirming, setConfirming, confirmDelete } = useConfirmDelete<PaymentLike>((p) => {
+    const fd = new FormData();
+    fd.append("id", p.id);
+    return deletePayment(fd);
+  }, onClose);
 
   const methodLabel = PAYMENT_METHODS[payment.method as PaymentMethodKey] ?? payment.method;
 
@@ -55,7 +60,7 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
               Editar
             </button>
             <button
-              onClick={() => setConfirming(true)}
+              onClick={() => setConfirming(payment)}
               className="border border-red-500 dark:border-red-400 px-5 py-2 text-xs tracking-widest uppercase text-red-500 dark:text-red-400 hover:border-red-400 hover:text-red-400 dark:hover:border-red-300 dark:hover:text-red-300 transition-colors cursor-pointer"
             >
               Excluir
@@ -108,7 +113,7 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => setConfirming(true)}
+              onClick={() => setConfirming(payment)}
               className="text-xs tracking-widest uppercase text-red-500 dark:text-red-400 hover:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer"
             >
               Excluir
@@ -122,13 +127,8 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
           title="Excluir pagamento?"
           description={`Pagamento de R$ ${formatCurrency(payment.amount)} será removido permanentemente.`}
           confirmLabel="EXCLUIR"
-          onCancel={() => setConfirming(false)}
-          onConfirm={async () => {
-            const fd = new FormData();
-            fd.append("id", payment.id);
-            await deletePayment(fd);
-            onClose();
-          }}
+          onCancel={() => setConfirming(null)}
+          onConfirm={confirmDelete}
         />
       )}
     </ModalShell>

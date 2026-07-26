@@ -10,6 +10,7 @@ import { AmountDateFields } from "@/components/amount-date-fields";
 import { Badge } from "@/components/badge";
 import { formatDateBR } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format-utils";
+import { useConfirmDelete } from "@/lib/hooks/use-confirm-delete";
 
 interface DebtLike {
   id: string;
@@ -36,11 +37,19 @@ const METHOD_LABELS: Record<string, string> = { PIX: "Pix", CASH: "Dinheiro" };
 
 export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
   const [editing, setEditing] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [showInstallments, setShowInstallments] = useState(false);
   const [method, setMethod] = useState(debt.creditCardId ?? debt.method ?? "");
   const [methodError, setMethodError] = useState(false);
   const isInstallment = Boolean(debt.installmentGroupId);
+  const { confirming, setConfirming, confirmDelete } = useConfirmDelete<DebtLike>((d) => {
+    const fd = new FormData();
+    if (isInstallment && d.installmentGroupId) {
+      fd.append("installmentGroupId", d.installmentGroupId);
+      return deleteDebtInstallmentGroup(fd);
+    }
+    fd.append("id", d.id);
+    return deleteDebt(fd);
+  }, onClose);
 
   const methodOptions: MethodOption[] = [
     { value: "PIX", label: "Pix" },
@@ -101,7 +110,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
               </button>
             )}
             <button
-              onClick={() => setConfirming(true)}
+              onClick={() => setConfirming(debt)}
               className="border border-red-500 dark:border-red-400 px-5 py-2 text-xs tracking-widest uppercase text-red-500 dark:text-red-400 hover:border-red-400 hover:text-red-400 dark:hover:border-red-300 dark:hover:text-red-300 transition-colors cursor-pointer"
             >
               Excluir
@@ -180,7 +189,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => setConfirming(true)}
+              onClick={() => setConfirming(debt)}
               className="text-xs tracking-widest uppercase text-red-500 dark:text-red-400 hover:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer"
             >
               Excluir
@@ -198,18 +207,8 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
               : `"${debt.title}" será removida permanentemente.`
           }
           confirmLabel="EXCLUIR"
-          onCancel={() => setConfirming(false)}
-          onConfirm={async () => {
-            const fd = new FormData();
-            if (isInstallment && debt.installmentGroupId) {
-              fd.append("installmentGroupId", debt.installmentGroupId);
-              await deleteDebtInstallmentGroup(fd);
-            } else {
-              fd.append("id", debt.id);
-              await deleteDebt(fd);
-            }
-            onClose();
-          }}
+          onCancel={() => setConfirming(null)}
+          onConfirm={confirmDelete}
         />
       )}
 
