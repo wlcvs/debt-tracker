@@ -8,6 +8,14 @@ import { requireUserId } from "@/lib/auth-utils";
 
 const DEBT_METHODS = ["PIX", "CASH"] as const;
 
+function resolveDebtMethod(debtMethod: string | undefined): { method: "PIX" | "CASH" | null; creditCardId: string | null } {
+  const isEnumMethod = DEBT_METHODS.includes(debtMethod as typeof DEBT_METHODS[number]);
+  return {
+    method: isEnumMethod ? (debtMethod as "PIX" | "CASH") : null,
+    creditCardId: !isEnumMethod && debtMethod ? debtMethod : null,
+  };
+}
+
 const createDebtSchema = z.object({
   personId: z.string().min(1),
   amount: z.coerce.number().positive("Amount must be greater than zero"),
@@ -42,9 +50,7 @@ export async function createDebt(formData: FormData) {
   });
   if (!person) throw new Error("Person not found");
 
-  const isEnumMethod = DEBT_METHODS.includes(parsed.debtMethod as typeof DEBT_METHODS[number]);
-  const method = isEnumMethod ? (parsed.debtMethod as "PIX" | "CASH") : null;
-  const creditCardId = !isEnumMethod && parsed.debtMethod ? parsed.debtMethod : null;
+  const { method, creditCardId } = resolveDebtMethod(parsed.debtMethod);
 
   if (parsed.installments > 1) {
     const amounts = splitInstallmentAmounts(parsed.amount, parsed.installments);
@@ -128,9 +134,7 @@ export async function updateDebt(formData: FormData) {
     debtMethod: formData.get("debtMethod") ?? undefined,
   });
 
-  const isEnumMethod = DEBT_METHODS.includes(parsed.debtMethod as typeof DEBT_METHODS[number]);
-  const method = isEnumMethod ? (parsed.debtMethod as "PIX" | "CASH") : null;
-  const creditCardId = !isEnumMethod && parsed.debtMethod ? parsed.debtMethod : null;
+  const { method, creditCardId } = resolveDebtMethod(parsed.debtMethod);
 
   await prisma.debt.updateMany({
     where: { id: parsed.id, person: { userId } },
