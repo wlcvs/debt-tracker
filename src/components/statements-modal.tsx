@@ -167,6 +167,13 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
                         (e.target as HTMLInputElement).blur();
                       } else if (e.key === "Escape") {
                         e.preventDefault();
+                        // Must suppress here too, not just in commitEdit's onBlur — see
+                        // useDismissGuard's doc comment in use-dismiss.ts: React flushes
+                        // this state update synchronously before the same keydown reaches
+                        // the modal-level Escape listener, so without this the outer
+                        // dismissModal would see editingId already back at null and close
+                        // the whole modal instead of just the rename.
+                        suppressNext();
                         setEditingId(null);
                       }
                     }}
