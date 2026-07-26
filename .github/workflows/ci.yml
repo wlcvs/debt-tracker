@@ -36,3 +36,60 @@ jobs:
       - run: npm run test:run
 
       - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: debt_tracker_next
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/debt_tracker_next"
+      ADMIN_EMAIL: "e2e-admin@example.com"
+      ADMIN_PASSWORD: "e2e-ci-not-a-real-password"
+      AUTH_SECRET: "ci-e2e-not-a-real-secret"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      # test:e2e runs `node --env-file=.env`, which errors if the file
+      # doesn't exist — even though the env vars above are already exported
+      # to every step's process env, the script itself needs a real file.
+      - name: Write .env
+        run: |
+          cat > .env <<EOF
+          DATABASE_URL=${DATABASE_URL}
+          ADMIN_EMAIL=${ADMIN_EMAIL}
+          ADMIN_PASSWORD=${ADMIN_PASSWORD}
+          AUTH_SECRET=${AUTH_SECRET}
+          NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+          EOF
+
+      - run: npx prisma migrate deploy
+
+      - run: npx prisma generate
+
+      - run: npx tsx prisma/seed.ts
+
+      - run: npm run test:e2e
