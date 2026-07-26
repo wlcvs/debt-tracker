@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireUserId } from "@/lib/auth-utils";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function createPerson(formData: FormData): Promise<{ id: string; name: string }> {
   const userId = await requireUserId();
@@ -46,60 +47,16 @@ export interface PersonWithBalance {
   }[];
 }
 
-export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
-  const userId = await requireUserId();
+type PersonWithRelations = Prisma.PersonGetPayload<{
+  include: { debts: { include: { creditCard: true } }; payments: true };
+}>;
 
-  const people = await prisma.person.findMany({
-    where: { userId },
-    include: { debts: { include: { creditCard: true } }, payments: true },
-    orderBy: { name: "asc" },
-  });
-
-  return people.map((person) => {
-    const debts = person.debts.map((d) => ({
-      id: d.id,
-      amount: Number(d.amount),
-      title: d.title,
-      description: d.description,
-      paid: d.paid,
-      date: d.date,
-      method: d.method,
-      creditCardId: d.creditCardId,
-      creditCardLabel: d.creditCard?.label ?? null,
-      installmentGroupId: d.installmentGroupId,
-      installmentIndex: d.installmentIndex,
-      installmentTotal: d.installmentTotal,
-    }));
-    const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
-    const totalDebt = debts.reduce((s, d) => s + (d.paid ? 0 : d.amount), 0);
-    const totalOwed = totalDebt - totalPaid;
-
-    return {
-      id: person.id,
-      name: person.name,
-      totalOwed,
-      debts,
-      payments: person.payments.map((p) => ({
-        id: p.id,
-        amount: Number(p.amount),
-        description: p.description,
-        date: p.date,
-        method: p.method,
-      })),
-    };
-  });
-}
-
-export async function getPersonById(id: string): Promise<PersonWithBalance | null> {
-  const userId = await requireUserId();
-
-  const person = await prisma.person.findFirst({
-    where: { id, userId },
-    include: { debts: { include: { creditCard: true } }, payments: true },
-  });
-
-  if (!person) return null;
-
+// Shared by every reader below (admin list/detail views + the public
+// no-login view) — each independently mapped debts/payments to this same
+// shape and recomputed totalOwed. `id` is omitted here and added back by
+// callers that need it (getDebtorViewById's return shape never included
+// it — it's the public route's fetcher and has no use for the person's id).
+function toPersonWithBalance(person: PersonWithRelations): Omit<PersonWithBalance, "id"> {
   const debts = person.debts.map((d) => ({
     id: d.id,
     amount: Number(d.amount),
@@ -119,7 +76,6 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
   const totalOwed = totalDebt - totalPaid;
 
   return {
-    id: person.id,
     name: person.name,
     totalOwed,
     debts,
@@ -131,6 +87,31 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
       method: p.method,
     })),
   };
+}
+
+export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
+  const userId = await requireUserId();
+
+  const people = await prisma.person.findMany({
+    where: { userId },
+    include: { debts: { include: { creditCard: true } }, payments: true },
+    orderBy: { name: "asc" },
+  });
+
+  return people.map((person) => ({ id: person.id, ...toPersonWithBalance(person) }));
+}
+
+export async function getPersonById(id: string): Promise<PersonWithBalance | null> {
+  const userId = await requireUserId();
+
+  const person = await prisma.person.findFirst({
+    where: { id, userId },
+    include: { debts: { include: { creditCard: true } }, payments: true },
+  });
+
+  if (!person) return null;
+
+  return { id: person.id, ...toPersonWithBalance(person) };
 }
 
 export async function deletePerson(formData: FormData) {
@@ -199,33 +180,5 @@ export async function getDebtorViewById(id: string) {
 
   if (!person) return null;
 
-  const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
-  const totalDebt = person.debts.reduce((s, d) => s + (d.paid ? 0 : Number(d.amount)), 0);
-  const totalOwed = totalDebt - totalPaid;
-
-  return {
-    name: person.name,
-    totalOwed,
-    debts: person.debts.map((d) => ({
-      id: d.id,
-      amount: Number(d.amount),
-      title: d.title,
-      description: d.description,
-      paid: d.paid,
-      date: d.date,
-      method: d.method,
-      creditCardId: d.creditCardId,
-      creditCardLabel: d.creditCard?.label ?? null,
-      installmentGroupId: d.installmentGroupId,
-      installmentIndex: d.installmentIndex,
-      installmentTotal: d.installmentTotal,
-    })),
-    payments: person.payments.map((p) => ({
-      id: p.id,
-      amount: Number(p.amount),
-      description: p.description,
-      date: p.date,
-      method: p.method,
-    })),
-  };
+  return toPersonWithBalance(person);
 }
