@@ -6,6 +6,7 @@ import { CreditCardList } from "@/components/credit-card-list";
 import { CreatePersonForm } from "@/components/create-person-form";
 import { CreateCreditCardForm } from "@/components/create-credit-card-form";
 import { StatementImportLauncher } from "@/components/statement-import-launcher";
+import { formatCurrency } from "@/lib/format-utils";
 
 // Bank statement import (PDF parsing + optional LLM extraction) can take a
 // while — raise this route's serverless duration ceiling above Vercel's
@@ -35,7 +36,7 @@ export default async function OverviewPage() {
           { label: "Pagamentos recebidos", value: stats.totalPayments },
           {
             label: "Total já pago",
-            value: `R$ ${stats.totalPaid.toFixed(2)}`,
+            value: `R$ ${formatCurrency(stats.totalPaid)}`,
           },
         ].map((stat) => (
           <div
@@ -79,7 +80,7 @@ export default async function OverviewPage() {
                         : "shrink-0 text-zinc-400 dark:text-zinc-600"
                     }
                   >
-                    R$ {person.totalOwed.toFixed(2)}
+                    R$ {formatCurrency(person.totalOwed)}
                   </span>
                 </Link>
               </li>

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { updatePerson } from "@/lib/actions/person";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
+import { formatCurrency } from "@/lib/format-utils";
 
 interface Props {
   person: {
@@ -44,7 +45,7 @@ export function EditablePersonHeader({ person }: Props) {
           </button>
         </form>
         <p className="text-xl tracking-tight text-zinc-900 dark:text-white shrink-0">
-          R$ {person.totalOwed.toFixed(2)}
+          R$ {formatCurrency(person.totalOwed)}
         </p>
       </div>
     );
@@ -60,7 +61,7 @@ export function EditablePersonHeader({ person }: Props) {
         {person.name}
       </h2>
       <p className="text-xl tracking-tight text-zinc-900 dark:text-white shrink-0">
-        R$ {person.totalOwed.toFixed(2)}
+        R$ {formatCurrency(person.totalOwed)}
       </p>
     </div>
   );

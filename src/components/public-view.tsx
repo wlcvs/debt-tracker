@@ -5,6 +5,7 @@ import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import type { PersonWithBalance } from "@/lib/actions/person";
 import { getAvailableMonths, getMonthKey, formatDateBR } from "@/lib/date-utils";
+import { formatCurrency } from "@/lib/format-utils";
 import { MonthCarousel } from "@/components/month-carousel";
 
 type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "debts" | "payments">;
@@ -53,7 +54,7 @@ export function PublicView({ debtor }: Props) {
     <>
       <div className="flex items-baseline justify-between gap-4 mb-8">
         <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">{debtor.name}</h2>
-        <p className="text-lg tracking-tight text-zinc-900 dark:text-white shrink-0">R$ {debtor.totalOwed.toFixed(2)}</p>
+        <p className="text-lg tracking-tight text-zinc-900 dark:text-white shrink-0">R$ {formatCurrency(debtor.totalOwed)}</p>
       </div>
 
       <div className="mb-6">
@@ -105,7 +106,7 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
       if (paidFilter === "unpaid" && d.paid) return false;
       const method = d.creditCardLabel ?? (d.method ? methodLabel(d.method) : "");
       if (q) {
-        const amtStr = d.amount.toFixed(2).replace(".", ",");
+        const amtStr = formatCurrency(d.amount).replace(".", ",");
         const hit = [d.title, d.description, method, amtStr].some((s) => s.toLowerCase().includes(q));
         if (!hit) return false;
       }
@@ -195,7 +196,7 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
                   )}
                 </div>
                 <span className={`shrink-0 text-xs tracking-tight text-zinc-700 dark:text-zinc-300 mt-0.5${debt.paid ? " line-through opacity-50" : ""}`}>
-                  R$ {debt.amount.toFixed(2)}
+                  R$ {formatCurrency(debt.amount)}
                 </span>
               </button>
             </li>
@@ -235,7 +236,7 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
 
     const list = monthPayments.filter((p) => {
       if (q) {
-        const amtStr = p.amount.toFixed(2).replace(".", ",");
+        const amtStr = formatCurrency(p.amount).replace(".", ",");
         const hit = [p.description, methodLabel(p.method), amtStr].some((s) => s.toLowerCase().includes(q));
         if (!hit) return false;
       }
@@ -308,7 +309,7 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
                   <span className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600">
                     {methodLabel(payment.method)}
                   </span>
-                  <span className="text-xs text-zinc-700 dark:text-zinc-300">R$ {payment.amount.toFixed(2)}</span>
+                  <span className="text-xs text-zinc-700 dark:text-zinc-300">R$ {formatCurrency(payment.amount)}</span>
                   {payment.description && (
                     <span className="text-[10px] text-zinc-400 dark:text-zinc-600 mt-0.5">{payment.description}</span>
                   )}
@@ -446,7 +447,7 @@ function PublicDebtModal({ debt, onClose }: { debt: Debt; onClose: () => void })
             {debt.title}
           </p>
           <p className={`text-3xl tracking-tight mb-3 ${debt.paid ? "text-zinc-400 dark:text-zinc-600 line-through" : "text-zinc-900 dark:text-white"}`}>
-            R$ {debt.amount.toFixed(2)}
+            R$ {formatCurrency(debt.amount)}
           </p>
           {debt.description && (
             <p className="text-xs tracking-wider text-zinc-500 dark:text-zinc-400 -mt-2 mb-2">{debt.description}</p>
@@ -483,7 +484,7 @@ function PublicPaymentModal({ payment, onClose }: { payment: Payment; onClose: (
           </button>
         </div>
         <div className="px-6 py-5">
-          <p className="text-3xl tracking-tight text-zinc-900 dark:text-white mb-3">R$ {payment.amount.toFixed(2)}</p>
+          <p className="text-3xl tracking-tight text-zinc-900 dark:text-white mb-3">R$ {formatCurrency(payment.amount)}</p>
           {payment.description && (
             <p className="text-xs tracking-wider text-zinc-500 dark:text-zinc-400 -mt-2 mb-2">{payment.description}</p>
           )}

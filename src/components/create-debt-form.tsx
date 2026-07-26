@@ -6,6 +6,7 @@ import { MethodSelect, type MethodOption } from "@/components/method-select";
 import { Checkbox } from "@/components/checkbox";
 import { splitInstallmentAmounts, installmentDate, type InstallmentDirection } from "@/lib/installments";
 import { formatDateBR } from "@/lib/date-utils";
+import { formatCurrency } from "@/lib/format-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 
 const inputClass =
@@ -212,7 +213,7 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
                           onChange={() => togglePaidIndex(p.index)}
                           label={`${p.index}/${installments} — ${formatDateBR(p.date)}`}
                         />
-                        <span>R$ {p.amount.toFixed(2)}</span>
+                        <span>R$ {formatCurrency(p.amount)}</span>
                       </li>
                     ))}
                   </ul>

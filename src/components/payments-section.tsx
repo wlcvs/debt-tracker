@@ -4,7 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import { EditablePayment } from "@/components/editable-payment";
 import { CreatePaymentForm } from "@/components/create-payment-form";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
-import { getMonthKey } from "@/lib/date-utils";
+import { getMonthKey, toDateInputValue } from "@/lib/date-utils";
+import { formatCurrency } from "@/lib/format-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 
 interface Payment {
@@ -71,11 +72,11 @@ export function PaymentsSection({ personId, payments, selectedMonth }: Props) {
     const list = monthPayments.filter((p) => {
       if (q) {
         const methodStr = PAYMENT_METHODS[p.method as PaymentMethodKey] ?? p.method;
-        const amtStr = p.amount.toFixed(2).replace(".", ",");
+        const amtStr = formatCurrency(p.amount).replace(".", ",");
         const hit = [p.description, methodStr, amtStr].some((s) => s.toLowerCase().includes(q));
         if (!hit) return false;
       }
-      const dateStr = p.date.toISOString().slice(0, 10);
+      const dateStr = toDateInputValue(p.date);
       if (dateFrom && dateStr < dateFrom) return false;
       if (dateTo && dateStr > dateTo) return false;
       if (amtMin && !isNaN(amtMin.val)) {

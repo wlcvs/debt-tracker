@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatCurrency } from "@/lib/format-utils";
 
 export function TotalDisplay({ total }: { total: number }) {
   const [hidden, setHidden] = useState(false);
@@ -19,7 +20,7 @@ export function TotalDisplay({ total }: { total: number }) {
         </button>
       </div>
       <p className="text-5xl tracking-tight text-zinc-900 dark:text-white">
-        {hidden ? "R$ ••••••" : `R$ ${total.toFixed(2)}`}
+        {hidden ? "R$ ••••••" : `R$ ${formatCurrency(total)}`}
       </p>
     </section>
   );

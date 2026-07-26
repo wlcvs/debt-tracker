@@ -4,7 +4,8 @@ import { useMemo, useRef, useState } from "react";
 import { EditableDebt } from "@/components/editable-debt";
 import { CreateDebtForm } from "@/components/create-debt-form";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
-import { getMonthKey } from "@/lib/date-utils";
+import { getMonthKey, toDateInputValue } from "@/lib/date-utils";
+import { formatCurrency } from "@/lib/format-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 
 interface Debt {
@@ -85,11 +86,11 @@ export function DebtsSection({ personId, debts, creditCards, selectedMonth }: Pr
       if (paidFilter === "unpaid" && d.paid) return false;
       if (q) {
         const methodStr = d.creditCardLabel ?? (d.method ? PAYMENT_METHODS[d.method as PaymentMethodKey] ?? d.method : "");
-        const amtStr = d.amount.toFixed(2).replace(".", ",");
+        const amtStr = formatCurrency(d.amount).replace(".", ",");
         const hit = [d.title, d.description, methodStr, amtStr].some((s) => s.toLowerCase().includes(q));
         if (!hit) return false;
       }
-      const dateStr = d.date.toISOString().slice(0, 10);
+      const dateStr = toDateInputValue(d.date);
       if (dateFrom && dateStr < dateFrom) return false;
       if (dateTo && dateStr > dateTo) return false;
       if (amtMin && !isNaN(amtMin.val)) {

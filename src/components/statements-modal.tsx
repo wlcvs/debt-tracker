@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getStatements, deleteStatement, renameStatement, type StatementSummary } from "@/lib/actions/statement";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, toDateInputValue } from "@/lib/date-utils";
 import { useDismiss, useDismissGuard } from "@/lib/hooks/use-dismiss";
 
 interface Props {
@@ -66,7 +66,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
 
   const filtered = statements.filter((s) => {
     const filename = s.filename.toLowerCase();
-    const date = new Date(s.uploadedAt).toISOString().slice(0, 10);
+    const date = toDateInputValue(new Date(s.uploadedAt));
     if (search.trim() && !filename.includes(search.trim().toLowerCase())) return false;
     if (dateFrom && date < dateFrom) return false;
     if (dateTo && date > dateTo) return false;
