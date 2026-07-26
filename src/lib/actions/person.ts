@@ -24,6 +24,9 @@ export interface PersonWithBalance {
   id: string;
   name: string;
   totalOwed: number;
+  totalDebt: number;
+  totalPaid: number;
+  publicVisible: boolean;
   debts: {
     id: string;
     amount: number;
@@ -78,6 +81,9 @@ function toPersonWithBalance(person: PersonWithRelations): Omit<PersonWithBalanc
   return {
     name: person.name,
     totalOwed,
+    totalDebt,
+    totalPaid,
+    publicVisible: person.publicVisible,
     debts,
     payments: person.payments.map((p) => ({
       id: p.id,
@@ -174,11 +180,26 @@ export async function getOverviewStats(): Promise<OverviewStats> {
 
 export async function getDebtorViewById(id: string) {
   const person = await prisma.person.findUnique({
-    where: { id },
+    where: { id, publicVisible: true },
     include: { debts: { include: { creditCard: true } }, payments: true },
   });
 
   if (!person) return null;
 
   return toPersonWithBalance(person);
+}
+
+export async function togglePersonPublicVisibility(formData: FormData) {
+  const userId = await requireUserId();
+
+  const id = z.string().min(1).parse(formData.get("id"));
+
+  const person = await prisma.person.findFirst({ where: { id, userId } });
+  if (!person) throw new Error("Person not found");
+
+  await prisma.person.update({
+    where: { id },
+    data: { publicVisible: !person.publicVisible },
+  });
+  revalidatePath("/");
 }

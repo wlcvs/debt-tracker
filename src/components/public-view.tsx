@@ -6,13 +6,13 @@ import { useFilteredSortedList } from "@/lib/hooks/use-list-filter-sort";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import type { PersonWithBalance } from "@/lib/actions/person";
 import { getAvailableMonths, getMonthKey, formatDateBR } from "@/lib/date-utils";
-import { formatCurrency } from "@/lib/format-utils";
+import { formatCurrency, paidPercent } from "@/lib/format-utils";
 import { MonthCarousel } from "@/components/month-carousel";
 import { FilterFields } from "@/components/filter-fields";
 import { ModalShell } from "@/components/modal-shell";
 import { Badge } from "@/components/badge";
 
-type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "debts" | "payments">;
+type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "totalDebt" | "totalPaid" | "debts" | "payments">;
 
 interface Props {
   debtor: DebtorView;
@@ -39,6 +39,21 @@ export function PublicView({ debtor }: Props) {
         <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">{debtor.name}</h2>
         <p className="text-lg tracking-tight text-zinc-900 dark:text-white shrink-0">R$ {formatCurrency(debtor.totalOwed)}</p>
       </div>
+
+      {debtor.totalDebt > 0 && (
+        <div className="mb-6">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1.5">
+            R$ {formatCurrency(debtor.totalPaid)} / R$ {formatCurrency(debtor.totalDebt)} pago (
+            {paidPercent(debtor.totalPaid, debtor.totalDebt)}%)
+          </p>
+          <div className="h-1 border border-zinc-300 dark:border-zinc-700">
+            <div
+              className="h-full bg-zinc-400 dark:bg-zinc-600"
+              style={{ width: `${paidPercent(debtor.totalPaid, debtor.totalDebt)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="mb-6">
         <MonthCarousel months={months} selected={selectedMonth} onSelect={setSelectedMonth} />

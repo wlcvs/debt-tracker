@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
+import { loginAsAdmin } from "./fixtures";
 
 // PublicView (`/public/[code]`) requires no login — the person's own DB id
 // is the access code. Seeds data directly via Prisma (faster and more
@@ -41,6 +42,7 @@ test.beforeAll(async () => {
     ],
   });
   // totalOwed = (100 + 30 unpaid debts) - (40 + 20 payments) = 70
+  // totalDebt = 100 + 30 = 130, totalPaid = 40 + 20 = 60, paidPercent = round(60/130*100) = 46
 });
 
 test.afterAll(async () => {
@@ -55,6 +57,7 @@ test("public view: renders without login, filters by month, read-only modals, fi
   await expect(page).toHaveURL(`/public/${personId}`);
   await expect(page.getByRole("heading", { name: `E2E Public View Person ${RUN_ID}` })).toBeVisible();
   await expect(page.getByText("R$ 70.00")).toBeVisible();
+  await expect(page.getByText("R$ 60.00 / R$ 130.00 pago (46%)")).toBeVisible();
 
   // --- Month carousel: current month shows A and B, not C ---
   const debtARow = page.getByRole("button", { name: new RegExp(debtATitle) });
@@ -110,4 +113,47 @@ test("public view: renders without login, filters by month, read-only modals, fi
   await page.getByRole("button", { name: "Diminuir meses" }).click();
   await expect(monthsInput).toHaveValue("5");
   await expect(page.getByText("R$ 14,00")).toBeVisible(); // 70 / 5
+});
+
+test("public view: 404s when the person's public page is hidden", async ({ page }) => {
+  const user = await prisma.user.findFirstOrThrow();
+  const hiddenPerson = await prisma.person.create({
+    data: { userId: user.id, name: `E2E Hidden Person ${RUN_ID}`, publicVisible: false },
+  });
+
+  const response = await page.goto(`/public/${hiddenPerson.id}`);
+  expect(response?.status()).toBe(404);
+
+  await prisma.person.delete({ where: { id: hiddenPerson.id } });
+});
+
+test("dashboard: toggling public visibility blocks and restores the public page", async ({ page, context }) => {
+  const user = await prisma.user.findFirstOrThrow();
+  const person = await prisma.person.create({
+    data: { userId: user.id, name: `E2E Toggle Visibility Person ${RUN_ID}` },
+  });
+
+  await loginAsAdmin(page);
+  await page.goto(`/person/${person.id}`);
+
+  const toggleButton = page.getByRole("button", { name: /PÁGINA PÚBLICA/ });
+  await expect(toggleButton).toHaveText("OCULTAR PÁGINA PÚBLICA");
+
+  await toggleButton.click();
+  await expect(toggleButton).toHaveText("REATIVAR PÁGINA PÚBLICA");
+
+  const hiddenPage = await context.newPage();
+  const hiddenResponse = await hiddenPage.goto(`/public/${person.id}`);
+  expect(hiddenResponse?.status()).toBe(404);
+  await hiddenPage.close();
+
+  await toggleButton.click();
+  await expect(toggleButton).toHaveText("OCULTAR PÁGINA PÚBLICA");
+
+  const visiblePage = await context.newPage();
+  await visiblePage.goto(`/public/${person.id}`);
+  await expect(visiblePage.getByRole("heading", { name: `E2E Toggle Visibility Person ${RUN_ID}` })).toBeVisible();
+  await visiblePage.close();
+
+  await prisma.person.delete({ where: { id: person.id } });
 });
