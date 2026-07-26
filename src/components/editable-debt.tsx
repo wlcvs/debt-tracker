@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DebtDetailModal } from "@/components/debt-detail-modal";
+import { formatCurrency } from "@/lib/format-utils";
 
 interface Props {
   debt: {
@@ -39,7 +40,7 @@ export function EditableDebt({ debt, creditCards }: Props) {
           )}
         </span>
         <span className={`text-xs text-zinc-700 dark:text-zinc-300 shrink-0${debt.paid ? " line-through" : ""}`}>
-          R$ {debt.amount.toFixed(2)}
+          R$ {formatCurrency(debt.amount)}
         </span>
       </button>
 

@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { getDebtInstallmentGroup, toggleDebtsPaidBulk } from "@/lib/actions/debt";
 import { createPayment } from "@/lib/actions/payment";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, toDateInputValue } from "@/lib/date-utils";
+import { formatCurrency } from "@/lib/format-utils";
 import { Checkbox } from "@/components/checkbox";
 
 interface Props {
@@ -28,7 +29,7 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [registerPayment, setRegisterPayment] = useState(false);
   const [paymentMode, setPaymentMode] = useState<"single" | "perInstallment">("single");
-  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paymentDate, setPaymentDate] = useState(() => toDateInputValue(new Date()));
   const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CASH">("CASH");
   const [paymentDescription, setPaymentDescription] = useState("");
   const [saving, setSaving] = useState(false);
@@ -135,7 +136,7 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
                     />
                     <div className="flex items-center gap-2">
                       <span className={`text-xs text-zinc-700 dark:text-zinc-300 ${i.paid ? "line-through opacity-50" : ""}`}>
-                        R$ {i.amount.toFixed(2)}
+                        R$ {formatCurrency(i.amount)}
                       </span>
                       {!i.paid && (
                         <button

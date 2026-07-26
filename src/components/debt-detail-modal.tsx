@@ -5,7 +5,8 @@ import { deleteDebt, deleteDebtInstallmentGroup, toggleDebtPaid, updateDebt } fr
 import { MethodSelect, type MethodOption } from "@/components/method-select";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { InstallmentGroupPanel } from "@/components/installment-group-panel";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, toDateInputValue } from "@/lib/date-utils";
+import { formatCurrency } from "@/lib/format-utils";
 
 interface DebtLike {
   id: string;
@@ -60,7 +61,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
         {!editing ? (
           <div className="px-6 py-5">
             <p className="text-sm tracking-widest uppercase text-zinc-900 dark:text-white mb-1">{debt.title}</p>
-            <p className="text-3xl tracking-tight text-zinc-900 dark:text-white mb-3">R$ {debt.amount.toFixed(2)}</p>
+            <p className="text-3xl tracking-tight text-zinc-900 dark:text-white mb-3">R$ {formatCurrency(debt.amount)}</p>
             {debt.description && (
               <p className="text-xs tracking-wider text-zinc-500 dark:text-zinc-400 -mt-2 mb-2">{debt.description}</p>
             )}
@@ -163,7 +164,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
                   type="text"
                   inputMode="decimal"
                   name="amount"
-                  defaultValue={debt.amount.toFixed(2)}
+                  defaultValue={formatCurrency(debt.amount)}
                   required
                   className="w-28 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
                 />
@@ -173,7 +174,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
                 <input
                   type="date"
                   name="date"
-                  defaultValue={debt.date.toISOString().slice(0, 10)}
+                  defaultValue={toDateInputValue(debt.date)}
                   required
                   className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
                 />

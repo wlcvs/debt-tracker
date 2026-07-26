@@ -35,3 +35,7 @@ export function getAvailableMonths(dates: Date[], alwaysInclude?: Date): string[
   if (alwaysInclude) keys.add(getMonthKey(alwaysInclude));
   return Array.from(keys).sort();
 }
+
+export function toDateInputValue(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { deletePayment, updatePayment } from "@/lib/actions/payment";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
-import { formatDateBR } from "@/lib/date-utils";
+import { formatDateBR, toDateInputValue } from "@/lib/date-utils";
+import { formatCurrency } from "@/lib/format-utils";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
@@ -42,7 +43,7 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
 
         {!editing ? (
           <div className="px-6 py-5">
-            <p className="text-3xl tracking-tight text-zinc-900 dark:text-white mb-1">R$ {payment.amount.toFixed(2)}</p>
+            <p className="text-3xl tracking-tight text-zinc-900 dark:text-white mb-1">R$ {formatCurrency(payment.amount)}</p>
             {payment.description ? (
               <p className="text-sm tracking-wider text-zinc-500 dark:text-zinc-400 mb-3">{payment.description}</p>
             ) : (
@@ -87,7 +88,7 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
                   type="text"
                   inputMode="decimal"
                   name="amount"
-                  defaultValue={payment.amount.toFixed(2)}
+                  defaultValue={formatCurrency(payment.amount)}
                   required
                   className="w-28 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
                 />
@@ -97,7 +98,7 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
                 <input
                   type="date"
                   name="date"
-                  defaultValue={payment.date.toISOString().slice(0, 10)}
+                  defaultValue={toDateInputValue(payment.date)}
                   required
                   className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
                 />
@@ -150,7 +151,7 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
       {confirming && (
         <ConfirmDialog
           title="Excluir pagamento?"
-          description={`Pagamento de R$ ${payment.amount.toFixed(2)} será removido permanentemente.`}
+          description={`Pagamento de R$ ${formatCurrency(payment.amount)} será removido permanentemente.`}
           confirmLabel="EXCLUIR"
           onCancel={() => setConfirming(false)}
           onConfirm={async () => {
