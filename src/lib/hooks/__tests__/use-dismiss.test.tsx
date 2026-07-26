@@ -78,6 +78,52 @@ describe("useDismiss", () => {
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
+  it("escapeCapture stops Escape from reaching another useDismiss consumer's bubble-phase listener", () => {
+    function Nested({ outerDismiss, innerDismiss }: { outerDismiss: () => void; innerDismiss: () => void }) {
+      const outerRef = useRef<HTMLDivElement>(null);
+      const innerRef = useRef<HTMLDivElement>(null);
+      useDismiss(outerRef, outerDismiss);
+      useDismiss(innerRef, innerDismiss, { escapeCapture: true });
+      return (
+        <div ref={outerRef}>
+          <div ref={innerRef} data-testid="inner">
+            inner
+          </div>
+        </div>
+      );
+    }
+
+    const outer = vi.fn();
+    const inner = vi.fn();
+    render(<Nested outerDismiss={outer} innerDismiss={inner} />);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(outer).not.toHaveBeenCalled();
+  });
+
+  it("without escapeCapture, both a nested and an outer useDismiss fire on Escape", () => {
+    function Nested({ outerDismiss, innerDismiss }: { outerDismiss: () => void; innerDismiss: () => void }) {
+      const outerRef = useRef<HTMLDivElement>(null);
+      const innerRef = useRef<HTMLDivElement>(null);
+      useDismiss(outerRef, outerDismiss);
+      useDismiss(innerRef, innerDismiss);
+      return (
+        <div ref={outerRef}>
+          <div ref={innerRef} data-testid="inner">
+            inner
+          </div>
+        </div>
+      );
+    }
+
+    const outer = vi.fn();
+    const inner = vi.fn();
+    render(<Nested outerDismiss={outer} innerDismiss={inner} />);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(outer).toHaveBeenCalledTimes(1);
+  });
+
   it("always calls the latest onDismiss even without re-attaching listeners", () => {
     const onDismissA = vi.fn();
     const onDismissB = vi.fn();
