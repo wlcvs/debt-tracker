@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { FormValidationMessages } from "@/components/form-validation-messages";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "Debt Tracker",
@@ -29,6 +31,8 @@ export default function RootLayout({
       <body>
         <FormValidationMessages />
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
