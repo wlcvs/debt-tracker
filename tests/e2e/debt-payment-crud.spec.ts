@@ -54,4 +54,13 @@ test("add a debt and a payment for a newly created person", async ({ page }) => 
   await page.getByRole("button", { name: "Salvar" }).click();
 
   await expect(page.getByText("R$ 50.00")).toBeVisible();
+
+  // Clean up the person this test created — through the real UI delete flow,
+  // both as cleanup and as incidental coverage of that flow. Without this,
+  // every run leaves a stray "E2E Test Person <timestamp>" cluttering the
+  // dashboard's debtor list.
+  await page.getByRole("button", { name: "Excluir devedor" }).click();
+  await page.getByRole("button", { name: "EXCLUIR", exact: true }).click();
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: personName })).not.toBeVisible();
 });
