@@ -16,6 +16,10 @@ let renameStatementId: string;
 let renameFilename: string;
 let importStatementId: string;
 let importDescription: string;
+let escapeRenameStatementId: string;
+let escapeRenameFilename: string;
+let escapeImportStatementId: string;
+let escapeImportDescription: string;
 
 test.beforeAll(async () => {
   const user = await prisma.user.findFirstOrThrow();
@@ -52,10 +56,43 @@ test.beforeAll(async () => {
     },
   });
   importStatementId = importStmt.id;
+
+  escapeRenameFilename = `E2E Escape Rename Test ${RUN_ID}.pdf`;
+  const escapeRenameStmt = await prisma.statement.create({
+    data: {
+      userId: user.id,
+      bank: "Nubank",
+      filename: escapeRenameFilename,
+      pdfData: Buffer.from("%PDF-1.4\n%%EOF"),
+      transactionCount: 0,
+      algoResults: [],
+      LLMResults: [],
+      extractedText: "e2e seed",
+    },
+  });
+  escapeRenameStatementId = escapeRenameStmt.id;
+
+  escapeImportDescription = `E2E Escape Description ${RUN_ID}`;
+  const escapeTxn = { date: "2026-01-15", description: escapeImportDescription, amount: 17.25 };
+  const escapeImportStmt = await prisma.statement.create({
+    data: {
+      userId: user.id,
+      bank: "Nubank",
+      filename: `E2E Escape Import Test ${RUN_ID}.pdf`,
+      pdfData: Buffer.from("%PDF-1.4\n%%EOF"),
+      transactionCount: 1,
+      algoResults: [escapeTxn],
+      LLMResults: [escapeTxn],
+      extractedText: "e2e seed",
+    },
+  });
+  escapeImportStatementId = escapeImportStmt.id;
 });
 
 test.afterAll(async () => {
-  await prisma.statement.deleteMany({ where: { id: { in: [renameStatementId, importStatementId] } } });
+  await prisma.statement.deleteMany({
+    where: { id: { in: [renameStatementId, importStatementId, escapeRenameStatementId, escapeImportStatementId] } },
+  });
 });
 
 test("statements-modal: outside click cancels the rename, not the whole modal", async ({ page }) => {
@@ -115,5 +152,66 @@ test("import-modal: outside click cancels the description edit, not the whole mo
   // import modal (and returns to the statements list, since it was opened
   // via "Abrir").
   await page.mouse.click(5, 5);
+  await expect(page.getByText("Importar extrato")).not.toBeVisible();
+});
+
+// Escape triggers the SAME nested-dismissable bug class as outside-click, but
+// through a third, independent mechanism (see useDismissGuard's doc comment
+// in use-dismiss.ts): React flushes the inline edit's own Escape-triggered
+// state update synchronously, before the same native keydown event reaches
+// the modal-level Escape listener — so without suppressNext() in the inline
+// edit's own Escape handler (not just its onBlur), the outer handler sees
+// the inline edit already "inactive" and closes the whole modal. This bug
+// was found via manual QA after the import-modal.tsx breakup (Phase D) and
+// turned out to predate that refactor — it was already on main.
+
+test("statements-modal: Escape cancels the rename, not the whole modal", async ({ page }) => {
+  await loginAsAdmin(page);
+  await page.getByRole("button", { name: "Extratos" }).click();
+  await expect(page.getByText("Extratos salvos")).toBeVisible();
+
+  const panel = page.getByRole("button", { name: "Fechar" }).locator("xpath=../..");
+  const filenameBtn = panel.getByRole("button", { name: escapeRenameFilename, exact: true });
+  await filenameBtn.locator("xpath=..").getByRole("button", { name: "Renomear" }).click();
+
+  const input = panel.locator('input[type="text"]');
+  await input.fill(`${escapeRenameFilename} SHOULD NOT SAVE`);
+
+  // First Escape: cancels the rename (input's own onKeyDown), discarding the
+  // typed text — but the modal itself must stay open.
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Extratos salvos")).toBeVisible();
+  await expect(panel.getByRole("button", { name: escapeRenameFilename, exact: true })).toBeVisible();
+
+  // Second Escape, with no edit in progress: now it closes the modal.
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Extratos salvos")).not.toBeVisible();
+});
+
+test("import-modal: Escape cancels the description edit, not the whole modal", async ({ page }) => {
+  await loginAsAdmin(page);
+  await page.getByRole("button", { name: "Extratos" }).click();
+  await expect(page.getByText("Extratos salvos")).toBeVisible();
+
+  const importFilenameBtn = page.getByRole("button", { name: `E2E Escape Import Test ${RUN_ID}.pdf`, exact: true });
+  const importRow = importFilenameBtn.locator("xpath=..");
+  await importRow.getByRole("button", { name: "Abrir" }).click();
+
+  const descSpan = page.getByText(escapeImportDescription, { exact: true });
+  await expect(descSpan).toBeVisible();
+  await descSpan.click();
+
+  const descInput = page.locator('table input[type="text"]');
+  await expect(descInput).toHaveValue(escapeImportDescription);
+  await descInput.fill(`${escapeImportDescription} SHOULD NOT SAVE`);
+
+  // First Escape: cancels the description edit, discarding the typed text —
+  // but the import modal itself must stay open.
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Importar extrato")).toBeVisible();
+  await expect(page.getByText(escapeImportDescription, { exact: true })).toBeVisible();
+
+  // Second Escape, with no edit in progress: now it closes the import modal.
+  await page.keyboard.press("Escape");
   await expect(page.getByText("Importar extrato")).not.toBeVisible();
 });
