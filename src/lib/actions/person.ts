@@ -2,17 +2,16 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { requireUserId } from "@/lib/auth-utils";
 
 export async function createPerson(formData: FormData): Promise<{ id: string; name: string }> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const name = z.string().trim().min(1, "Name is required").parse(formData.get("name"));
 
   const person = await prisma.person.create({
-    data: { name, userId: session.user.id },
+    data: { name, userId },
   });
 
   revalidatePath("/");
@@ -48,11 +47,10 @@ export interface PersonWithBalance {
 }
 
 export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const people = await prisma.person.findMany({
-    where: { userId: session.user.id },
+    where: { userId },
     include: { debts: { include: { creditCard: true } }, payments: true },
     orderBy: { name: "asc" },
   });
@@ -93,11 +91,10 @@ export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
 }
 
 export async function getPersonById(id: string): Promise<PersonWithBalance | null> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const person = await prisma.person.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId },
     include: { debts: { include: { creditCard: true } }, payments: true },
   });
 
@@ -137,22 +134,20 @@ export async function getPersonById(id: string): Promise<PersonWithBalance | nul
 }
 
 export async function deletePerson(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const id = z.string().min(1).parse(formData.get("id"));
-  await prisma.person.deleteMany({ where: { id, userId: session.user.id } });
+  await prisma.person.deleteMany({ where: { id, userId } });
   revalidatePath("/");
 }
 
 export async function updatePerson(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const id = z.string().min(1).parse(formData.get("id"));
   const name = z.string().trim().min(1).parse(formData.get("name"));
 
-  await prisma.person.updateMany({ where: { id, userId: session.user.id }, data: { name } });
+  await prisma.person.updateMany({ where: { id, userId }, data: { name } });
   revalidatePath("/");
 }
 
@@ -166,11 +161,10 @@ export interface OverviewStats {
 }
 
 export async function getOverviewStats(): Promise<OverviewStats> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const people = await prisma.person.findMany({
-    where: { userId: session.user.id },
+    where: { userId },
     include: { debts: true, payments: true },
   });
 

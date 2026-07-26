@@ -2,8 +2,8 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { requireUserId } from "@/lib/auth-utils";
 
 const methodSchema = z.enum(["PIX", "CASH"]).default("CASH");
 
@@ -16,8 +16,7 @@ const createPaymentSchema = z.object({
 });
 
 export async function createPayment(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const parsed = createPaymentSchema.parse({
     personId: formData.get("personId"),
@@ -28,7 +27,7 @@ export async function createPayment(formData: FormData) {
   });
 
   const person = await prisma.person.findFirst({
-    where: { id: parsed.personId, userId: session.user.id },
+    where: { id: parsed.personId, userId },
   });
   if (!person) throw new Error("Person not found");
 
@@ -46,12 +45,11 @@ export async function createPayment(formData: FormData) {
 }
 
 export async function deletePayment(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const id = z.string().min(1).parse(formData.get("id"));
   await prisma.payment.deleteMany({
-    where: { id, person: { userId: session.user.id } },
+    where: { id, person: { userId } },
   });
   revalidatePath("/");
 }
@@ -65,8 +63,7 @@ const updatePaymentSchema = z.object({
 });
 
 export async function updatePayment(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
+  const userId = await requireUserId();
 
   const parsed = updatePaymentSchema.parse({
     id: formData.get("id"),
@@ -77,7 +74,7 @@ export async function updatePayment(formData: FormData) {
   });
 
   await prisma.payment.updateMany({
-    where: { id: parsed.id, person: { userId: session.user.id } },
+    where: { id: parsed.id, person: { userId } },
     data: { amount: parsed.amount, description: parsed.description, date: parsed.date, method: parsed.method },
   });
   revalidatePath("/");

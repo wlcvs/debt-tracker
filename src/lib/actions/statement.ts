@@ -2,11 +2,11 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { detectAndParse } from "@/lib/importers";
 import { extractTextPages } from "@/lib/importers/base";
 import { healthCheck, extract, type LLMCorrection } from "@/lib/LLM-extract";
+import { requireUserId } from "@/lib/auth-utils";
 
 // Note: `maxDuration` cannot be exported from this file — Next.js requires
 // every export of a "use server" module to be an async function, and a
@@ -18,12 +18,6 @@ import { healthCheck, extract, type LLMCorrection } from "@/lib/LLM-extract";
 
 function toJson(value: unknown): object {
   return JSON.parse(JSON.stringify(value));
-}
-
-async function requireUserId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Not authenticated");
-  return session.user.id;
 }
 
 async function getCorrections(userId: string, bank: string): Promise<LLMCorrection[]> {
