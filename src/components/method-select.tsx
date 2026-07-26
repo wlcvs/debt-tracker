@@ -21,7 +21,12 @@ export function MethodSelect({ name, options, value, onChange, error, placeholde
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useDismiss(wrapperRef, () => setOpen(false));
+  // This component is always nested inside a form/modal that has its own useDismiss
+  // with Escape enabled too. escapeCapture makes this listener run (and stop
+  // propagation) before that outer one ever sees the keypress — see the doc comment
+  // on UseDismissOptions.escapeCapture. enabled: open also means the listeners are
+  // only attached while there's actually something to dismiss.
+  useDismiss(wrapperRef, () => setOpen(false), { enabled: open, escapeCapture: true });
 
   const selected = options.find((o) => o.value === value);
 

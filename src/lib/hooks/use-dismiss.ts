@@ -11,6 +11,18 @@ export interface UseDismissOptions {
   outsideClick?: boolean;
   /** Set to false to skip the Escape-key listener. */
   escape?: boolean;
+  /** Set to true to attach the Escape listener in the capture phase and call
+   * stopPropagation() when it fires. A plain bubble-phase listener (the default)
+   * can't reliably beat another useDismiss consumer's own bubble-phase listener
+   * on `window` — both are independent listeners on the same target, and which
+   * fires first depends on attach order/timing, not DOM nesting. A capture-phase
+   * listener on `window` always runs before any bubble-phase listener anywhere
+   * (capture starts at `window` and works down to the target, before bubbling
+   * back up), so stopping propagation there reliably lets a nested dismissable
+   * (e.g. a dropdown inside a form that has its own useDismiss) consume Escape
+   * for itself without it also reaching the outer one. Only meaningful when
+   * `escape` is true. */
+  escapeCapture?: boolean;
 }
 
 /**
@@ -28,7 +40,7 @@ export interface UseDismissOptions {
 export function useDismiss(
   ref: RefObject<HTMLElement | null> | null,
   onDismiss: () => void,
-  { enabled = true, outsideClick = true, escape = true }: UseDismissOptions = {},
+  { enabled = true, outsideClick = true, escape = true, escapeCapture = false }: UseDismissOptions = {},
 ) {
   const onDismissRef = useRef(onDismiss);
   useEffect(() => {
@@ -50,16 +62,18 @@ export function useDismiss(
       }
     }
     function onEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") onDismissRef.current();
+      if (e.key !== "Escape") return;
+      if (escapeCapture) e.stopPropagation();
+      onDismissRef.current();
     }
 
     if (outsideClick && ref) document.addEventListener("click", onClickOutside);
-    if (escape) window.addEventListener("keydown", onEscape);
+    if (escape) window.addEventListener("keydown", onEscape, escapeCapture);
     return () => {
       if (outsideClick && ref) document.removeEventListener("click", onClickOutside);
-      if (escape) window.removeEventListener("keydown", onEscape);
+      if (escape) window.removeEventListener("keydown", onEscape, escapeCapture);
     };
-  }, [ref, enabled, outsideClick, escape]);
+  }, [ref, enabled, outsideClick, escape, escapeCapture]);
 }
 
 /**
