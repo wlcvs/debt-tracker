@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DebtDetailModal } from "@/components/debt-detail-modal";
 import { formatCurrency } from "@/lib/format-utils";
+import { Badge } from "@/components/badge";
 
 interface Props {
   debt: {
@@ -34,9 +35,9 @@ export function EditableDebt({ debt, creditCards }: Props) {
         <span className={`flex items-center gap-2 text-xs tracking-widest text-zinc-700 dark:text-zinc-300 truncate${debt.paid ? " line-through" : ""}`}>
           {debt.title || <span className="text-zinc-400 dark:text-zinc-600 italic">sem título</span>}
           {debt.installmentGroupId && (
-            <span className="shrink-0 text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1 py-0.5 no-underline">
+            <Badge className="px-1 shrink-0 no-underline">
               {debt.installmentIndex}/{debt.installmentTotal}
-            </span>
+            </Badge>
           )}
         </span>
         <span className={`text-xs text-zinc-700 dark:text-zinc-300 shrink-0${debt.paid ? " line-through" : ""}`}>

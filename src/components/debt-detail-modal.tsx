@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { InstallmentGroupPanel } from "@/components/installment-group-panel";
 import { ModalShell } from "@/components/modal-shell";
 import { AmountDateFields } from "@/components/amount-date-fields";
+import { Badge } from "@/components/badge";
 import { formatDateBR } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format-utils";
 
@@ -60,15 +61,11 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
           )}
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <span className="text-xs text-zinc-400 dark:text-zinc-600">{formatDateBR(debt.date)}</span>
-            {badgeLabel && (
-              <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
-                {badgeLabel}
-              </span>
-            )}
+            {badgeLabel && <Badge>{badgeLabel}</Badge>}
             {isInstallment && (
-              <span className="text-[10px] tracking-widest uppercase border border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5">
+              <Badge>
                 Parcela {debt.installmentIndex}/{debt.installmentTotal}
-              </span>
+              </Badge>
             )}
           </div>
           <div className="flex flex-wrap gap-3 items-center">
