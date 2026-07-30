@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { StatementsModal } from "@/components/statements-modal";
 
 // Loaded client-only: this drags in pdfjs-dist's browser worker asset
 // reference, which Next's server compiler otherwise tries to analyze
@@ -11,6 +10,15 @@ import { StatementsModal } from "@/components/statements-modal";
 const ImportModal = dynamic(() => import("@/components/import-modal").then((m) => m.ImportModal), {
   ssr: false,
 });
+
+// Also dynamic: StatementsModal statically imports @/lib/actions/statement,
+// which pulls in the whole importers/ + LLM-extract/ module graph (and
+// pdfjs-dist's file trace) — none of that is needed just to render this
+// launcher button, so keep it out of the dashboard route's eager bundle.
+const StatementsModal = dynamic(
+  () => import("@/components/statements-modal").then((m) => m.StatementsModal),
+  { ssr: false }
+);
 
 interface Props {
   people: { id: string; name: string }[];
