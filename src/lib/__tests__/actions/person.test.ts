@@ -10,9 +10,8 @@ import {
   createPerson,
   deletePerson,
   updatePerson,
-  getPeopleWithBalances,
   getPersonById,
-  getOverviewStats,
+  getDashboardOverview,
   getDebtorViewById,
   togglePersonPublicVisibility,
 } from "@/lib/actions/person";
@@ -158,88 +157,6 @@ describe("updatePerson", () => {
   });
 });
 
-// ── getPeopleWithBalances ─────────────────────────────────────────────────────
-
-describe("getPeopleWithBalances", () => {
-  it("throws when not authenticated", async () => {
-    mockAuth.mockResolvedValue(null as never);
-    await expect(getPeopleWithBalances()).rejects.toThrow("Not authenticated");
-  });
-
-  it("returns people with correct totalOwed", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findMany.mockResolvedValue([
-      {
-        id: "p1",
-        name: "João",
-        debts: [{ id: "d1", amount: 500, description: "X", date: new Date() }],
-        payments: [{ id: "pay1", amount: 200, date: new Date(), method: "PIX" }],
-      },
-    ] as never);
-
-    const result = await getPeopleWithBalances();
-    expect(result).toHaveLength(1);
-    expect(result[0].totalOwed).toBe(300);
-    expect(result[0].name).toBe("João");
-  });
-
-  it("excludes paid debts from totalOwed", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findMany.mockResolvedValue([
-      {
-        id: "p1",
-        name: "João",
-        debts: [
-          { id: "d1", amount: 500, title: "X", description: "", paid: false, date: new Date() },
-          { id: "d2", amount: 1000, title: "Y", description: "", paid: true, date: new Date() },
-        ],
-        payments: [],
-      },
-    ] as never);
-
-    const result = await getPeopleWithBalances();
-    expect(result[0].totalOwed).toBe(500);
-  });
-
-  it("excludes a paid debt that belongs to an installment group from totalOwed", async () => {
-    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findMany.mockResolvedValue([
-      {
-        id: "p1",
-        name: "João",
-        debts: [
-          {
-            id: "d1",
-            amount: 100,
-            title: "Notebook (1/2)",
-            description: "",
-            paid: true,
-            date: new Date(),
-            installmentGroupId: "group-1",
-            installmentIndex: 1,
-            installmentTotal: 2,
-          },
-          {
-            id: "d2",
-            amount: 100,
-            title: "Notebook (2/2)",
-            description: "",
-            paid: false,
-            date: new Date(),
-            installmentGroupId: "group-1",
-            installmentIndex: 2,
-            installmentTotal: 2,
-          },
-        ],
-        payments: [],
-      },
-    ] as never);
-
-    const result = await getPeopleWithBalances();
-    expect(result[0].totalOwed).toBe(100);
-  });
-});
-
 // ── getPersonById ─────────────────────────────────────────────────────────────
 
 describe("getPersonById", () => {
@@ -288,58 +205,81 @@ describe("getPersonById", () => {
   });
 });
 
-// ── getOverviewStats ──────────────────────────────────────────────────────────
+// ── getDashboardOverview ──────────────────────────────────────────────────────
 
-describe("getOverviewStats", () => {
+describe("getDashboardOverview", () => {
   it("throws when not authenticated", async () => {
     mockAuth.mockResolvedValue(null as never);
-    await expect(getOverviewStats()).rejects.toThrow("Not authenticated");
+    await expect(getDashboardOverview()).rejects.toThrow("Not authenticated");
   });
 
-  it("returns correct aggregate stats", async () => {
+  it("computes totals for an active debtor (unpaid debt, no payment)", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findMany.mockResolvedValue([
-      { id: "p1", debts: [{ amount: 500 }, { amount: 200 }], payments: [{ amount: 100 }] },
-      { id: "p2", debts: [{ amount: 300 }], payments: [{ amount: 300 }] },
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", name: "João" }] as never);
+    prismaMock.debt.groupBy.mockResolvedValue([
+      { personId: "p1", _sum: { amount: 500 } },
     ] as never);
+    prismaMock.payment.groupBy.mockResolvedValue([] as never);
+    prismaMock.debt.count.mockResolvedValue(1);
+    prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: null }, _count: 0 } as never);
 
-    const stats = await getOverviewStats();
-    expect(stats.totalToReceive).toBe(600);
+    const { people, stats } = await getDashboardOverview();
+    expect(people).toEqual([{ id: "p1", name: "João", totalOwed: 500 }]);
+    expect(stats.totalToReceive).toBe(500);
     expect(stats.activeDebtors).toBe(1);
-    expect(stats.totalDebtors).toBe(2);
-    expect(stats.totalDebts).toBe(3);
-    expect(stats.totalPayments).toBe(2);
-    expect(stats.totalPaid).toBe(400);
+    expect(stats.totalDebtors).toBe(1);
+    expect(stats.totalDebts).toBe(1);
+    expect(stats.totalPayments).toBe(0);
+    expect(stats.totalPaid).toBe(0);
   });
 
-  it("returns zeros with no people", async () => {
+  it("counts a paid debt in totalDebts but excludes it from the balance", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findMany.mockResolvedValue([]);
-    const stats = await getOverviewStats();
-    expect(stats.totalToReceive).toBe(0);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", name: "João" }] as never);
+    // paid: false in the groupBy's where filters the paid debt out entirely,
+    // so it never contributes a _sum row — only the unfiltered count sees it.
+    prismaMock.debt.groupBy.mockResolvedValue([] as never);
+    prismaMock.payment.groupBy.mockResolvedValue([] as never);
+    prismaMock.debt.count.mockResolvedValue(1);
+    prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: null }, _count: 0 } as never);
+
+    const { people, stats } = await getDashboardOverview();
+    expect(people[0].totalOwed).toBe(0);
     expect(stats.activeDebtors).toBe(0);
+    expect(stats.totalDebts).toBe(1);
   });
 
-  it("clamps a negative owed balance (overpayment) to 0 in totalToReceive without counting them as an active debtor", async () => {
+  it("clamps a fully-paid balance (payments >= debt) to zero and does not count it as active", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findMany.mockResolvedValue([
-      { id: "p1", debts: [{ amount: 100, paid: false }], payments: [{ amount: 300 }] },
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", name: "João" }] as never);
+    prismaMock.debt.groupBy.mockResolvedValue([
+      { personId: "p1", _sum: { amount: 200 } },
     ] as never);
+    prismaMock.payment.groupBy.mockResolvedValue([
+      { personId: "p1", _sum: { amount: 300 } },
+    ] as never);
+    prismaMock.debt.count.mockResolvedValue(1);
+    prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: 300 }, _count: 1 } as never);
 
-    const stats = await getOverviewStats();
+    const { people, stats } = await getDashboardOverview();
+    expect(people[0].totalOwed).toBe(-100);
     expect(stats.totalToReceive).toBe(0);
     expect(stats.activeDebtors).toBe(0);
     expect(stats.totalPaid).toBe(300);
   });
 
-  it("does not count a debtor with exactly zero balance owed as active", async () => {
+  it("returns a person with no debts/payments as zero balance, not active", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findMany.mockResolvedValue([
-      { id: "p1", debts: [{ amount: 200, paid: false }], payments: [{ amount: 200 }] },
-    ] as never);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", name: "João" }] as never);
+    prismaMock.debt.groupBy.mockResolvedValue([] as never);
+    prismaMock.payment.groupBy.mockResolvedValue([] as never);
+    prismaMock.debt.count.mockResolvedValue(0);
+    prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: null }, _count: 0 } as never);
 
-    const stats = await getOverviewStats();
+    const { people, stats } = await getDashboardOverview();
+    expect(people).toEqual([{ id: "p1", name: "João", totalOwed: 0 }]);
     expect(stats.activeDebtors).toBe(0);
+    expect(stats.totalToReceive).toBe(0);
   });
 });
 

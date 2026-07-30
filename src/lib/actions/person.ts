@@ -95,18 +95,6 @@ function toPersonWithBalance(person: PersonWithRelations): Omit<PersonWithBalanc
   };
 }
 
-export async function getPeopleWithBalances(): Promise<PersonWithBalance[]> {
-  const userId = await requireUserId();
-
-  const people = await prisma.person.findMany({
-    where: { userId },
-    include: { debts: { include: { creditCard: true } }, payments: true },
-    orderBy: { name: "asc" },
-  });
-
-  return people.map((person) => ({ id: person.id, ...toPersonWithBalance(person) }));
-}
-
 export async function getPersonById(id: string): Promise<PersonWithBalance | null> {
   const userId = await requireUserId();
 
@@ -147,34 +135,73 @@ export interface OverviewStats {
   totalPaid: number;
 }
 
-export async function getOverviewStats(): Promise<OverviewStats> {
+export interface PersonSummary {
+  id: string;
+  name: string;
+  totalOwed: number;
+}
+
+export interface DashboardOverview {
+  stats: OverviewStats;
+  people: PersonSummary[];
+}
+
+// Dashboard-only shape: unlike getPersonById/getDebtorViewById (which need
+// every debt/payment row to render detail lists), the dashboard only ever
+// shows per-person totals and global counts — so this aggregates in
+// Postgres (groupBy/count/aggregate) instead of pulling the whole
+// Person -> Debt -> Payment graph over the wire just to sum it in JS.
+export async function getDashboardOverview(): Promise<DashboardOverview> {
   const userId = await requireUserId();
 
-  const people = await prisma.person.findMany({
-    where: { userId },
-    include: { debts: true, payments: true },
-  });
+  const [people, unpaidDebtSums, paymentSums, totalDebts, paymentAgg] = await Promise.all([
+    prisma.person.findMany({
+      where: { userId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.debt.groupBy({
+      by: ["personId"],
+      where: { person: { userId }, paid: false },
+      _sum: { amount: true },
+    }),
+    prisma.payment.groupBy({
+      by: ["personId"],
+      where: { person: { userId } },
+      _sum: { amount: true },
+    }),
+    prisma.debt.count({ where: { person: { userId } } }),
+    prisma.payment.aggregate({
+      where: { person: { userId } },
+      _sum: { amount: true },
+      _count: true,
+    }),
+  ]);
+
+  const debtByPerson = new Map(unpaidDebtSums.map((d) => [d.personId, Number(d._sum.amount ?? 0)]));
+  const paidByPerson = new Map(paymentSums.map((p) => [p.personId, Number(p._sum.amount ?? 0)]));
 
   let totalToReceive = 0;
   let activeDebtors = 0;
-  let totalPaid = 0;
-
-  for (const p of people) {
-    const debt = p.debts.reduce((s, d) => s + (d.paid ? 0 : Number(d.amount)), 0);
-    const paid = p.payments.reduce((s, pay) => s + Number(pay.amount), 0);
-    const owed = debt - paid;
-    totalToReceive += Math.max(0, owed);
-    totalPaid += paid;
-    if (owed > 0) activeDebtors++;
-  }
+  const peopleSummary = people.map((p) => {
+    const totalOwed = (debtByPerson.get(p.id) ?? 0) - (paidByPerson.get(p.id) ?? 0);
+    if (totalOwed > 0) {
+      totalToReceive += totalOwed;
+      activeDebtors++;
+    }
+    return { id: p.id, name: p.name, totalOwed };
+  });
 
   return {
-    totalToReceive,
-    activeDebtors,
-    totalDebtors: people.length,
-    totalDebts: people.reduce((s, p) => s + p.debts.length, 0),
-    totalPayments: people.reduce((s, p) => s + p.payments.length, 0),
-    totalPaid,
+    people: peopleSummary,
+    stats: {
+      totalToReceive,
+      activeDebtors,
+      totalDebtors: people.length,
+      totalDebts,
+      totalPayments: paymentAgg._count,
+      totalPaid: Number(paymentAgg._sum.amount ?? 0),
+    },
   };
 }
 

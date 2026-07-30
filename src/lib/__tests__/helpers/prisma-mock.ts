@@ -16,10 +16,13 @@ export const prismaMock = {
     updateMany: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
+    groupBy: vi.fn(),
     update: vi.fn(),
   },
   payment: {
     create: vi.fn(),
+    groupBy: vi.fn(),
+    aggregate: vi.fn(),
   },
   creditCard: {
     create: vi.fn(),

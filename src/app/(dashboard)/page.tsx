@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getOverviewStats, getPeopleWithBalances } from "@/lib/actions/person";
+import { getDashboardOverview } from "@/lib/actions/person";
 import { getCreditCards } from "@/lib/actions/credit-card";
 import { TotalDisplay } from "@/components/total-display";
 import { CreditCardList } from "@/components/credit-card-list";
@@ -14,9 +14,8 @@ import { formatCurrency } from "@/lib/format-utils";
 export const maxDuration = 300;
 
 export default async function OverviewPage() {
-  const [stats, people, creditCards] = await Promise.all([
-    getOverviewStats(),
-    getPeopleWithBalances(),
+  const [{ stats, people }, creditCards] = await Promise.all([
+    getDashboardOverview(),
     getCreditCards(),
   ]);
 
