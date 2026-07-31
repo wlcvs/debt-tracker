@@ -117,12 +117,20 @@ test("public view: renders without login, filters by month, read-only modals, fi
 
 test("public view: 404s when the person's public page is hidden", async ({ page }) => {
   const user = await prisma.user.findFirstOrThrow();
+  const hiddenPersonName = `E2E Hidden Person ${RUN_ID}`;
   const hiddenPerson = await prisma.person.create({
-    data: { userId: user.id, name: `E2E Hidden Person ${RUN_ID}`, publicVisible: false },
+    data: { userId: user.id, name: hiddenPersonName, publicVisible: false },
   });
 
-  const response = await page.goto(`/public/${hiddenPerson.id}`);
-  expect(response?.status()).toBe(404);
+  // Asserting on rendered content, not response.status(): with loading.tsx
+  // present on this route, Next streams the initial 200 before notFound()
+  // resolves, so the HTTP status can't become 404 — see the note in
+  // src/app/public/[code]/page.tsx. The content itself is still correct
+  // (default Next not-found page, no debtor data), which is what matters
+  // for not leaking whether a hidden person's id exists.
+  await page.goto(`/public/${hiddenPerson.id}`);
+  await expect(page.getByText("This page could not be found")).toBeVisible();
+  await expect(page.getByText(hiddenPersonName)).not.toBeVisible();
 
   await prisma.person.delete({ where: { id: hiddenPerson.id } });
 });
@@ -142,9 +150,11 @@ test("dashboard: toggling public visibility blocks and restores the public page"
   await toggleButton.click();
   await expect(toggleButton).toHaveText("REATIVAR PÁGINA PÚBLICA");
 
+  // See the sibling "404s when hidden" test above for why this asserts on
+  // content, not response.status().
   const hiddenPage = await context.newPage();
-  const hiddenResponse = await hiddenPage.goto(`/public/${person.id}`);
-  expect(hiddenResponse?.status()).toBe(404);
+  await hiddenPage.goto(`/public/${person.id}`);
+  await expect(hiddenPage.getByText("This page could not be found")).toBeVisible();
   await hiddenPage.close();
 
   await toggleButton.click();

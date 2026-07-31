@@ -12,11 +12,27 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: debt_tracker_next
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      # Build-time only — no real DB connection is made (all pages are
-      # dynamic/no generateStaticParams), and unit tests mock Prisma
-      # entirely. Never use these values outside CI.
-      DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+      # `npm run build` runs `prisma migrate deploy` (see package.json —
+      # added so the same command Vercel's build uses is exercised here
+      # too, catching an unapplied migration before it reaches main), so
+      # this needs a real reachable Postgres, not just a placeholder URL.
+      # Unit tests still mock Prisma entirely and never touch this DB.
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/debt_tracker_next"
       AUTH_SECRET: "ci-build-only-not-a-real-secret"
       ADMIN_EMAIL: "admin@example.com"
       ADMIN_PASSWORD: "ci-build-only-not-a-real-password"

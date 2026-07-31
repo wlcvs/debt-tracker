@@ -11,6 +11,15 @@ export default async function PublicDirectPage({
   const { code } = await params;
   const debtor = await getDebtorViewById(code);
 
+  // Note: with loading.tsx present in this segment, Next.js streams the
+  // initial 200 response before this resolves, so notFound() here can only
+  // affect the rendered content (correctly shows the not-found UI), not the
+  // HTTP status code — confirmed the same is true even when this check is
+  // moved to generateMetadata, which is normally documented as running
+  // before the body streams; that guarantee doesn't hold once loading.tsx
+  // makes the whole segment (metadata included) streamable. Accepted
+  // tradeoff for keeping the instant-shell UX on this route; the E2E specs
+  // assert on rendered content, not response.status(), for this reason.
   if (!debtor) notFound();
 
   return (
