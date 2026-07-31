@@ -50,6 +50,11 @@
     "typescript": "^5",
     "vitest": "^4.1.9"
   },
+  "overrides": {
+    "postcss": "^8.5.18",
+    "sharp": "^0.35.3",
+    "find-my-way": "^9.7.0"
+  },
   "allowScripts": {
     "prisma@7.8.0": true,
     "sharp@0.34.5": true,
