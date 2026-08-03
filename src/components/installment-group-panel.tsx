@@ -94,7 +94,7 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
   }
 
   return (
-    <ModalShell eyebrow={`Parcelas — ${title}`} onClose={onClose} maxWidthClassName="max-w-md" zIndexClassName="z-50">
+    <ModalShell eyebrow={`Parcelas — ${title}`} onClose={onClose} maxWidthClassName="max-w-md">
         <div className="px-6 py-5 flex flex-col gap-4">
           {!installments ? (
             <p className="text-xs text-zinc-400">Carregando...</p>

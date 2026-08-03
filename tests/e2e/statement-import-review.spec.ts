@@ -83,6 +83,11 @@ test("statement import review: filter, sort, and manually add a transaction", as
   // getByLabel can't resolve them, so target the required text input (Título)
   // positionally; it's the only required text field, "Descrição" isn't.
   await manualDialog.locator('input[type="text"]').first().fill(manualTitle);
+  // Método is required (manual-add-dialog.tsx's confirmManualAdd bails out and
+  // flags the field when it's empty). Scoped to the dialog because the review
+  // table behind it has a method select of its own on every row.
+  await manualDialog.getByRole("button", { name: "— Método —" }).click();
+  await manualDialog.getByRole("button", { name: "Pix", exact: true }).click();
   await page.getByRole("button", { name: "Adicionar", exact: true }).click();
 
   await expect(page.getByText(manualTitle, { exact: true })).toBeVisible();
