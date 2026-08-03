@@ -1,5 +1,7 @@
 export type TxnType = "ignore" | "debt" | "payment";
 
+export type EditingCell = { index: number | string; field: "description" | "date" | "amount" } | null;
+
 export interface Txn {
   index: number | string;
   date: string;
@@ -10,6 +12,7 @@ export interface Txn {
   manual?: boolean;
   title?: string;
   notes?: string;
+  method?: string;
 }
 
 export function formatAmount(s: number | string): string {

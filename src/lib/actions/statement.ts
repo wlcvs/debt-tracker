@@ -7,6 +7,7 @@ import { detectAndParse } from "@/lib/importers";
 import { extractTextPages } from "@/lib/importers/base";
 import { healthCheck, extract, type LLMCorrection } from "@/lib/LLM-extract";
 import { requireUserId } from "@/lib/auth-utils";
+import { resolveDebtMethod } from "@/lib/debt-method";
 
 // Note: `maxDuration` cannot be exported from this file — Next.js requires
 // every export of a "use server" module to be an async function, and a
@@ -180,6 +181,7 @@ const importedItemSchema = z.object({
   description: z.string().optional(),
   title: z.string().optional(),
   notes: z.string().optional(),
+  method: z.string().optional(),
 });
 
 export async function saveImportedTransactions(items: unknown[]): Promise<{ created: number }> {
@@ -210,17 +212,19 @@ export async function saveImportedTransactions(items: unknown[]): Promise<{ crea
       const notes = (item.notes ?? "").slice(0, 500);
 
       if (item.type === "debt") {
+        const { method, creditCardId } = resolveDebtMethod(item.method);
         await tx.debt.create({
-          data: { personId: item.personId, title, description: notes, amount: item.amount, date: item.date },
+          data: { personId: item.personId, title, description: notes, amount: item.amount, date: item.date, method, creditCardId },
         });
       } else {
+        const paymentMethod = item.method === "PIX" || item.method === "CASH" ? item.method : undefined;
         await tx.payment.create({
           data: {
             personId: item.personId,
             amount: item.amount,
             description: notes || description,
             date: item.date,
-            method: "PIX",
+            ...(paymentMethod ? { method: paymentMethod } : {}),
           },
         });
       }

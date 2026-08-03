@@ -6,16 +6,7 @@ import { revalidatePath } from "next/cache";
 import { splitInstallmentAmounts, installmentDate } from "@/lib/installments";
 import { requireUserId } from "@/lib/auth-utils";
 import { amountSchema, dateSchema } from "@/lib/schemas";
-
-const DEBT_METHODS = ["PIX", "CASH"] as const;
-
-function resolveDebtMethod(debtMethod: string | undefined): { method: "PIX" | "CASH" | null; creditCardId: string | null } {
-  const isEnumMethod = DEBT_METHODS.includes(debtMethod as typeof DEBT_METHODS[number]);
-  return {
-    method: isEnumMethod ? (debtMethod as "PIX" | "CASH") : null,
-    creditCardId: !isEnumMethod && debtMethod ? debtMethod : null,
-  };
-}
+import { resolveDebtMethod } from "@/lib/debt-method";
 
 const createDebtSchema = z.object({
   personId: z.string().min(1),

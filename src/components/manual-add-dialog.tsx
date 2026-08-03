@@ -1,24 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { saveLLMFeedback } from "@/lib/actions/statement";
 import type { Txn } from "@/lib/import-modal-types";
 import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
+import { MethodSelect, type MethodOption } from "@/components/method-select";
 
 interface Props {
   bank: string;
+  creditCards: { id: string; label: string }[];
   onClose: () => void;
   onAdd: (txn: Txn) => void;
 }
 
-export function ManualAddDialog({ bank, onClose, onAdd }: Props) {
+export function ManualAddDialog({ bank, creditCards, onClose, onAdd }: Props) {
   const [manualDate, setManualDate] = useState("");
   const [manualTitle, setManualTitle] = useState("");
   const [manualNotes, setManualNotes] = useState("");
   const [manualAmount, setManualAmount] = useState("");
+  const [manualMethod, setManualMethod] = useState("");
+  const [manualMethodError, setManualMethodError] = useState(false);
+
+  const methodOptions: MethodOption[] = useMemo(
+    () => [
+      { value: "PIX", label: "Pix" },
+      { value: "CASH", label: "Dinheiro" },
+      ...creditCards.map((c) => ({ value: c.id, label: c.label })),
+    ],
+    [creditCards]
+  );
 
   async function confirmManualAdd() {
     if (!manualDate || !manualTitle || !manualAmount) return;
+    if (!manualMethod) {
+      setManualMethodError(true);
+      return;
+    }
 
     const newTxn: Txn = {
       index: `manual_${Date.now()}`,
@@ -29,6 +46,7 @@ export function ManualAddDialog({ bank, onClose, onAdd }: Props) {
       amount: parseFloat(manualAmount).toFixed(2),
       personId: "",
       type: "debt",
+      method: manualMethod,
       manual: true,
     };
 
@@ -74,6 +92,19 @@ export function ManualAddDialog({ bank, onClose, onAdd }: Props) {
               Descrição <span className="normal-case tracking-normal opacity-60">(opcional)</span>
             </label>
             <input type="text" maxLength={500} value={manualNotes} onChange={(e) => setManualNotes(e.target.value)} className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors" />
+          </div>
+          <div className="mb-5">
+            <label className="block text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 mb-1.5">Método</label>
+            <MethodSelect
+              name="manualMethod"
+              options={methodOptions}
+              value={manualMethod}
+              onChange={(v) => {
+                setManualMethod(v);
+                setManualMethodError(false);
+              }}
+              error={manualMethodError}
+            />
           </div>
           <div className="flex gap-3 justify-end">
             <button type="button" onClick={onClose} className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 transition-colors cursor-pointer">

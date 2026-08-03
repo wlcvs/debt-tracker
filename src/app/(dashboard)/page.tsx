@@ -23,7 +23,7 @@ export default async function OverviewPage() {
     <div className="flex flex-col gap-10">
       <div className="flex items-start justify-between gap-4">
         <TotalDisplay total={stats.totalToReceive} />
-        <StatementImportLauncher people={people.map((p) => ({ id: p.id, name: p.name }))} />
+        <StatementImportLauncher people={people.map((p) => ({ id: p.id, name: p.name }))} creditCards={creditCards} />
       </div>
 
       {/* Stats grid */}

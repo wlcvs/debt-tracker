@@ -8,17 +8,18 @@ import { FilterToolbar } from "@/components/filter-toolbar";
 import { TransactionTable } from "@/components/transaction-table";
 import { PdfViewerPane } from "@/components/pdf-viewer-pane";
 import { ManualAddDialog } from "@/components/manual-add-dialog";
-import type { Txn } from "@/lib/import-modal-types";
+import type { EditingCell, Txn } from "@/lib/import-modal-types";
 
 interface Props {
   people: { id: string; name: string }[];
+  creditCards: { id: string; label: string }[];
   reopenStatementId: string | null;
   cameFromStatements: boolean;
   onClose: () => void;
   onBackToStatements: () => void;
 }
 
-export function ImportModal({ people, reopenStatementId, cameFromStatements, onClose, onBackToStatements }: Props) {
+export function ImportModal({ people, creditCards, reopenStatementId, cameFromStatements, onClose, onBackToStatements }: Props) {
   const [localPeople, setLocalPeople] = useState(people);
 
   const [mobileView, setMobileView] = useState<"list" | "pdf">("list");
@@ -32,7 +33,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
   const [filterAmountMax, setFilterAmountMax] = useState("");
 
   const [showManualAdd, setShowManualAdd] = useState(false);
-  const [editingDescIndex, setEditingDescIndex] = useState<number | string | null>(null);
+  const [editingCell, setEditingCell] = useState<EditingCell>(null);
 
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
 
@@ -112,14 +113,14 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
 
   const dismissModal = useCallback(() => {
     guardDismiss(() => {
-      if (editingDescIndex !== null) {
-        setEditingDescIndex(null);
+      if (editingCell !== null) {
+        setEditingCell(null);
       } else {
         closeModal();
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingDescIndex]);
+  }, [editingCell]);
   useDismiss(null, dismissModal, { outsideClick: false });
 
   return (
@@ -236,11 +237,12 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
                   currentTxns={currentTxns}
                   localPeople={localPeople}
                   setLocalPeople={setLocalPeople}
+                  creditCards={creditCards}
                   patchCurrentTxn={patchCurrentTxn}
                   selectedTxnIndex={pdf.selectedTxnIndex}
                   onSelectTxn={pdf.highlightTransaction}
-                  editingDescIndex={editingDescIndex}
-                  setEditingDescIndex={setEditingDescIndex}
+                  editingCell={editingCell}
+                  setEditingCell={setEditingCell}
                   suppressNextDismiss={suppressNextDismiss}
                   tableBodyRef={tableBodyRef}
                   search={search}
@@ -278,7 +280,7 @@ export function ImportModal({ people, reopenStatementId, cameFromStatements, onC
             </div>
 
             {showManualAdd && (
-              <ManualAddDialog bank={bank} onClose={() => setShowManualAdd(false)} onAdd={handleAddManualTxn} />
+              <ManualAddDialog bank={bank} creditCards={creditCards} onClose={() => setShowManualAdd(false)} onAdd={handleAddManualTxn} />
             )}
           </div>
         )}

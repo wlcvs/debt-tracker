@@ -22,11 +22,12 @@ const StatementsModal = dynamic(
 
 interface Props {
   people: { id: string; name: string }[];
+  creditCards: { id: string; label: string }[];
 }
 
 type ActiveModal = "none" | "statements" | "import";
 
-export function StatementImportLauncher({ people }: Props) {
+export function StatementImportLauncher({ people, creditCards }: Props) {
   const [activeModal, setActiveModal] = useState<ActiveModal>("none");
   const [reopenId, setReopenId] = useState<string | null>(null);
   const [cameFromStatements, setCameFromStatements] = useState(false);
@@ -59,6 +60,7 @@ export function StatementImportLauncher({ people }: Props) {
       {activeModal === "import" && (
         <ImportModal
           people={people}
+          creditCards={creditCards}
           reopenStatementId={reopenId}
           cameFromStatements={cameFromStatements}
           onClose={() => setActiveModal("none")}

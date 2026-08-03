@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import * as Popover from "@radix-ui/react-popover";
 import { createPerson } from "@/lib/actions/person";
 
 interface PersonOption {
@@ -22,45 +23,7 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
   const [newName, setNewName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // mousedown, not click: a click on "+ Novo devedor" swaps this popover's own
-    // contents synchronously (options list -> create form), which would detach
-    // e.target from the DOM before a same-phase "click" listener here could see it
-    // as still contained in wrapperRef. mousedown fires before that re-render.
-    function onMouseDownOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        closePopover();
-      }
-    }
-    document.addEventListener("mousedown", onMouseDownOutside);
-    return () => document.removeEventListener("mousedown", onMouseDownOutside);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    // Capture phase, not bubble: reverting from the create-form back to the
-    // options list unmounts the focused input, so focus falls back to
-    // document.body — a later Escape press then has no PersonSelect element
-    // in its bubble path and would otherwise reach ImportModal's window
-    // listener directly. A capture-phase listener intercepts Escape before
-    // it can propagate that far, regardless of what currently has focus.
-    function onEscapeCapture(e: KeyboardEvent) {
-      if (e.key !== "Escape") return;
-      e.stopPropagation();
-      if (creating) {
-        setCreating(false);
-        setNewName("");
-        setError("");
-      } else {
-        closePopover();
-      }
-    }
-    window.addEventListener("keydown", onEscapeCapture, true);
-    return () => window.removeEventListener("keydown", onEscapeCapture, true);
-  }, [open, creating]);
 
   function trapTab(e: React.KeyboardEvent) {
     if (e.key !== "Tab" || !formRef.current) return;
@@ -76,11 +39,15 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
     }
   }
 
-  function closePopover() {
-    setOpen(false);
+  function cancelCreating() {
     setCreating(false);
     setNewName("");
     setError("");
+  }
+
+  function closePopover() {
+    setOpen(false);
+    cancelCreating();
   }
 
   async function handleSave() {
@@ -102,21 +69,51 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
   const selected = people.find((p) => p.id === value);
 
   return (
-    <div ref={wrapperRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`w-full text-left flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider focus:outline-none transition-colors cursor-pointer ${
-          selected ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"
-        }`}
-      >
-        <span className="truncate">{selected ? selected.name : placeholder}</span>
-        <span className="text-[9px] text-zinc-400 ml-1 shrink-0">▾</span>
-      </button>
-      {open && (
-        <div className="absolute z-20 left-0 right-0 top-full mt-px border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 min-w-max">
+    <Popover.Root open={open} onOpenChange={(next) => (next ? setOpen(true) : closePopover())}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          className={`w-full text-left flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider focus:outline-none transition-colors cursor-pointer ${
+            selected ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"
+          }`}
+        >
+          <span className="truncate">{selected ? selected.name : placeholder}</span>
+          <span className="text-[9px] text-zinc-400 ml-1 shrink-0">▾</span>
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        {/* Rendered via portal to document.body (Radix), positioned by Floating UI relative
+            to the trigger — this table cell's own dropdown used to be a plain absolutely-
+            positioned child instead, which only spans the Devedor column's width but is
+            taller than one row, so it visually overlapped several rows below it and even
+            intercepted clicks meant for those rows' own controls. Escaping the table's DOM
+            entirely (and its per-row opacity-driven stacking contexts) fixes that at the
+            root instead of chasing it with z-index/color tweaks. */}
+        <Popover.Content
+          side="bottom"
+          align="start"
+          sideOffset={2}
+          onEscapeKeyDown={(e) => {
+            // Always stop this native keydown from bubbling any further — Radix's
+            // own DismissableLayer intercepts it before it would otherwise reach
+            // ImportModal's own window-level Escape listener (useDismiss), which
+            // would otherwise close the *entire* import modal on top of this
+            // popover, the same class of nested-dismissable bug documented for
+            // this table's other inline edits (see use-dismiss.ts).
+            e.stopPropagation();
+            // First Escape only cancels the inline "new person" form, if it's open;
+            // a second Escape (or the first, when not creating) closes the whole
+            // popover via Radix's own default handling.
+            if (creating) {
+              e.preventDefault();
+              cancelCreating();
+            }
+          }}
+          className="z-[1000] border border-zinc-300 dark:border-zinc-700 bg-[#f0f0f4] dark:bg-zinc-900 shadow-lg outline-none"
+          style={{ width: "max(var(--radix-popover-trigger-width), 160px)" }}
+        >
           {creating ? (
-            <div ref={formRef} onKeyDown={trapTab} className="p-1.5 flex flex-col gap-1 w-40">
+            <div ref={formRef} onKeyDown={trapTab} className="p-1.5 flex flex-col gap-1">
               <input
                 autoFocus
                 type="text"
@@ -146,11 +143,7 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setCreating(false);
-                    setNewName("");
-                    setError("");
-                  }}
+                  onClick={cancelCreating}
                   className="flex-1 border border-zinc-300 dark:border-zinc-700 px-1.5 py-1 text-[9px] tracking-widest uppercase text-zinc-400 dark:text-zinc-500 hover:border-zinc-500 dark:hover:border-zinc-400 transition-colors cursor-pointer"
                 >
                   Cancelar
@@ -165,8 +158,8 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
                   onChange("");
                   closePopover();
                 }}
-                className={`w-full text-left px-2 py-1 text-[10px] tracking-wider whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
-                  value === "" ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-400"
+                className={`w-full text-left px-2 py-1 text-[10px] tracking-wider truncate hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
+                  value === "" ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-300"
                 }`}
               >
                 —
@@ -179,8 +172,8 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
                     onChange(p.id);
                     closePopover();
                   }}
-                  className={`w-full text-left px-2 py-1 text-[10px] tracking-wider whitespace-nowrap hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
-                    p.id === value ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-400"
+                  className={`w-full text-left px-2 py-1 text-[10px] tracking-wider truncate hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
+                    p.id === value ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-300"
                   }`}
                 >
                   {p.name}
@@ -189,14 +182,14 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
               <button
                 type="button"
                 onClick={() => setCreating(true)}
-                className="w-full text-left px-2 py-1 text-[10px] tracking-widest uppercase whitespace-nowrap border-t border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                className="w-full text-left px-2 py-1 text-[10px] tracking-widest uppercase truncate border-t border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 + Novo devedor
               </button>
             </div>
           )}
-        </div>
-      )}
-    </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

@@ -247,11 +247,58 @@ describe("saveImportedTransactions", () => {
 
     expect(result.created).toBe(2);
     expect(prismaMock.debt.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ personId: "p1", title: "T", description: "N" }) })
+      expect.objectContaining({ data: expect.objectContaining({ personId: "p1", title: "T", description: "N", method: null, creditCardId: null }) })
     );
     expect(prismaMock.payment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ personId: "p1", description: "P", method: "PIX" }) })
+      expect.objectContaining({ data: expect.objectContaining({ personId: "p1", description: "P" }) })
     );
+    expect(prismaMock.payment.create.mock.calls[0][0].data).not.toHaveProperty("method");
+  });
+
+  it("passes through an explicit PIX/CASH method for a debt", async () => {
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+
+    await saveImportedTransactions([
+      { type: "debt", personId: "p1", amount: "10.00", date: "2026-01-01", title: "T", method: "CASH" },
+    ]);
+
+    expect(prismaMock.debt.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ method: "CASH", creditCardId: null }) })
+    );
+  });
+
+  it("treats a debt method that isn't PIX/CASH as a credit card id", async () => {
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+
+    await saveImportedTransactions([
+      { type: "debt", personId: "p1", amount: "10.00", date: "2026-01-01", title: "T", method: "card-1" },
+    ]);
+
+    expect(prismaMock.debt.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ method: null, creditCardId: "card-1" }) })
+    );
+  });
+
+  it("passes through an explicit method for a payment", async () => {
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+
+    await saveImportedTransactions([
+      { type: "payment", personId: "p1", amount: "5.00", date: "2026-01-02", method: "CASH" },
+    ]);
+
+    expect(prismaMock.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ method: "CASH" }) })
+    );
+  });
+
+  it("ignores a payment method that isn't PIX/CASH, leaving it to the schema default", async () => {
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+
+    await saveImportedTransactions([
+      { type: "payment", personId: "p1", amount: "5.00", date: "2026-01-02", method: "card-1" },
+    ]);
+
+    expect(prismaMock.payment.create.mock.calls[0][0].data).not.toHaveProperty("method");
   });
 
   it("returns created: 0 when every item is invalid", async () => {

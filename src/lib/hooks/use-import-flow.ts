@@ -169,6 +169,7 @@ export function useImportFlow({ reopenStatementId, cameFromStatements, onClose, 
         title: t.title ?? t.description,
         description: t.description,
         notes: t.notes ?? "",
+        method: t.method,
       }));
 
     try {

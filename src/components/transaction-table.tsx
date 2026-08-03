@@ -2,12 +2,26 @@
 
 import { useMemo, useState, type RefObject } from "react";
 import { PersonSelect } from "@/components/person-select";
-import { formatAmount, type Txn, type TxnType } from "@/lib/import-modal-types";
+import type { MethodOption } from "@/components/method-select";
+import { PAYMENT_METHODS } from "@/lib/payment-methods";
+import { DATE_INPUT_MIN, DATE_INPUT_MAX, formatDateBR } from "@/lib/date-utils";
+import { parseBrAmount } from "@/lib/importers/base";
+import { formatAmount, type EditingCell, type Txn, type TxnType } from "@/lib/import-modal-types";
+
+const PAYMENT_METHOD_OPTIONS: MethodOption[] = Object.entries(PAYMENT_METHODS).map(([value, label]) => ({ value, label }));
+
+// Shared by every compact inline control in this table (Tipo/Método selects,
+// Data/Valor inputs, the bulk-apply select) so the row stays visually
+// consistent — a wider MethodSelect-style control looked out of place and
+// wrapped its placeholder text across multiple lines in a narrow column.
+const compactControlClass =
+  "w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors";
 
 interface Props {
   currentTxns: Txn[];
   localPeople: { id: string; name: string }[];
   setLocalPeople: (updater: (prev: { id: string; name: string }[]) => { id: string; name: string }[]) => void;
+  creditCards: { id: string; label: string }[];
   patchCurrentTxn: (index: number | string, patch: Partial<Txn>) => void;
   selectedTxnIndex: number | string | null;
   onSelectTxn: (t: Txn) => void;
@@ -15,8 +29,8 @@ interface Props {
   // dismissModal guard needs to check/cancel this exact state when Escape
   // or an outside click happens, per use-dismiss.ts's nested-dismissable
   // pattern (see ImportModal's dismissModal).
-  editingDescIndex: number | string | null;
-  setEditingDescIndex: (index: number | string | null) => void;
+  editingCell: EditingCell;
+  setEditingCell: (cell: EditingCell) => void;
   suppressNextDismiss: () => void;
   tableBodyRef: RefObject<HTMLTableSectionElement | null>;
   search: string;
@@ -35,11 +49,12 @@ export function TransactionTable({
   currentTxns,
   localPeople,
   setLocalPeople,
+  creditCards,
   patchCurrentTxn,
   selectedTxnIndex,
   onSelectTxn,
-  editingDescIndex,
-  setEditingDescIndex,
+  editingCell,
+  setEditingCell,
   suppressNextDismiss,
   tableBodyRef,
   search,
@@ -53,18 +68,41 @@ export function TransactionTable({
   onClose,
   onSave,
 }: Props) {
-  const [editingDescValue, setEditingDescValue] = useState("");
+  const [editingValue, setEditingValue] = useState("");
 
-  function startEditingDesc(t: Txn) {
-    setEditingDescIndex(t.index);
-    setEditingDescValue(t.description);
+  const debtMethodOptions: MethodOption[] = useMemo(
+    () => [
+      { value: "PIX", label: "Pix" },
+      { value: "CASH", label: "Dinheiro" },
+      ...creditCards.map((c) => ({ value: c.id, label: c.label })),
+    ],
+    [creditCards]
+  );
+
+  function startEditing(t: Txn, field: "description" | "date" | "amount") {
+    setEditingCell({ index: t.index, field });
+    setEditingValue(field === "description" ? t.description : field === "date" ? t.date : formatAmount(t.amount));
   }
 
-  function commitEditingDesc(index: number | string) {
+  function cancelEditing() {
     suppressNextDismiss();
-    setEditingDescIndex(null);
-    const trimmed = editingDescValue.trim();
-    if (trimmed) patchCurrentTxn(index, { description: trimmed });
+    setEditingCell(null);
+  }
+
+  function commitEditing() {
+    suppressNextDismiss();
+    if (!editingCell) return;
+    const { index, field } = editingCell;
+    setEditingCell(null);
+    if (field === "description") {
+      const trimmed = editingValue.trim();
+      if (trimmed) patchCurrentTxn(index, { description: trimmed });
+    } else if (field === "date") {
+      if (editingValue) patchCurrentTxn(index, { date: editingValue });
+    } else {
+      const parsed = parseBrAmount(editingValue);
+      if (parsed !== null) patchCurrentTxn(index, { amount: parsed });
+    }
   }
 
   const filteredTransactions = useMemo(() => {
@@ -106,12 +144,13 @@ export function TransactionTable({
   return (
     <>
       <div className="flex-1 overflow-auto">
-        <table className="w-full min-w-140 lg:min-w-0 text-xs border-collapse" style={{ tableLayout: "fixed" }}>
+        <table className="w-full min-w-[620px] text-xs border-collapse" style={{ tableLayout: "fixed" }}>
           <colgroup>
             <col style={{ width: 90 }} />
             <col />
             <col style={{ width: 88 }} />
             <col style={{ width: 140 }} />
+            <col style={{ width: 90 }} />
             <col style={{ width: 100 }} />
           </colgroup>
           <thead className="sticky top-0 bg-[#f0f0f4] dark:bg-zinc-900 z-10">
@@ -121,6 +160,7 @@ export function TransactionTable({
               <th className="text-left pl-1 pr-3 py-2 font-normal tracking-widest uppercase text-zinc-400 dark:text-zinc-600 whitespace-nowrap">Valor</th>
               <th className="text-left px-1 py-2 font-normal tracking-widest uppercase text-zinc-400 dark:text-zinc-600">Devedor</th>
               <th className="text-left pl-1 pr-3 py-2 font-normal tracking-widest uppercase text-zinc-400 dark:text-zinc-600">Tipo</th>
+              <th className="text-left pl-1 pr-3 py-2 font-normal tracking-widest uppercase text-zinc-400 dark:text-zinc-600">Método</th>
             </tr>
           </thead>
           <tbody ref={tableBodyRef}>
@@ -133,16 +173,50 @@ export function TransactionTable({
                 }`}
                 onClick={() => onSelectTxn(t)}
               >
-                <td className="pl-3 pr-1 py-1.5 tabular-nums text-zinc-700 dark:text-zinc-300 whitespace-nowrap text-[11px]">{t.date}</td>
+                <td className="pl-3 pr-1 py-1.5" onClick={(e) => e.stopPropagation()}>
+                  {editingCell?.index === t.index && editingCell.field === "date" ? (
+                    <input
+                      autoFocus
+                      type="date"
+                      value={editingValue}
+                      min={DATE_INPUT_MIN}
+                      max={DATE_INPUT_MAX}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      onBlur={commitEditing}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.target as HTMLInputElement).blur();
+                        } else if (e.key === "Escape") {
+                          e.preventDefault();
+                          // See the Escape branch on the Descrição input below for why
+                          // suppressNextDismiss() must run here too, not just onBlur.
+                          cancelEditing();
+                        }
+                      }}
+                      className="w-full bg-transparent border-b border-zinc-400 dark:border-zinc-500 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none scheme-light dark:scheme-dark"
+                    />
+                  ) : (
+                    <span
+                      className="block truncate tabular-nums text-[11px] text-zinc-700 dark:text-zinc-300"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditing(t, "date");
+                      }}
+                    >
+                      {formatDateBR(new Date(t.date))}
+                    </span>
+                  )}
+                </td>
                 <td className="px-1 py-1.5 text-zinc-900 dark:text-zinc-100 overflow-hidden">
-                  {editingDescIndex === t.index ? (
+                  {editingCell?.index === t.index && editingCell.field === "description" ? (
                     <input
                       autoFocus
                       type="text"
-                      value={editingDescValue}
-                      onChange={(e) => setEditingDescValue(e.target.value)}
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
                       onClick={(e) => e.stopPropagation()}
-                      onBlur={() => commitEditingDesc(t.index)}
+                      onBlur={commitEditing}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -152,11 +226,10 @@ export function TransactionTable({
                           // Must suppress here too, not just onBlur — React flushes this
                           // state update synchronously before the same keydown reaches
                           // the modal-level Escape listener in use-dismiss.ts, so without
-                          // this the outer dismissModal would see editingDescIndex already
+                          // this the outer dismissModal would see editingCell already
                           // back at null and close the whole modal instead of just the
                           // edit. See useDismissGuard's doc comment for the full mechanism.
-                          suppressNextDismiss();
-                          setEditingDescIndex(null);
+                          cancelEditing();
                         }
                       }}
                       className="w-full bg-transparent border-b border-zinc-400 dark:border-zinc-500 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none"
@@ -167,7 +240,7 @@ export function TransactionTable({
                       title={t.description}
                       onClick={(e) => {
                         e.stopPropagation();
-                        startEditingDesc(t);
+                        startEditing(t, "description");
                       }}
                     >
                       {t.description}
@@ -175,8 +248,37 @@ export function TransactionTable({
                   )}
                   {t.manual && <span className="text-[9px] tracking-widest uppercase text-zinc-400 dark:text-zinc-500">manual</span>}
                 </td>
-                <td className="pl-1 pr-3 py-1.5 text-left tabular-nums text-zinc-900 dark:text-zinc-100 whitespace-nowrap text-[11px]">
-                  R${formatAmount(t.amount)}
+                <td className="pl-1 pr-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                  {editingCell?.index === t.index && editingCell.field === "amount" ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      inputMode="decimal"
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      onBlur={commitEditing}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          (e.target as HTMLInputElement).blur();
+                        } else if (e.key === "Escape") {
+                          e.preventDefault();
+                          cancelEditing();
+                        }
+                      }}
+                      className="w-full bg-transparent border-b border-zinc-400 dark:border-zinc-500 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none"
+                    />
+                  ) : (
+                    <span
+                      className="block truncate tabular-nums text-[11px] text-zinc-900 dark:text-zinc-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditing(t, "amount");
+                      }}
+                    >
+                      R${formatAmount(t.amount)}
+                    </span>
+                  )}
                 </td>
                 <td className="px-1 py-1.5 overflow-visible" onClick={(e) => e.stopPropagation()}>
                   <PersonSelect
@@ -197,18 +299,34 @@ export function TransactionTable({
                       const type = e.target.value as TxnType;
                       patchCurrentTxn(t.index, { type, personId: type === "ignore" ? "" : t.personId });
                     }}
-                    className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
+                    className={compactControlClass}
                   >
                     <option value="ignore">Ignorar</option>
                     <option value="debt">Dívida</option>
                     <option value="payment">Pgto</option>
                   </select>
                 </td>
+                <td className="pl-1 pr-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                  {t.type === "ignore" ? (
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-600">—</span>
+                  ) : (
+                    <select
+                      value={t.method ?? ""}
+                      onChange={(e) => patchCurrentTxn(t.index, { method: e.target.value })}
+                      className={compactControlClass}
+                    >
+                      <option value="" disabled>—</option>
+                      {(t.type === "debt" ? debtMethodOptions : PAYMENT_METHOD_OPTIONS).map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  )}
+                </td>
               </tr>
             ))}
             {filteredTransactions.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-xs text-zinc-400 dark:text-zinc-600">
+                <td colSpan={6} className="px-4 py-8 text-center text-xs text-zinc-400 dark:text-zinc-600">
                   Nenhuma transação encontrada.
                 </td>
               </tr>
