@@ -1,5 +1,6 @@
 "use client";
 
+import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import type { PaidFilter, SortDir, SortKey } from "@/lib/hooks/use-list-filter-sort";
 import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 
@@ -86,18 +87,23 @@ export function FilterFields(props: FilterFieldsProps) {
       {props.paidFilter && props.setPaidFilter && (
         <div className="flex items-center gap-3 flex-wrap">
           <p className="text-[10px] tracking-widest uppercase text-zinc-400">Status</p>
-          {(["all", "paid", "unpaid"] as const).map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => props.setPaidFilter?.(key)}
-              className={`text-[10px] tracking-widest uppercase transition-colors cursor-pointer ${
-                props.paidFilter === key ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400"
-              }`}
-            >
-              {key === "all" ? "Todas" : key === "paid" ? "Pagas" : "Não pagas"}
-            </button>
-          ))}
+          <ToggleGroup.Root
+            type="single"
+            value={props.paidFilter}
+            onValueChange={(v) => { if (v) props.setPaidFilter?.(v as PaidFilter); }}
+            aria-label="Status"
+            className="flex items-center gap-3"
+          >
+            {(["all", "paid", "unpaid"] as const).map((key) => (
+              <ToggleGroup.Item
+                key={key}
+                value={key}
+                className="text-[10px] tracking-widest uppercase transition-colors cursor-pointer text-zinc-400 dark:text-zinc-600 hover:text-zinc-700 dark:hover:text-zinc-400 data-[state=on]:text-zinc-700 dark:data-[state=on]:text-zinc-300"
+              >
+                {key === "all" ? "Todas" : key === "paid" ? "Pagas" : "Não pagas"}
+              </ToggleGroup.Item>
+            ))}
+          </ToggleGroup.Root>
         </div>
       )}
       <div className="flex items-center gap-3 flex-wrap">

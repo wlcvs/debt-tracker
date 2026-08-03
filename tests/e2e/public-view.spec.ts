@@ -103,7 +103,9 @@ test("public view: renders without login, filters by month, read-only modals, fi
 
   // --- Installment calculator: presets and +/- stepper ---
   const monthsInput = page.locator('input[type="number"]');
-  await page.getByRole("button", { name: "6x", exact: true }).click();
+  // ToggleGroup type="single" renders role="radio" inside a role="radiogroup",
+  // not plain buttons.
+  await page.getByRole("radio", { name: "6x" }).click();
   await expect(monthsInput).toHaveValue("6");
   await expect(page.getByText("R$ 11,67")).toBeVisible(); // 70 / 6
 

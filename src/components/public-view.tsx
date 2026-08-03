@@ -2,6 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
+import * as Progress from "@radix-ui/react-progress";
+import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { useFilteredSortedList } from "@/lib/hooks/use-list-filter-sort";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
@@ -47,12 +49,15 @@ export function PublicView({ debtor }: Props) {
             R$ {formatCurrency(debtor.totalPaid)} / R$ {formatCurrency(debtor.totalDebt)} pago (
             {paidPercent(debtor.totalPaid, debtor.totalDebt)}%)
           </p>
-          <div className="h-1 border border-zinc-300 dark:border-zinc-700">
-            <div
+          <Progress.Root
+            value={paidPercent(debtor.totalPaid, debtor.totalDebt)}
+            className="h-1 border border-zinc-300 dark:border-zinc-700"
+          >
+            <Progress.Indicator
               className="h-full bg-zinc-400 dark:bg-zinc-600"
               style={{ width: `${paidPercent(debtor.totalPaid, debtor.totalDebt)}%` }}
             />
-          </div>
+          </Progress.Root>
         </div>
       )}
 
@@ -357,18 +362,27 @@ function InstallmentCalculator({ balance }: { balance: number }) {
     <div className="border-t border-zinc-300 dark:border-zinc-700 pt-5">
       <p className="text-sm tracking-[0.2em] uppercase text-zinc-600 dark:text-zinc-400 mb-4">Simule o parcelamento</p>
       <div className="flex gap-2 mb-4 flex-wrap">
-        {[3, 6, 12].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => setMonths(n)}
-            className={`px-4 py-2 border text-xs tracking-widest hover:border-zinc-600 hover:text-zinc-700 dark:hover:border-zinc-400 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
-              months === n ? "border-zinc-600 dark:border-zinc-400 text-zinc-700 dark:text-zinc-300" : "border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600"
-            }`}
-          >
-            {n}x
-          </button>
-        ))}
+        {/* Not a plain button row: ToggleGroup adds roving tabindex, arrow-key
+            navigation and aria-checked. The value can also be set by the number
+            input beside it, so it clears when months is something else — hence
+            String(months) rather than a separate selected state. */}
+        <ToggleGroup.Root
+          type="single"
+          value={[3, 6, 12].includes(months) ? String(months) : ""}
+          onValueChange={(v) => { if (v) setMonths(Number(v)); }}
+          aria-label="Número de parcelas"
+          className="flex gap-2"
+        >
+          {[3, 6, 12].map((n) => (
+            <ToggleGroup.Item
+              key={n}
+              value={String(n)}
+              className="px-4 py-2 border text-xs tracking-widest hover:border-zinc-600 hover:text-zinc-700 dark:hover:border-zinc-400 dark:hover:text-zinc-300 transition-colors cursor-pointer border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 data-[state=on]:border-zinc-600 dark:data-[state=on]:border-zinc-400 data-[state=on]:text-zinc-700 dark:data-[state=on]:text-zinc-300"
+            >
+              {n}x
+            </ToggleGroup.Item>
+          ))}
+        </ToggleGroup.Root>
         <div className="flex items-stretch border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300">
           <button
             type="button"
