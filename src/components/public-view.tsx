@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { useFilteredSortedList } from "@/lib/hooks/use-list-filter-sort";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
@@ -112,23 +113,24 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
 
   return (
     <div className="mb-2">
-      <div ref={wrapperRef}>
+      <Collapsible.Root open={showFilters} onOpenChange={setShowFilters} ref={wrapperRef}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">Dívidas</p>
           {monthDebts.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowFilters((v) => !v)}
-              className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
-                filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
-              }`}
-            >
-              Filtros
-            </button>
+            <Collapsible.Trigger asChild>
+              <button
+                type="button"
+                className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
+                  filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
+                }`}
+              >
+                Filtros
+              </button>
+            </Collapsible.Trigger>
           )}
         </div>
 
-        {showFilters && (
+        <Collapsible.Content>
           <div className="mb-3">
             <FilterFields
               search={search}
@@ -146,8 +148,8 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
               searchPlaceholder="Pesquisar dívidas..."
             />
           </div>
-        )}
-      </div>
+        </Collapsible.Content>
+      </Collapsible.Root>
 
       {monthDebts.length === 0 ? (
         <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-2">Nenhuma dívida neste mês.</p>
@@ -224,23 +226,24 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
 
   return (
     <div className="mb-2">
-      <div ref={wrapperRef}>
+      <Collapsible.Root open={showFilters} onOpenChange={setShowFilters} ref={wrapperRef}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">Pagamentos</p>
           {monthPayments.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowFilters((v) => !v)}
-              className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
-                filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
-              }`}
-            >
-              Filtros
-            </button>
+            <Collapsible.Trigger asChild>
+              <button
+                type="button"
+                className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
+                  filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
+                }`}
+              >
+                Filtros
+              </button>
+            </Collapsible.Trigger>
           )}
         </div>
 
-        {showFilters && (
+        <Collapsible.Content>
           <div className="mb-3">
             <FilterFields
               search={search}
@@ -256,8 +259,8 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
               searchPlaceholder="Pesquisar pagamentos..."
             />
           </div>
-        )}
-      </div>
+        </Collapsible.Content>
+      </Collapsible.Root>
 
       {monthPayments.length === 0 ? (
         <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-2">Nenhum pagamento neste mês.</p>
