@@ -97,3 +97,32 @@ test("statement import review: filter, sort, and manually add a transaction", as
   await page.getByRole("button", { name: "Cancelar" }).click();
   await expect(page.getByText("Importar extrato")).not.toBeVisible();
 });
+
+// ManualAddDialog is nested inside ImportModal. Before it was a Radix Dialog it
+// had no Escape handling at all, so Escape fell straight through to ImportModal's
+// window-level listener and closed the entire import modal out from under it.
+// As a nested dismissable layer, Radix arms Escape only for the topmost layer.
+test("statement import review: Escape closes only the manual-add dialog", async ({ page }) => {
+  await loginAsAdmin(page);
+  await page.getByRole("button", { name: "Extratos" }).click();
+  await page.getByRole("button", { name: filename, exact: true }).locator("xpath=..").getByRole("button", { name: "Abrir" }).click();
+  // Back to the 3 seeded transactions: the previous test's manual addition was
+  // never saved, so reopening the statement re-reads the cached results.
+  await expect(page.getByText("3 transações extraídas do PDF")).toBeVisible();
+
+  await page.getByRole("button", { name: "+ Adicionar manualmente" }).click();
+  // Located by accessible name, not hasText: the import modal is an ancestor of
+  // this one, so a text filter matches both dialogs and trips strict mode.
+  const manualDialog = page.getByRole("dialog", { name: "Adicionar transação manualmente" });
+  const importDialog = page.getByRole("dialog", { name: "Importar extrato" });
+  await expect(manualDialog).toBeVisible();
+
+  // First Escape: unwinds only the nested dialog.
+  await page.keyboard.press("Escape");
+  await expect(manualDialog).not.toBeVisible();
+  await expect(importDialog).toBeVisible();
+
+  // Second Escape: now the import modal itself closes.
+  await page.keyboard.press("Escape");
+  await expect(importDialog).not.toBeVisible();
+});

@@ -20,10 +20,6 @@ interface Props {
  * live bug: it sat on `window` alongside ModalShell's, so one Escape closed
  * the confirm *and* the detail modal underneath it. Radix only arms the
  * topmost layer, so Escape now unwinds one dialog at a time.
- *
- * The `z-50` is the same temporary tie-breaker documented in modal-shell.tsx —
- * this dialog is opened from statements-modal, which is still a hand-rolled
- * in-place `fixed z-50` node. Remove both together.
  */
 export function ConfirmDialog({
   title,
@@ -35,7 +31,7 @@ export function ConfirmDialog({
   return (
     <AlertDialog.Root open onOpenChange={(next) => { if (!next) onCancel(); }}>
       <AlertDialog.Portal>
-        <AlertDialog.Overlay className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <AlertDialog.Overlay className="fixed inset-0 flex items-center justify-center bg-black/50">
           <AlertDialog.Content
             className="bg-[#c8c8d0] dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-800 p-6 flex flex-col gap-5 w-full max-w-sm mx-4"
           >

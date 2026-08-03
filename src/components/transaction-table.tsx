@@ -25,13 +25,12 @@ interface Props {
   patchCurrentTxn: (index: number | string, patch: Partial<Txn>) => void;
   selectedTxnIndex: number | string | null;
   onSelectTxn: (t: Txn) => void;
-  // Kept controlled by the parent (not owned here) — the top-level
-  // dismissModal guard needs to check/cancel this exact state when Escape
-  // or an outside click happens, per use-dismiss.ts's nested-dismissable
-  // pattern (see ImportModal's dismissModal).
+  // Kept controlled by the parent (not owned here): ImportModal's Dialog.Content
+  // reads this exact state from onEscapeKeyDown, and feeds it to
+  // useInlineEditGuard for the outside-click case, so that ending a cell edit
+  // does not also close the whole modal.
   editingCell: EditingCell;
   setEditingCell: (cell: EditingCell) => void;
-  suppressNextDismiss: () => void;
   tableBodyRef: RefObject<HTMLTableSectionElement | null>;
   search: string;
   filterDateFrom: string;
@@ -55,7 +54,6 @@ export function TransactionTable({
   onSelectTxn,
   editingCell,
   setEditingCell,
-  suppressNextDismiss,
   tableBodyRef,
   search,
   filterDateFrom,
@@ -85,12 +83,10 @@ export function TransactionTable({
   }
 
   function cancelEditing() {
-    suppressNextDismiss();
     setEditingCell(null);
   }
 
   function commitEditing() {
-    suppressNextDismiss();
     if (!editingCell) return;
     const { index, field } = editingCell;
     setEditingCell(null);
@@ -189,8 +185,6 @@ export function TransactionTable({
                           (e.target as HTMLInputElement).blur();
                         } else if (e.key === "Escape") {
                           e.preventDefault();
-                          // See the Escape branch on the Descrição input below for why
-                          // suppressNextDismiss() must run here too, not just onBlur.
                           cancelEditing();
                         }
                       }}
@@ -223,12 +217,6 @@ export function TransactionTable({
                           (e.target as HTMLInputElement).blur();
                         } else if (e.key === "Escape") {
                           e.preventDefault();
-                          // Must suppress here too, not just onBlur — React flushes this
-                          // state update synchronously before the same keydown reaches
-                          // the modal-level Escape listener in use-dismiss.ts, so without
-                          // this the outer dismissModal would see editingCell already
-                          // back at null and close the whole modal instead of just the
-                          // edit. See useDismissGuard's doc comment for the full mechanism.
                           cancelEditing();
                         }
                       }}
