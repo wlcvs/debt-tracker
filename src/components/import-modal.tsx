@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { useInlineEditGuard } from "@/lib/hooks/use-inline-edit-guard";
 import { useImportFlow } from "@/lib/hooks/use-import-flow";
 import { usePdfHighlights } from "@/lib/hooks/use-pdf-highlights";
@@ -207,30 +208,26 @@ export function ImportModal({ people, creditCards, reopenStatementId, cameFromSt
                 />
 
                 {/* Mobile view switcher */}
-                <div className="flex lg:hidden gap-2 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setMobileView("list")}
-                    className={`flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer ${
-                      mobileView === "list"
-                        ? "bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-900"
-                        : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400"
-                    }`}
+                <ToggleGroup.Root
+                  type="single"
+                  value={mobileView}
+                  onValueChange={(v) => { if (v) setMobileView(v as typeof mobileView); }}
+                  aria-label="Alternar entre lista e PDF"
+                  className="flex lg:hidden gap-2 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0"
+                >
+                  <ToggleGroup.Item
+                    value="list"
+                    className="flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 data-[state=on]:bg-zinc-900 dark:data-[state=on]:bg-white data-[state=on]:border-zinc-900 dark:data-[state=on]:border-white data-[state=on]:text-white dark:data-[state=on]:text-zinc-900"
                   >
                     Lista
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMobileView("pdf")}
-                    className={`flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer ${
-                      mobileView === "pdf"
-                        ? "bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-900"
-                        : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400"
-                    }`}
+                  </ToggleGroup.Item>
+                  <ToggleGroup.Item
+                    value="pdf"
+                    className="flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 data-[state=on]:bg-zinc-900 dark:data-[state=on]:bg-white data-[state=on]:border-zinc-900 dark:data-[state=on]:border-white data-[state=on]:text-white dark:data-[state=on]:text-zinc-900"
                   >
                     PDF
-                  </button>
-                </div>
+                  </ToggleGroup.Item>
+                </ToggleGroup.Root>
 
                 <div className="flex-1 flex min-h-0">
                   {/* LEFT: table */}

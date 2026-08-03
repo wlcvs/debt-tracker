@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { createDebt } from "@/lib/actions/debt";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
+import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { Checkbox } from "@/components/checkbox";
 import { splitInstallmentAmounts, installmentDate, type InstallmentDirection } from "@/lib/installments";
 import { formatDateBR, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
@@ -173,30 +174,26 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
 
               <div>
                 <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Parcelas para</p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDirection("forward")}
-                    className={`border px-3 py-1.5 text-xs tracking-widest uppercase transition-colors cursor-pointer ${
-                      direction === "forward"
-                        ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
-                        : "border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600"
-                    }`}
+                <ToggleGroup.Root
+                  type="single"
+                  value={direction}
+                  onValueChange={(v) => { if (v) setDirection(v as InstallmentDirection); }}
+                  aria-label="Direção das parcelas"
+                  className="flex gap-2"
+                >
+                  <ToggleGroup.Item
+                    value="forward"
+                    className="border px-3 py-1.5 text-xs tracking-widest uppercase transition-colors cursor-pointer border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 data-[state=on]:border-zinc-900 dark:data-[state=on]:border-white data-[state=on]:text-zinc-900 dark:data-[state=on]:text-white"
                   >
                     Meses futuros
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDirection("backward")}
-                    className={`border px-3 py-1.5 text-xs tracking-widest uppercase transition-colors cursor-pointer ${
-                      direction === "backward"
-                        ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
-                        : "border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600"
-                    }`}
+                  </ToggleGroup.Item>
+                  <ToggleGroup.Item
+                    value="backward"
+                    className="border px-3 py-1.5 text-xs tracking-widest uppercase transition-colors cursor-pointer border-zinc-300 dark:border-zinc-700 text-zinc-400 dark:text-zinc-600 data-[state=on]:border-zinc-900 dark:data-[state=on]:border-white data-[state=on]:text-zinc-900 dark:data-[state=on]:text-white"
                   >
                     Meses passados
-                  </button>
-                </div>
+                  </ToggleGroup.Item>
+                </ToggleGroup.Root>
                 <p className="text-[10px] text-zinc-400 dark:text-zinc-600 mt-1">
                   {direction === "forward"
                     ? "A data informada é a da 1ª parcela."

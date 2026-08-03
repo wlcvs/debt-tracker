@@ -6,6 +6,7 @@ import { createPayment } from "@/lib/actions/payment";
 import { formatDateBR, toDateInputValue, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format-utils";
 import { Checkbox } from "@/components/checkbox";
+import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { ModalShell } from "@/components/modal-shell";
 
 interface Props {
@@ -150,30 +151,26 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
 
                 {registerPayment && (
                   <div className="flex flex-col gap-2 pl-1">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMode("single")}
-                        className={`border px-3 py-1.5 text-xs tracking-widest uppercase cursor-pointer ${
-                          paymentMode === "single"
-                            ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
-                            : "border-zinc-300 dark:border-zinc-700 text-zinc-400"
-                        }`}
+                    <ToggleGroup.Root
+                      type="single"
+                      value={paymentMode}
+                      onValueChange={(v) => { if (v) setPaymentMode(v as typeof paymentMode); }}
+                      aria-label="Forma de registrar o pagamento"
+                      className="flex gap-2"
+                    >
+                      <ToggleGroup.Item
+                        value="single"
+                        className="border px-3 py-1.5 text-xs tracking-widest uppercase cursor-pointer border-zinc-300 dark:border-zinc-700 text-zinc-400 data-[state=on]:border-zinc-900 dark:data-[state=on]:border-white data-[state=on]:text-zinc-900 dark:data-[state=on]:text-white"
                       >
                         Um pagamento
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMode("perInstallment")}
-                        className={`border px-3 py-1.5 text-xs tracking-widest uppercase cursor-pointer ${
-                          paymentMode === "perInstallment"
-                            ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
-                            : "border-zinc-300 dark:border-zinc-700 text-zinc-400"
-                        }`}
+                      </ToggleGroup.Item>
+                      <ToggleGroup.Item
+                        value="perInstallment"
+                        className="border px-3 py-1.5 text-xs tracking-widest uppercase cursor-pointer border-zinc-300 dark:border-zinc-700 text-zinc-400 data-[state=on]:border-zinc-900 dark:data-[state=on]:border-white data-[state=on]:text-zinc-900 dark:data-[state=on]:text-white"
                       >
                         Um por parcela
-                      </button>
-                    </div>
+                      </ToggleGroup.Item>
+                    </ToggleGroup.Root>
                     <div className="flex gap-2">
                       <input
                         type="date"
@@ -183,30 +180,26 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
                         max={DATE_INPUT_MAX}
                         className="flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
                       />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod("PIX")}
-                          className={`border px-3 py-2 text-xs tracking-widest uppercase cursor-pointer ${
-                            paymentMethod === "PIX"
-                              ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
-                              : "border-zinc-300 dark:border-zinc-700 text-zinc-400"
-                          }`}
+                      <ToggleGroup.Root
+                        type="single"
+                        value={paymentMethod}
+                        onValueChange={(v) => { if (v) setPaymentMethod(v as typeof paymentMethod); }}
+                        aria-label="Método do pagamento"
+                        className="flex gap-2"
+                      >
+                        <ToggleGroup.Item
+                          value="PIX"
+                          className="border px-3 py-2 text-xs tracking-widest uppercase cursor-pointer border-zinc-300 dark:border-zinc-700 text-zinc-400 data-[state=on]:border-zinc-900 dark:data-[state=on]:border-white data-[state=on]:text-zinc-900 dark:data-[state=on]:text-white"
                         >
                           Pix
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod("CASH")}
-                          className={`border px-3 py-2 text-xs tracking-widest uppercase cursor-pointer ${
-                            paymentMethod === "CASH"
-                              ? "border-zinc-900 dark:border-white text-zinc-900 dark:text-white"
-                              : "border-zinc-300 dark:border-zinc-700 text-zinc-400"
-                          }`}
+                        </ToggleGroup.Item>
+                        <ToggleGroup.Item
+                          value="CASH"
+                          className="border px-3 py-2 text-xs tracking-widest uppercase cursor-pointer border-zinc-300 dark:border-zinc-700 text-zinc-400 data-[state=on]:border-zinc-900 dark:data-[state=on]:border-white data-[state=on]:text-zinc-900 dark:data-[state=on]:text-white"
                         >
                           Dinheiro
-                        </button>
-                      </div>
+                        </ToggleGroup.Item>
+                      </ToggleGroup.Root>
                     </div>
                     <input
                       type="text"
