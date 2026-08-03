@@ -20,23 +20,20 @@ interface Props {
  * onPointerDownOutside measures against. A full-screen Content would leave
  * nowhere to click outside and outside-dismiss would silently stop working.
  *
- * Stacking among portaled modals is settled by mount order alone: Dialog.Portal
- * appends to document.body, so one opened on top of another (installment-group-panel
- * over debt-detail-modal, ConfirmDialog over either) comes later in the body and
- * therefore paints above — and Radix's layer stack routes Escape to the topmost
- * one only. The `z-50` here is *not* part of that; it's a temporary tie-breaker
- * against statements-modal/import-modal, which are still hand-rolled `fixed z-50`
- * nodes rendered in place. z-index only competes between positioned elements, so
- * without it a legacy z-50 modal would paint over a portaled ConfirmDialog opened
- * from inside it. Matching their value keeps DOM order (portal last = on top) the
- * deciding factor. Delete it once those two are migrated and no z-index remains
- * outside a portal.
+ * No z-index: stacking is settled by mount order alone. Dialog.Portal appends to
+ * document.body, so a modal opened on top of another (installment-group-panel over
+ * debt-detail-modal, ConfirmDialog over either) lands later in the body and paints
+ * above, while Radix's layer stack routes Escape to the topmost one only. This
+ * replaced a hand-maintained ladder (z-10/z-20/z-40/z-50/z-[1000]) and only holds
+ * while nothing outside a portal claims an explicit z-index — the two deliberate
+ * exceptions are transaction-table's sticky <thead> and manual-add-dialog's
+ * overlay, both of which stack *within* a Content rather than against one.
  */
 export function ModalShell({ eyebrow, onClose, children, maxWidthClassName = "max-w-sm" }: Props) {
   return (
     <Dialog.Root open onOpenChange={(next) => { if (!next) onClose(); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <Dialog.Overlay className="fixed inset-0 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <Dialog.Content
             className={`relative bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 w-full ${maxWidthClassName} max-h-[90vh] overflow-y-auto`}
           >

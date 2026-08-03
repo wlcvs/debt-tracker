@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { useDismiss, useDismissGuard } from "@/lib/hooks/use-dismiss";
+import { useRef, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { useInlineEditGuard } from "@/lib/hooks/use-inline-edit-guard";
 import { useImportFlow } from "@/lib/hooks/use-import-flow";
 import { usePdfHighlights } from "@/lib/hooks/use-pdf-highlights";
 import { FilterToolbar } from "@/components/filter-toolbar";
@@ -36,8 +37,9 @@ export function ImportModal({ people, creditCards, reopenStatementId, cameFromSt
   const [editingCell, setEditingCell] = useState<EditingCell>(null);
 
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+  const [reviewContainer, setReviewContainer] = useState<HTMLDivElement | null>(null);
 
-  const { suppressNext: suppressNextDismiss, guard: guardDismiss } = useDismissGuard();
+  const editingAtGestureStart = useInlineEditGuard(editingCell !== null);
 
   const {
     step,
@@ -111,180 +113,183 @@ export function ImportModal({ people, creditCards, reopenStatementId, cameFromSt
     handleClose();
   }
 
-  const dismissModal = useCallback(() => {
-    guardDismiss(() => {
-      if (editingCell !== null) {
-        setEditingCell(null);
-      } else {
-        closeModal();
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingCell]);
-  useDismiss(null, dismissModal, { outsideClick: false });
-
   return (
-    <div className="fixed inset-0 z-50 flex p-0 lg:p-6" style={{ alignItems: step === "review" ? "stretch" : "center", justifyContent: step === "review" ? undefined : "center", padding: step === "review" ? undefined : "1rem" }}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={dismissModal} />
+    <Dialog.Root open onOpenChange={(next) => { if (!next) closeModal(); }}>
+      <Dialog.Portal>
+        {/* The dynamic layout lives on Overlay, not Content: Overlay is the
+            positioning wrapper (and the clickable "outside"), Content is the panel.
+            Making Content itself full-screen would leave nowhere outside to click
+            and would silently disable outside-dismiss — the review step's lg:p-6
+            gutter is exactly the strip dismiss-behaviors.spec.ts clicks. */}
+        <Dialog.Overlay
+          className="fixed inset-0 flex p-0 lg:p-6 bg-black/50 backdrop-blur-sm"
+          style={{ alignItems: step === "review" ? "stretch" : "center", justifyContent: step === "review" ? undefined : "center", padding: step === "review" ? undefined : "1rem" }}
+        >
+          <Dialog.Content
+            // Escape reads editingCell directly (capture-phase, topmost layer only, so
+            // it precedes the cell's own onKeyDown); outside-click has to consult the
+            // pointerdown snapshot because Dialog forces deferPointerDownOutside and
+            // this therefore runs after blur. See use-inline-edit-guard.ts.
+            onEscapeKeyDown={(e) => { if (editingCell !== null) e.preventDefault(); }}
+            onInteractOutside={(e) => { if (editingAtGestureStart.current) e.preventDefault(); }}
+            className={`relative flex flex-col bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 ${
+              step === "review" ? "w-full h-full" : "w-full max-w-lg"
+            }`}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+              <div>
+                <Dialog.Title className="text-[10px] tracking-[0.3em] uppercase text-zinc-400 dark:text-zinc-500">Importar extrato</Dialog.Title>
+                {bank && (
+                  <p className="text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 mt-0.5">{bank}</p>
+                )}
+              </div>
+              <button onClick={closeModal} className="text-[10px] tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
+                Fechar
+              </button>
+            </div>
 
-      <div
-        className={`relative flex flex-col bg-[#f0f0f4] dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 ${
-          step === "review" ? "w-full h-full" : "w-full max-w-lg"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
-          <div>
-            <p className="text-[10px] tracking-[0.3em] uppercase text-zinc-400 dark:text-zinc-500">Importar extrato</p>
-            {bank && (
-              <p className="text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 mt-0.5">{bank}</p>
+            {/* Step: upload */}
+            {step === "upload" && (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4">
+                {error && <p className="text-xs text-red-500 dark:text-red-400 tracking-wider text-center">{error}</p>}
+                <label
+                  className="w-full max-w-sm flex flex-col items-center gap-4 border-2 border-dashed border-zinc-300 dark:border-zinc-700 px-8 py-12 cursor-pointer hover:border-zinc-500 dark:hover:border-zinc-400 transition-colors"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
+                >
+                  <input type="file" accept=".pdf" className="sr-only" onChange={handleFile} />
+                  <svg className="w-8 h-8 text-zinc-400 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400 text-center">
+                    Arraste o PDF aqui
+                    <br />
+                    <span className="text-zinc-400 dark:text-zinc-600 normal-case tracking-normal text-[10px] mt-1 block">
+                      ou clique para selecionar
+                    </span>
+                  </p>
+                </label>
+              </div>
             )}
-          </div>
-          <button onClick={closeModal} className="text-[10px] tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
-            Fechar
-          </button>
-        </div>
 
-        {/* Step: upload */}
-        {step === "upload" && (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4">
-            {error && <p className="text-xs text-red-500 dark:text-red-400 tracking-wider text-center">{error}</p>}
-            <label
-              className="w-full max-w-sm flex flex-col items-center gap-4 border-2 border-dashed border-zinc-300 dark:border-zinc-700 px-8 py-12 cursor-pointer hover:border-zinc-500 dark:hover:border-zinc-400 transition-colors"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleDrop}
-            >
-              <input type="file" accept=".pdf" className="sr-only" onChange={handleFile} />
-              <svg className="w-8 h-8 text-zinc-400 dark:text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-xs tracking-widest uppercase text-zinc-500 dark:text-zinc-400 text-center">
-                Arraste o PDF aqui
-                <br />
-                <span className="text-zinc-400 dark:text-zinc-600 normal-case tracking-normal text-[10px] mt-1 block">
-                  ou clique para selecionar
-                </span>
-              </p>
-            </label>
-          </div>
-        )}
+            {/* Step: processing */}
+            {step === "processing" && (
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-6 h-6 border-2 border-zinc-400 dark:border-zinc-600 border-t-zinc-900 dark:border-t-white rounded-full animate-spin" />
+                  <p className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-500">Processando PDF…</p>
+                </div>
+              </div>
+            )}
 
-        {/* Step: processing */}
-        {step === "processing" && (
-          <div className="flex-1 flex items-center justify-center p-8">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-6 h-6 border-2 border-zinc-400 dark:border-zinc-600 border-t-zinc-900 dark:border-t-white rounded-full animate-spin" />
-              <p className="text-xs tracking-widest uppercase text-zinc-400 dark:text-zinc-500">Processando PDF…</p>
-            </div>
-          </div>
-        )}
-
-        {/* Step: review */}
-        {(step === "review" || step === "saving") && (
-          <div className="relative flex-1 flex flex-col min-h-0">
-            <FilterToolbar
-              showFilters={showFilters}
-              setShowFilters={setShowFilters}
-              search={search}
-              setSearch={setSearch}
-              filterDateFrom={filterDateFrom}
-              setFilterDateFrom={setFilterDateFrom}
-              filterDateTo={filterDateTo}
-              setFilterDateTo={setFilterDateTo}
-              filterAmountMin={filterAmountMin}
-              setFilterAmountMin={setFilterAmountMin}
-              filterAmountMax={filterAmountMax}
-              setFilterAmountMax={setFilterAmountMax}
-              sortKey={sortKey}
-              sortDir={sortDir}
-              setSort={setSort}
-              onOpenManualAdd={openManualAdd}
-              currentTxnsCount={currentTxns.length}
-            />
-
-            {/* Mobile view switcher */}
-            <div className="flex lg:hidden gap-2 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
-              <button
-                type="button"
-                onClick={() => setMobileView("list")}
-                className={`flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer ${
-                  mobileView === "list"
-                    ? "bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-900"
-                    : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400"
-                }`}
-              >
-                Lista
-              </button>
-              <button
-                type="button"
-                onClick={() => setMobileView("pdf")}
-                className={`flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer ${
-                  mobileView === "pdf"
-                    ? "bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-900"
-                    : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400"
-                }`}
-              >
-                PDF
-              </button>
-            </div>
-
-            <div className="flex-1 flex min-h-0">
-              {/* LEFT: table */}
-              <div
-                className={`${mobileView === "list" ? "flex" : "hidden"} lg:flex w-full lg:w-[42%] flex-col min-h-0 border-r border-zinc-200 dark:border-zinc-800`}
-              >
-                <TransactionTable
-                  currentTxns={currentTxns}
-                  localPeople={localPeople}
-                  setLocalPeople={setLocalPeople}
-                  creditCards={creditCards}
-                  patchCurrentTxn={patchCurrentTxn}
-                  selectedTxnIndex={pdf.selectedTxnIndex}
-                  onSelectTxn={pdf.highlightTransaction}
-                  editingCell={editingCell}
-                  setEditingCell={setEditingCell}
-                  suppressNextDismiss={suppressNextDismiss}
-                  tableBodyRef={tableBodyRef}
+            {/* Step: review */}
+            {(step === "review" || step === "saving") && (
+              <div ref={setReviewContainer} className="relative flex-1 flex flex-col min-h-0">
+                <FilterToolbar
+                  showFilters={showFilters}
+                  setShowFilters={setShowFilters}
                   search={search}
+                  setSearch={setSearch}
                   filterDateFrom={filterDateFrom}
+                  setFilterDateFrom={setFilterDateFrom}
                   filterDateTo={filterDateTo}
+                  setFilterDateTo={setFilterDateTo}
                   filterAmountMin={filterAmountMin}
+                  setFilterAmountMin={setFilterAmountMin}
                   filterAmountMax={filterAmountMax}
+                  setFilterAmountMax={setFilterAmountMax}
                   sortKey={sortKey}
                   sortDir={sortDir}
-                  step={step}
-                  onClose={closeModal}
-                  onSave={save}
+                  setSort={setSort}
+                  onOpenManualAdd={openManualAdd}
+                  currentTxnsCount={currentTxns.length}
                 />
+
+                {/* Mobile view switcher */}
+                <div className="flex lg:hidden gap-2 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setMobileView("list")}
+                    className={`flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer ${
+                      mobileView === "list"
+                        ? "bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-900"
+                        : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    Lista
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileView("pdf")}
+                    className={`flex-1 text-xs tracking-widest uppercase py-2 border transition-colors cursor-pointer ${
+                      mobileView === "pdf"
+                        ? "bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-900"
+                        : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    PDF
+                  </button>
+                </div>
+
+                <div className="flex-1 flex min-h-0">
+                  {/* LEFT: table */}
+                  <div
+                    className={`${mobileView === "list" ? "flex" : "hidden"} lg:flex w-full lg:w-[42%] flex-col min-h-0 border-r border-zinc-200 dark:border-zinc-800`}
+                  >
+                    <TransactionTable
+                      currentTxns={currentTxns}
+                      localPeople={localPeople}
+                      setLocalPeople={setLocalPeople}
+                      creditCards={creditCards}
+                      patchCurrentTxn={patchCurrentTxn}
+                      selectedTxnIndex={pdf.selectedTxnIndex}
+                      onSelectTxn={pdf.highlightTransaction}
+                      editingCell={editingCell}
+                      setEditingCell={setEditingCell}
+                      tableBodyRef={tableBodyRef}
+                      search={search}
+                      filterDateFrom={filterDateFrom}
+                      filterDateTo={filterDateTo}
+                      filterAmountMin={filterAmountMin}
+                      filterAmountMax={filterAmountMax}
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      step={step}
+                      onClose={closeModal}
+                      onSave={save}
+                    />
+                  </div>
+
+                  {/* RIGHT: PDF viewer */}
+                  <PdfViewerPane
+                    mobileView={mobileView}
+                    containerRef={pdf.containerRef}
+                    pdfZoom={pdf.pdfZoom}
+                    pdfReady={pdf.pdfReady}
+                    pdfNoMatch={pdf.pdfNoMatch}
+                    selectedTxnIndex={pdf.selectedTxnIndex}
+                    highlights={pdf.highlights}
+                    pageInfoList={pdf.pageInfoList}
+                    pdfSrc={pdfSrc}
+                    currentTxns={currentTxns}
+                    statementId={statementId}
+                    refreshing={refreshing}
+                    onZoomIn={pdf.zoomIn}
+                    onZoomOut={pdf.zoomOut}
+                    onRunFreshLLM={runFreshLLM}
+                    onSelectTxn={pdf.highlightTransaction}
+                  />
+                </div>
+
+                {showManualAdd && (
+                  <ManualAddDialog container={reviewContainer} bank={bank} creditCards={creditCards} onClose={() => setShowManualAdd(false)} onAdd={handleAddManualTxn} />
+                )}
               </div>
-
-              {/* RIGHT: PDF viewer */}
-              <PdfViewerPane
-                mobileView={mobileView}
-                containerRef={pdf.containerRef}
-                pdfZoom={pdf.pdfZoom}
-                pdfReady={pdf.pdfReady}
-                pdfNoMatch={pdf.pdfNoMatch}
-                selectedTxnIndex={pdf.selectedTxnIndex}
-                highlights={pdf.highlights}
-                pageInfoList={pdf.pageInfoList}
-                pdfSrc={pdfSrc}
-                currentTxns={currentTxns}
-                statementId={statementId}
-                refreshing={refreshing}
-                onZoomIn={pdf.zoomIn}
-                onZoomOut={pdf.zoomOut}
-                onRunFreshLLM={runFreshLLM}
-                onSelectTxn={pdf.highlightTransaction}
-              />
-            </div>
-
-            {showManualAdd && (
-              <ManualAddDialog bank={bank} creditCards={creditCards} onClose={() => setShowManualAdd(false)} onAdd={handleAddManualTxn} />
             )}
-          </div>
-        )}
-      </div>
-    </div>
+          </Dialog.Content>
+        </Dialog.Overlay>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

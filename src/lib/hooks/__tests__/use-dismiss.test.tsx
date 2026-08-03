@@ -1,8 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { useRef } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { renderHook, act } from "@testing-library/react";
-import { useDismiss, useDismissGuard, type UseDismissOptions } from "../use-dismiss";
+import { useDismiss, type UseDismissOptions } from "../use-dismiss";
 
 function TestDismissable({
   onDismiss,
@@ -132,39 +131,5 @@ describe("useDismiss", () => {
     fireEvent.click(screen.getByTestId("outside"));
     expect(onDismissA).not.toHaveBeenCalled();
     expect(onDismissB).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("useDismissGuard", () => {
-  it("runs the callback normally when nothing was suppressed", () => {
-    const { result } = renderHook(() => useDismissGuard());
-    const fn = vi.fn();
-    act(() => result.current.guard(fn));
-    expect(fn).toHaveBeenCalledTimes(1);
-  });
-
-  it("swallows exactly the next guard() call after suppressNext()", () => {
-    const { result } = renderHook(() => useDismissGuard());
-    const fn = vi.fn();
-
-    act(() => result.current.suppressNext());
-    act(() => result.current.guard(fn));
-    expect(fn).not.toHaveBeenCalled();
-
-    // the guard after the suppressed one behaves normally again
-    act(() => result.current.guard(fn));
-    expect(fn).toHaveBeenCalledTimes(1);
-  });
-
-  it("only suppresses one guard() call per suppressNext()", () => {
-    const { result } = renderHook(() => useDismissGuard());
-    const fn = vi.fn();
-
-    act(() => result.current.suppressNext());
-    act(() => result.current.guard(vi.fn())); // swallowed
-    act(() => result.current.guard(fn)); // not swallowed
-    act(() => result.current.guard(fn)); // not swallowed either
-
-    expect(fn).toHaveBeenCalledTimes(2);
   });
 });

@@ -94,13 +94,9 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
           align="start"
           sideOffset={2}
           onEscapeKeyDown={(e) => {
-            // Always stop this native keydown from bubbling any further — Radix's
-            // own DismissableLayer intercepts it before it would otherwise reach
-            // ImportModal's own window-level Escape listener (useDismiss), which
-            // would otherwise close the *entire* import modal on top of this
-            // popover, the same class of nested-dismissable bug documented for
-            // this table's other inline edits (see use-dismiss.ts).
-            e.stopPropagation();
+            // No stopPropagation() needed: ImportModal is a Radix Dialog now, and
+            // DismissableLayer only arms its Escape listener for the topmost layer,
+            // so this popover consumes the key without the modal ever seeing it.
             // First Escape only cancels the inline "new person" form, if it's open;
             // a second Escape (or the first, when not creating) closes the whole
             // popover via Radix's own default handling.

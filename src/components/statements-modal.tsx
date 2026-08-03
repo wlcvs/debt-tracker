@@ -69,7 +69,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
   return (
     <Dialog.Root open onOpenChange={(next) => { if (!next) onClose(); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <Dialog.Overlay className="fixed inset-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <Dialog.Content
             // Escape can read editingId directly: Radix listens for it on document
             // in the capture phase, and only on the topmost layer, so this runs
