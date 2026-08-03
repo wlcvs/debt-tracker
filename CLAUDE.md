@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app does
 
-Personal debt tracker where the admin logs debts and payments for people who owe them. Each person's `id` in the database serves as their access code for a read-only public view at `/public/[id]`, which the admin can block per-person at any time.
+Personal debt tracker where the admin logs debts and payments for people who owe them. Each person has a random 12-character `accessCode` — distinct from their database `id` — that unlocks a read-only public view at `/public/[code]`, which the admin can block per-person at any time.
 
 This project was also rewritten once in Django (`debt-tracker-django`, a sibling repo). The two diverged; this repo (Next.js) is the one confirmed to keep receiving feature work — `debt-tracker-django` is frozen. Everything Django had that this repo didn't (debt `title`/`paid`, payment `description`, the bank statement import feature) has been ported over; if you're comparing behavior against the Django source, treat it as the reference for anything not yet covered here, but this repo is the target going forward.
 
@@ -65,8 +65,8 @@ Agent skills for this repo: `setup-debt-tracker` (`.claude/skills/setup-debt-tra
 src/app/
   (dashboard)/          # admin-only; protected by Edge middleware (proxy.ts)
     page.tsx            # dashboard: stats + person list + add person + credit cards + statement import launcher
-    person/[id]/        # debtor detail view
-  public/[code]/        # debtor read-only view, no login required; [code] = person's DB id
+    person/[code]/      # debtor detail view; [code] is the accessCode too, never the DB id
+  public/[code]/        # debtor read-only view, no login required; [code] = person's accessCode
   login/                # admin login
   api/
     auth/[...nextauth]/
@@ -76,7 +76,7 @@ src/app/
 ### Server Actions
 
 All mutations go through Server Actions in `src/lib/actions/`:
-- `person.ts` — CRUD for debtors; `getDashboardOverview` aggregates the dashboard's stats + per-person totals directly in Postgres (`groupBy`/`count`/`aggregate`) instead of fetching the full Person→Debt→Payment graph and summing in JS — `getPersonById`/`getDebtorViewById` still fetch full per-debt/payment detail via `toPersonWithBalance`, since the person-detail and public pages actually render each row
+- `person.ts` — CRUD for debtors; `getDashboardOverview` aggregates the dashboard's stats + per-person totals directly in Postgres (`groupBy`/`count`/`aggregate`) instead of fetching the full Person→Debt→Payment graph and summing in JS — `getPersonByAccessCode`/`getDebtorViewById` still fetch full per-debt/payment detail via `toPersonWithBalance`, since the person-detail and public pages actually render each row
 - `debt.ts` — add/edit/delete/toggle-paid for debts, plus installment support: `createDebt` accepts `installments`/`installmentDirection`/`paidInstallments` to create a linked group of `Debt` rows; `deleteDebtInstallmentGroup`, `toggleDebtsPaidBulk`, `getDebtInstallmentGroup` operate on a whole group at once
 - `payment.ts` — add/edit/delete payments
 - `credit-card.ts` — admin's credit cards (referenced in debts)
@@ -87,7 +87,7 @@ All mutations go through Server Actions in `src/lib/actions/`:
 
 Single session — admin only:
 - **Admin** — Auth.js v5 Credentials, JWT, role `admin` injected in `auth.config.ts`. Edge middleware (`proxy.ts`) reads this to protect `(dashboard)` routes.
-- **Public** — `/public/[code]` requires no login; the URL itself is the access code.
+- **Public** — `/public/[code]` requires no login; the URL itself is the access code. `getDebtorViewById` resolves it **only** by `Person.accessCode`. Codes are minted by `src/lib/access-code.ts`.
 
 `auth.config.ts` is intentionally split from `auth.ts` so it can be imported in the Edge runtime.
 
@@ -95,7 +95,8 @@ Single session — admin only:
 
 ```
 User        — admin; owns People, CreditCards, Statements, LLMFeedback
-Person      — debtor; id (serves as access code), name, publicVisible (default true)
+Person      — debtor; id (internal only), accessCode (unique, random 12 chars — the public-page
+              credential; see src/lib/access-code.ts), name, publicVisible (default true)
 CreditCard  — admin's card; referenced in Debt
 Debt        — amount (Decimal 10,2), title (required label), description (optional notes, default ""),
               paid (default false — excluded from every balance sum when true), date, method (PIX|CASH)?, creditCardId?,
@@ -140,6 +141,7 @@ Upload a PDF from a card/bank statement at `/dashboard` → "Extratos"; nothing 
 ### Key lib files
 
 - `src/lib/prisma.ts` — singleton PrismaClient; normalizes a weak `sslmode` (`prefer`/`require`/`verify-ca`) to `verify-full` in `DATABASE_URL` before constructing the `@prisma/adapter-pg` adapter — see "Deployment" below.
+- `src/lib/access-code.ts` — `generateAccessCode()` mints the 12-char public-page credential from an unambiguous 31-symbol alphabet (no `0/O`, `1/I/L`), using `crypto.randomInt` rather than `randomBytes % 31` (256 isn't a multiple of 31 — the modulo would bias the low letters). The migration that added the column backfills existing rows with the same alphabet in SQL, so old and new codes are indistinguishable.
 - `src/lib/payment-methods.ts` — maps `PaymentMethod` enum values to display labels (`PIX → "Pix"`, `CASH → "Dinheiro"`).
 - `src/lib/date-utils.ts` — `getMonthKey`/`formatMonthLabel`/`getAvailableMonths`/`addMonthsClamped`/`formatDateBR`. All calendar-date math here operates on the Date object's **UTC** components, not local — dates in this app originate from date-only strings (`z.coerce.date()` on `"YYYY-MM-DD"` form input), which JS always parses as UTC midnight, so using local getters would silently shift the day in timezones west of UTC. Keep this convention when adding new date logic.
 - `src/lib/installments.ts` — `splitInstallmentAmounts`/`installmentDate`; see "Installments" above.
@@ -162,10 +164,10 @@ Upload a PDF from a card/bank statement at `/dashboard` → "Extratos"; nothing 
 - **Detail modals**: clicking a debt/payment row opens a modal with a view mode (title/amount/description/date/method badge, plus a paid toggle for debts) and an "Editar" button that swaps the same modal to an edit form — not a separate route or a second modal. See `debt-detail-modal.tsx`/`payment-detail-modal.tsx` for the pattern; `public-view.tsx`'s modals are the read-only variant (no edit/delete/paid-toggle, but a "✓ Paga" indicator when relevant).
 - **Method selection** (Pix/Dinheiro/credit card): `src/components/method-select.tsx`, a Radix `Select` with a hidden `<input>` carrying the value for form submission (see the Radix bullet below for why the hidden input, not `Select.Root`'s `name`). Debt method options include credit cards (`value` = the card's own id, not prefixed); payment options are Pix/Dinheiro only.
 - **Filter/sort panels**: debt and payment lists (`debts-section.tsx`, `payments-section.tsx`, and `public-view.tsx`'s lists) each own local filter state (search, amount range, paid status) and sort state (date/amount, asc/desc) — not shared across sections. Switching to a different sort key always resets direction to `desc`; clicking the same key again toggles it. Amount-range filters compare by `Math.floor(amount)` when the input has no decimal point (e.g. typing `222` should still match `222.70`). Dashboard lists (`debts-section.tsx`/`payments-section.tsx`) also keep a manual `dateFrom`/`dateTo` range filter; `public-view.tsx`'s lists dropped it in favor of the month carousel below.
-- **Month carousel**: `month-carousel.tsx` is a controlled row of month chips (`months: string[]` of `"YYYY-MM"` keys from `date-utils.ts`'s `getAvailableMonths`, `selected`, `onSelect`), reused in two places. In `public-view.tsx`, one carousel sits above both the debts and payments lists and drives both via a single `selectedMonth` — it fully replaced the old date-range filter there. In the dashboard's `/person/[id]`, `person-month-view.tsx` wraps `debts-section.tsx`/`payments-section.tsx` with the same carousel, passed down as an additional (not exclusive) filter — the existing `dateFrom`/`dateTo` inputs still work alongside it. A debt belonging to an installment group shows a small "Parcela i/N" badge next to its title in every list/modal (`editable-debt.tsx`, `debt-detail-modal.tsx`, `public-view.tsx`).
+- **Month carousel**: `month-carousel.tsx` is a controlled row of month chips (`months: string[]` of `"YYYY-MM"` keys from `date-utils.ts`'s `getAvailableMonths`, `selected`, `onSelect`), reused in two places. In `public-view.tsx`, one carousel sits above both the debts and payments lists and drives both via a single `selectedMonth` — it fully replaced the old date-range filter there. In the dashboard's `/person/[code]`, `person-month-view.tsx` wraps `debts-section.tsx`/`payments-section.tsx` with the same carousel, passed down as an additional (not exclusive) filter — the existing `dateFrom`/`dateTo` inputs still work alongside it. A debt belonging to an installment group shows a small "Parcela i/N" badge next to its title in every list/modal (`editable-debt.tsx`, `debt-detail-modal.tsx`, `public-view.tsx`).
 - **Form validation messages**: native browser validation tooltips are replaced globally by `src/components/form-validation-messages.tsx` (mounted once in the root layout), which listens for the `invalid` event and inserts a styled inline message instead. Don't add per-field error `useState` for basic `required`/type validation in new forms — rely on native `required`/`type` attributes and let this component handle the message; only add custom state for validation native attributes can't express (e.g. the method dropdown's hidden input, which doesn't support `required`).
-- **Route-level loading states**: `(dashboard)/loading.tsx`, `(dashboard)/person/[id]/loading.tsx`, and `public/[code]/loading.tsx` are Next.js's native streaming mechanism — each route's Server Component still does one blocking `Promise.all(...)`/`await` fetch (no manual `<Suspense>` needed, `loading.tsx` wraps the segment automatically), but the fallback streams to the browser instantly while that resolves. Measured impact: FCP/LCP on `/` went from 2.85s to ~0.94s (P75) combining this with the region fix above. `public/[code]/loading.tsx` replicates the page's own header markup, since that route (unlike the dashboard) has no separate layout splitting header from data-dependent content.
-  - **Gotcha: breaks `notFound()`'s HTTP status code.** `public/[code]/page.tsx` and `(dashboard)/person/[id]/page.tsx` both call `notFound()` conditionally (`if (!x) notFound()`). With `loading.tsx` present, Next streams the initial 200 response *before* that check resolves, so by the time `notFound()` runs the status is already committed — it can only affect the rendered content (correctly shows the not-found UI), never the response's actual HTTP status, which stays 200. Moving the check into `generateMetadata()` (normally documented as resolving before the body streams) does **not** fix this — confirmed empirically that once `loading.tsx` makes the whole segment streamable, metadata resolution is no longer blocking either. There's no known way to get both instant streaming and a correct 404 status on the same route in this Next.js version; the tradeoff was accepted deliberately (content is still correct — no data leak — which is what the `publicVisible` toggle actually needs). `tests/e2e/public-view.spec.ts` asserts on rendered content, not `response.status()`, for exactly this reason — don't "fix" those assertions back to checking status without re-verifying this limitation still applies to whatever Next.js version is installed at the time.
+- **Route-level loading states**: `(dashboard)/loading.tsx`, `(dashboard)/person/[code]/loading.tsx`, and `public/[code]/loading.tsx` are Next.js's native streaming mechanism — each route's Server Component still does one blocking `Promise.all(...)`/`await` fetch (no manual `<Suspense>` needed, `loading.tsx` wraps the segment automatically), but the fallback streams to the browser instantly while that resolves. Measured impact: FCP/LCP on `/` went from 2.85s to ~0.94s (P75) combining this with the region fix above. `public/[code]/loading.tsx` replicates the page's own header markup, since that route (unlike the dashboard) has no separate layout splitting header from data-dependent content.
+  - **Gotcha: breaks `notFound()`'s HTTP status code.** `public/[code]/page.tsx` and `(dashboard)/person/[code]/page.tsx` both call `notFound()` conditionally (`if (!x) notFound()`). With `loading.tsx` present, Next streams the initial 200 response *before* that check resolves, so by the time `notFound()` runs the status is already committed — it can only affect the rendered content (correctly shows the not-found UI), never the response's actual HTTP status, which stays 200. Moving the check into `generateMetadata()` (normally documented as resolving before the body streams) does **not** fix this — confirmed empirically that once `loading.tsx` makes the whole segment streamable, metadata resolution is no longer blocking either. There's no known way to get both instant streaming and a correct 404 status on the same route in this Next.js version; the tradeoff was accepted deliberately (content is still correct — no data leak — which is what the `publicVisible` toggle actually needs). `tests/e2e/public-view.spec.ts` asserts on rendered content, not `response.status()`, for exactly this reason — don't "fix" those assertions back to checking status without re-verifying this limitation still applies to whatever Next.js version is installed at the time.
 - **pdfjs-dist in a "use client" component**: never a plain top-level `import { X } from "pdfjs-dist"` — it evaluates browser-only globals (`DOMMatrix`, etc.) immediately, which crashes SSR. Load it via dynamic `import("pdfjs-dist")` inside a function, and if you need something like `Util` outside that function, cache the loaded module and expose a getter (see `pdf-viewer-controller.ts`'s `getLoadedPdfjs()`) rather than importing it directly elsewhere.
 - **UI primitives come from Radix — never hand-roll them.** New modal → `@radix-ui/react-dialog` (destructive confirmation → `react-alert-dialog`); new dropdown → `react-select`; inline region a button expands → `react-collapsible`; mutually-exclusive segmented control → `react-toggle-group`. `person-select.tsx` uses `react-popover` for a combobox-with-create that has to escape a table's stacking context. These replaced a hand-written modal shell, dropdown, disclosure and z-index ladder; the primitives bring focus trap, focus restore, portalling, body scroll lock, `role`/`aria-*` and keyboard navigation that this app previously had none of.
   - **Stacking is portal mount order, not z-index.** `Dialog.Portal` appends to `document.body`, so a dialog opened on top of another paints above it, and Radix's DismissableLayer routes Escape to the topmost layer only. The old `z-10`/`z-20`/`z-40`/`z-50`/`z-[1000]` ladder is gone and must not come back — **nothing outside a portal may claim a z-index**, or a portalled dialog will render behind it (z-index only competes between positioned elements). Two deliberate exceptions stack *within* a `Dialog.Content` rather than against one: `transaction-table.tsx`'s sticky `<thead>` and `manual-add-dialog.tsx`'s overlay.
@@ -207,6 +209,14 @@ OLLAMA_API_KEY=           # only needed when OLLAMA_BASE_URL points at a hosted 
 
 ## Rules
 
+- **`Person.id` never crosses the server→client boundary.** The client-facing identifier for a
+  person is always their `accessCode` — in the route (`/person/[code]`, `/public/[code]`), in
+  component props, in hidden form inputs (`name="accessCode"` / `name="personAccessCode"`), and in
+  any server-action payload. Actions translate code → internal id inside the ownership lookup they
+  already performed (`findFirst({ where: { accessCode, userId } })`), then use `person.id` for the
+  FK write. `PersonWithBalance`/`PersonSummary` deliberately have no `id` field so a client
+  component can't receive one by accident. A stray `personId` under `src/components`, `src/app` or
+  `src/lib/hooks` is the tell that something regressed.
 - **Never persist derived data** — balances are always computed at runtime.
 - **PaymentMethod enum** is `PIX | CASH` only — never `CREDIT_CARD`.
 - **Every new env var** must also be added to `.env.example`.

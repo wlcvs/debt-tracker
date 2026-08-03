@@ -21,7 +21,7 @@ const StatementsModal = dynamic(
 );
 
 interface Props {
-  people: { id: string; name: string }[];
+  people: { accessCode: string; name: string }[];
   creditCards: { id: string; label: string }[];
 }
 

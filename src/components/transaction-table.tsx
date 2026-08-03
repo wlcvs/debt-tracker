@@ -19,8 +19,10 @@ const compactControlClass =
 
 interface Props {
   currentTxns: Txn[];
-  localPeople: { id: string; name: string }[];
-  setLocalPeople: (updater: (prev: { id: string; name: string }[]) => { id: string; name: string }[]) => void;
+  localPeople: { accessCode: string; name: string }[];
+  setLocalPeople: (
+    updater: (prev: { accessCode: string; name: string }[]) => { accessCode: string; name: string }[]
+  ) => void;
   creditCards: { id: string; label: string }[];
   patchCurrentTxn: (index: number | string, patch: Partial<Txn>) => void;
   selectedTxnIndex: number | string | null;
@@ -130,7 +132,7 @@ export function TransactionTable({
     });
   }, [currentTxns, search, filterDateFrom, filterDateTo, filterAmountMin, filterAmountMax, sortKey, sortDir]);
 
-  const readyTxns = useMemo(() => currentTxns.filter((t) => t.type !== "ignore" && t.personId), [currentTxns]);
+  const readyTxns = useMemo(() => currentTxns.filter((t) => t.type !== "ignore" && t.personAccessCode), [currentTxns]);
   const readyCount = readyTxns.length;
   const readyTotal = useMemo(
     () => readyTxns.reduce((sum, t) => sum + Math.abs(parseFloat(String(t.amount)) || 0), 0),
@@ -164,7 +166,7 @@ export function TransactionTable({
               <tr
                 key={t.index}
                 data-txn-index={t.index}
-                className={`border-b border-zinc-100 dark:border-zinc-800/60 transition-all cursor-pointer ${t.type === "ignore" || !t.personId ? "opacity-30" : ""} ${
+                className={`border-b border-zinc-100 dark:border-zinc-800/60 transition-all cursor-pointer ${t.type === "ignore" || !t.personAccessCode ? "opacity-30" : ""} ${
                   t.index === selectedTxnIndex ? "bg-zinc-300/60 dark:bg-zinc-700/50" : ""
                 }`}
                 onClick={() => onSelectTxn(t)}
@@ -271,9 +273,12 @@ export function TransactionTable({
                 <td className="px-1 py-1.5 overflow-visible" onClick={(e) => e.stopPropagation()}>
                   <PersonSelect
                     people={localPeople}
-                    value={t.personId}
-                    onChange={(personId) =>
-                      patchCurrentTxn(t.index, { personId, type: personId && t.type === "ignore" ? "debt" : t.type })
+                    value={t.personAccessCode}
+                    onChange={(personAccessCode) =>
+                      patchCurrentTxn(t.index, {
+                        personAccessCode,
+                        type: personAccessCode && t.type === "ignore" ? "debt" : t.type,
+                      })
                     }
                     onPersonCreated={(p) =>
                       setLocalPeople((prev) => [...prev, p].sort((a, b) => a.name.localeCompare(b.name)))
@@ -285,7 +290,7 @@ export function TransactionTable({
                     value={t.type}
                     onChange={(e) => {
                       const type = e.target.value as TxnType;
-                      patchCurrentTxn(t.index, { type, personId: type === "ignore" ? "" : t.personId });
+                      patchCurrentTxn(t.index, { type, personAccessCode: type === "ignore" ? "" : t.personAccessCode });
                     }}
                     className={compactControlClass}
                   >

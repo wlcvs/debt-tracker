@@ -3,14 +3,14 @@
 import { useState } from "react";
 
 interface Props {
-  personId: string;
+  accessCode: string;
 }
 
-export function ShareButton({ personId }: Props) {
+export function ShareButton({ accessCode }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
-    const url = `${window.location.origin}/public/${personId}`;
+    const url = `${window.location.origin}/public/${accessCode}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

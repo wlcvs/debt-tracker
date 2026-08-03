@@ -17,7 +17,7 @@ interface Props {
 
 interface Installment {
   id: string;
-  personId: string;
+  personAccessCode: string;
   amount: number;
   title: string;
   date: string;
@@ -67,7 +67,7 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
         if (paymentMode === "single") {
           const total = targets.reduce((s, t) => s + t.amount, 0);
           const pfd = new FormData();
-          pfd.set("personId", targets[0].personId);
+          pfd.set("personAccessCode", targets[0].personAccessCode);
           pfd.set("amount", String(total));
           pfd.set("description", paymentDescription || title);
           pfd.set("date", paymentDate);
@@ -76,7 +76,7 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
         } else {
           for (const t of targets) {
             const pfd = new FormData();
-            pfd.set("personId", t.personId);
+            pfd.set("personAccessCode", t.personAccessCode);
             pfd.set("amount", String(t.amount));
             pfd.set("description", paymentDescription || `${title} (${t.installmentIndex}/${t.installmentTotal})`);
             pfd.set("date", paymentDate);

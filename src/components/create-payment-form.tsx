@@ -13,10 +13,10 @@ const inputClass =
 const METHOD_OPTIONS: MethodOption[] = Object.entries(PAYMENT_METHODS).map(([value, label]) => ({ value, label }));
 
 interface Props {
-  personId: string;
+  accessCode: string;
 }
 
-export function CreatePaymentForm({ personId }: Props) {
+export function CreatePaymentForm({ accessCode }: Props) {
   const [open, setOpen] = useState(false);
   const [method, setMethod] = useState("");
   const [methodError, setMethodError] = useState(false);
@@ -55,7 +55,7 @@ export function CreatePaymentForm({ personId }: Props) {
           }}
           className="mt-3 flex flex-col gap-2"
         >
-          <input type="hidden" name="personId" value={personId} />
+          <input type="hidden" name="personAccessCode" value={accessCode} />
 
           <div className="flex gap-2 items-start">
             <input type="text" inputMode="decimal" name="amount" placeholder="VALOR" required className={`w-28 ${inputClass}`} />

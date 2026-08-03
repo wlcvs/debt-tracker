@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { splitInstallmentAmounts, installmentDate } from "@/lib/installments";
+import { generateAccessCode } from "@/lib/access-code";
 
 async function main() {
   const user = await prisma.user.findFirstOrThrow();
@@ -13,7 +14,7 @@ async function main() {
 
   // --- Carlos (quitado) ---
   const carlos = await prisma.person.create({
-    data: { userId: user.id, name: "Carlos Souza" },
+    data: { userId: user.id, name: "Carlos Souza", accessCode: generateAccessCode() },
   });
 
   await prisma.debt.create({
@@ -31,7 +32,7 @@ async function main() {
 
   // --- Ana (parcialmente paga) ---
   const ana = await prisma.person.create({
-    data: { userId: user.id, name: "Ana Lima" },
+    data: { userId: user.id, name: "Ana Lima", accessCode: generateAccessCode() },
   });
 
   await prisma.debt.create({
@@ -46,7 +47,7 @@ async function main() {
 
   // --- Rafael (sem pagamentos) ---
   const rafael = await prisma.person.create({
-    data: { userId: user.id, name: "Rafael Mendes" },
+    data: { userId: user.id, name: "Rafael Mendes", accessCode: generateAccessCode() },
   });
 
   const notebookGroupId = crypto.randomUUID();
@@ -76,7 +77,7 @@ async function main() {
 
   // --- Juliana (pagamento parcial) ---
   const juliana = await prisma.person.create({
-    data: { userId: user.id, name: "Juliana Costa" },
+    data: { userId: user.id, name: "Juliana Costa", accessCode: generateAccessCode() },
   });
 
   await prisma.debt.create({
@@ -94,7 +95,7 @@ async function main() {
 
   // --- Bruno (dívidas marcadas pagas manualmente, sem nenhum Payment) ---
   const bruno = await prisma.person.create({
-    data: { userId: user.id, name: "Bruno Ferreira" },
+    data: { userId: user.id, name: "Bruno Ferreira", accessCode: generateAccessCode() },
   });
 
   await prisma.debt.create({
@@ -109,7 +110,7 @@ async function main() {
 
   // --- Camila (compra parcelada retroativa, já totalmente quitada) ---
   const camila = await prisma.person.create({
-    data: { userId: user.id, name: "Camila Rocha" },
+    data: { userId: user.id, name: "Camila Rocha", accessCode: generateAccessCode() },
   });
 
   const geladeiraGroupId = crypto.randomUUID();
@@ -143,7 +144,7 @@ async function main() {
   console.log(`  Bruno Ferreira — id: ${bruno.id} (dívidas marcadas pagas manualmente, sem Payment)`);
   console.log(`  Camila Rocha   — id: ${camila.id} (parcelamento retroativo já quitado)`);
   console.log("\nURL pública de exemplo:");
-  console.log(`  /public/${carlos.id}`);
+  console.log(`  /public/${carlos.accessCode}`);
 }
 
 main()

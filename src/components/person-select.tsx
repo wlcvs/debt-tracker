@@ -5,7 +5,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { createPerson } from "@/lib/actions/person";
 
 interface PersonOption {
-  id: string;
+  accessCode: string;
   name: string;
 }
 
@@ -62,11 +62,11 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
     const person = await createPerson(fd);
     setSaving(false);
     onPersonCreated(person);
-    onChange(person.id);
+    onChange(person.accessCode);
     closePopover();
   }
 
-  const selected = people.find((p) => p.id === value);
+  const selected = people.find((p) => p.accessCode === value);
 
   return (
     <Popover.Root open={open} onOpenChange={(next) => (next ? setOpen(true) : closePopover())}>
@@ -162,14 +162,14 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
               </button>
               {people.map((p) => (
                 <button
-                  key={p.id}
+                  key={p.accessCode}
                   type="button"
                   onClick={() => {
-                    onChange(p.id);
+                    onChange(p.accessCode);
                     closePopover();
                   }}
                   className={`w-full text-left px-2 py-1 text-[10px] tracking-wider truncate hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
-                    p.id === value ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-300"
+                    p.accessCode === value ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-300"
                   }`}
                 >
                   {p.name}

@@ -34,7 +34,7 @@ describe("createPayment", () => {
     prismaMock.person.findFirst.mockResolvedValue(null);
 
     const form = new FormData();
-    form.set("personId", "person-99");
+    form.set("personAccessCode", "CODE99");
     form.set("amount", "100");
     form.set("date", "2025-01-01");
 
@@ -43,11 +43,11 @@ describe("createPayment", () => {
 
   it("creates payment for authenticated user", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
     prismaMock.payment.create.mockResolvedValue({} as never);
 
     const form = new FormData();
-    form.set("personId", "person-1");
+    form.set("personAccessCode", "CODE1");
     form.set("amount", "250");
     form.set("description", "Parcela 1");
     form.set("date", "2025-04-01");
@@ -63,11 +63,11 @@ describe("createPayment", () => {
 
   it("defaults description to empty string when omitted", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
     prismaMock.payment.create.mockResolvedValue({} as never);
 
     const form = new FormData();
-    form.set("personId", "person-1");
+    form.set("personAccessCode", "CODE1");
     form.set("amount", "250");
     form.set("date", "2025-04-01");
 
@@ -81,7 +81,7 @@ describe("createPayment", () => {
   it("throws on non-positive amount", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     const form = new FormData();
-    form.set("personId", "person-1");
+    form.set("personAccessCode", "CODE1");
     form.set("amount", "0");
     form.set("date", "2025-01-01");
     await expect(createPayment(form)).rejects.toThrow();
@@ -89,11 +89,11 @@ describe("createPayment", () => {
 
   it("accepts an explicit PIX method", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
     prismaMock.payment.create.mockResolvedValue({} as never);
 
     const form = new FormData();
-    form.set("personId", "person-1");
+    form.set("personAccessCode", "CODE1");
     form.set("amount", "50");
     form.set("date", "2025-01-01");
     form.set("method", "PIX");
@@ -107,11 +107,11 @@ describe("createPayment", () => {
 
   it("defaults method to CASH when omitted", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
     prismaMock.payment.create.mockResolvedValue({} as never);
 
     const form = new FormData();
-    form.set("personId", "person-1");
+    form.set("personAccessCode", "CODE1");
     form.set("amount", "50");
     form.set("date", "2025-01-01");
 
@@ -124,10 +124,10 @@ describe("createPayment", () => {
 
   it("rejects an invalid method value (not silently defaulted)", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
 
     const form = new FormData();
-    form.set("personId", "person-1");
+    form.set("personAccessCode", "CODE1");
     form.set("amount", "50");
     form.set("date", "2025-01-01");
     form.set("method", "CREDIT_CARD");
@@ -137,11 +137,11 @@ describe("createPayment", () => {
 
   it("trims a whitespace-only description down to an empty string", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1" } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
     prismaMock.payment.create.mockResolvedValue({} as never);
 
     const form = new FormData();
-    form.set("personId", "person-1");
+    form.set("personAccessCode", "CODE1");
     form.set("amount", "50");
     form.set("date", "2025-01-01");
     form.set("description", "   ");

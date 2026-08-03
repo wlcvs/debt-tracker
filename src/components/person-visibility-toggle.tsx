@@ -4,16 +4,16 @@ import { useState } from "react";
 import { togglePersonPublicVisibility } from "@/lib/actions/person";
 
 interface Props {
-  personId: string;
+  accessCode: string;
   publicVisible: boolean;
 }
 
-export function PersonVisibilityToggle({ personId, publicVisible }: Props) {
+export function PersonVisibilityToggle({ accessCode, publicVisible }: Props) {
   const [visible, setVisible] = useState(publicVisible);
 
   async function toggle() {
     const fd = new FormData();
-    fd.append("id", personId);
+    fd.append("accessCode", accessCode);
     await togglePersonPublicVisibility(fd);
     setVisible((v) => !v);
   }

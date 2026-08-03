@@ -52,7 +52,7 @@ export function ManualAddDialog({ bank, creditCards, container, onClose, onAdd }
       title: manualTitle,
       notes: manualNotes,
       amount: parseFloat(manualAmount).toFixed(2),
-      personId: "",
+      personAccessCode: "",
       type: "debt",
       method: manualMethod,
       manual: true,

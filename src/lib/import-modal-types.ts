@@ -7,7 +7,7 @@ export interface Txn {
   date: string;
   description: string;
   amount: number | string;
-  personId: string;
+  personAccessCode: string;
   type: TxnType;
   manual?: boolean;
   title?: string;

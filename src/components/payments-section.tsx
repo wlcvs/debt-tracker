@@ -19,12 +19,12 @@ interface Payment {
 }
 
 interface Props {
-  personId: string;
+  accessCode: string;
   payments: Payment[];
   selectedMonth?: string;
 }
 
-export function PaymentsSection({ personId, payments, selectedMonth }: Props) {
+export function PaymentsSection({ accessCode, payments, selectedMonth }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -110,7 +110,7 @@ export function PaymentsSection({ personId, payments, selectedMonth }: Props) {
         </ul>
       )}
 
-      <CreatePaymentForm personId={personId} />
+      <CreatePaymentForm accessCode={accessCode} />
     </section>
   );
 }

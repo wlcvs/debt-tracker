@@ -23,7 +23,7 @@ export default async function OverviewPage() {
     <div className="flex flex-col gap-10">
       <div className="flex items-start justify-between gap-4">
         <TotalDisplay total={stats.totalToReceive} />
-        <StatementImportLauncher people={people.map((p) => ({ id: p.id, name: p.name }))} creditCards={creditCards} />
+        <StatementImportLauncher people={people.map((p) => ({ accessCode: p.accessCode, name: p.name }))} creditCards={creditCards} />
       </div>
 
       {/* Stats grid */}
@@ -64,9 +64,9 @@ export default async function OverviewPage() {
         {people.length > 0 && (
           <ul className="flex flex-col mb-4">
             {people.map((person) => (
-              <li key={person.id}>
+              <li key={person.accessCode}>
                 <Link
-                  href={`/person/${person.id}`}
+                  href={`/person/${person.accessCode}`}
                   className="flex items-baseline justify-between py-2 border-b border-zinc-200 dark:border-zinc-900 text-xs tracking-widest uppercase hover:opacity-70 transition-opacity"
                 >
                   <span className="text-zinc-700 dark:text-zinc-300 truncate mr-4">

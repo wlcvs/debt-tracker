@@ -175,7 +175,7 @@ export async function reopenStatement(id: string, opts: { fresh?: boolean } = {}
 
 const importedItemSchema = z.object({
   type: z.enum(["debt", "payment"]),
-  personId: z.string().min(1),
+  personAccessCode: z.string().min(1),
   amount: z.coerce.number(),
   date: z.coerce.date(),
   description: z.string().optional(),
@@ -194,18 +194,22 @@ export async function saveImportedTransactions(items: unknown[]): Promise<{ crea
 
   if (valid.length === 0) return { created: 0 };
 
-  const personIds = [...new Set(valid.map((i) => i.personId))];
+  // Resolves accessCode -> internal id in one batch query, which is also the
+  // ownership check: a code that isn't the admin's simply isn't in the map,
+  // and its items get skipped (same semantics as the old ownedIds set).
+  const codes = [...new Set(valid.map((i) => i.personAccessCode))];
   const owned = await prisma.person.findMany({
-    where: { id: { in: personIds }, userId },
-    select: { id: true },
+    where: { accessCode: { in: codes }, userId },
+    select: { id: true, accessCode: true },
   });
-  const ownedIds = new Set(owned.map((p) => p.id));
+  const idByAccessCode = new Map(owned.map((p) => [p.accessCode, p.id]));
 
   let created = 0;
 
   await prisma.$transaction(async (tx) => {
     for (const item of valid) {
-      if (!ownedIds.has(item.personId)) continue;
+      const personId = idByAccessCode.get(item.personAccessCode);
+      if (!personId) continue;
 
       const description = (item.description ?? "").slice(0, 500);
       const title = (item.title || description).slice(0, 255) || "Importado";
@@ -214,13 +218,13 @@ export async function saveImportedTransactions(items: unknown[]): Promise<{ crea
       if (item.type === "debt") {
         const { method, creditCardId } = resolveDebtMethod(item.method);
         await tx.debt.create({
-          data: { personId: item.personId, title, description: notes, amount: item.amount, date: item.date, method, creditCardId },
+          data: { personId, title, description: notes, amount: item.amount, date: item.date, method, creditCardId },
         });
       } else {
         const paymentMethod = item.method === "PIX" || item.method === "CASH" ? item.method : undefined;
         await tx.payment.create({
           data: {
-            personId: item.personId,
+            personId,
             amount: item.amount,
             description: notes || description,
             date: item.date,
