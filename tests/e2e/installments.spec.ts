@@ -19,8 +19,8 @@ test("create a parceled debt, bulk-mark installments paid with a payment, then d
   await page.getByPlaceholder("TÍTULO").fill(debtTitle);
   await page.locator('input[name="amount"]').fill("200.00");
   await page.locator('input[name="date"]').fill(today);
-  await page.getByRole("button", { name: "— Método —" }).click();
-  await page.getByRole("button", { name: "Pix", exact: true }).click();
+  await page.getByRole("combobox", { name: "Método" }).click();
+  await page.getByRole("option", { name: "Pix" }).click();
   await page.getByRole("checkbox", { name: "Parcelar" }).check();
   // installments defaults to 2 — leave as-is.
   await page.getByRole("button", { name: "Salvar" }).click();

@@ -21,8 +21,8 @@ test("add a debt and a payment for a newly created person", async ({ page }) => 
   await page.getByPlaceholder("TÍTULO").fill(debtTitle);
   await page.locator('input[name="amount"]').fill("199.90");
   await page.locator('input[name="date"]').fill(today);
-  await page.getByRole("button", { name: "— Método —" }).click();
-  await page.getByRole("button", { name: "Pix", exact: true }).click();
+  await page.getByRole("combobox", { name: "Método" }).click();
+  await page.getByRole("option", { name: "Pix" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
 
   // Scoped to the debt row itself — "R$ 199.90" alone is ambiguous here,
@@ -49,8 +49,8 @@ test("add a debt and a payment for a newly created person", async ({ page }) => 
   await page.getByRole("button", { name: "+ Adicionar pagamento" }).click();
   await page.locator('input[name="amount"]').fill("50.00");
   await page.locator('input[name="date"]').fill(today);
-  await page.getByRole("button", { name: "— Método —" }).click();
-  await page.getByRole("button", { name: "Dinheiro", exact: true }).click();
+  await page.getByRole("combobox", { name: "Método" }).click();
+  await page.getByRole("option", { name: "Dinheiro" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
 
   await expect(page.getByText("R$ 50.00")).toBeVisible();

@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useDismiss } from "@/lib/hooks/use-dismiss";
+import * as Select from "@radix-ui/react-select";
 
 export interface MethodOption {
   value: string;
@@ -15,54 +14,65 @@ interface Props {
   onChange: (value: string) => void;
   error?: boolean;
   placeholder?: string;
+  /** Accessible name for the trigger; see the aria-label comment below. */
+  label?: string;
 }
 
-export function MethodSelect({ name, options, value, onChange, error, placeholder = "— Método —" }: Props) {
-  const [open, setOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  // This component is always nested inside a form/modal that has its own useDismiss
-  // with Escape enabled too. escapeCapture makes this listener run (and stop
-  // propagation) before that outer one ever sees the keypress — see the doc comment
-  // on UseDismissOptions.escapeCapture. enabled: open also means the listeners are
-  // only attached while there's actually something to dismiss.
-  useDismiss(wrapperRef, () => setOpen(false), { enabled: open, escapeCapture: true });
-
-  const selected = options.find((o) => o.value === value);
-
+export function MethodSelect({ name, options, value, onChange, error, placeholder = "— Método —", label = "Método" }: Props) {
   return (
-    <div ref={wrapperRef} className="relative">
+    <Select.Root value={value || undefined} onValueChange={onChange}>
+      {/* Kept instead of Select.Root's own `name` prop, which would render a
+          hidden native <select>. That select only emits a synthetic empty
+          <option> when the value is `undefined`; this component's "no method
+          chosen" state is "", and a native select whose value matches no option
+          falls back to selecting its *first* one — so formData.get("debtMethod")
+          would come back "PIX" instead of "". Every server action reads this
+          field, and the detail modals' edit round-trip depends on "" staying "".
+          method-select.test.tsx locks that contract. */}
       <input type="hidden" name={name} value={value} />
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
+
+      <Select.Trigger
+        // role="combobox" does not take its name from content the way a button
+        // does, and the visible "Método" caption each consumer renders above this
+        // control was never associated with it. Without this the trigger reaches
+        // screen readers unnamed.
+        aria-label={label}
         className={`w-full text-left flex justify-between items-center bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest focus:outline-none transition-colors cursor-pointer ${
-          selected ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
+          value ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
         }`}
       >
-        <span>{selected ? selected.label : placeholder}</span>
+        <Select.Value placeholder={placeholder} />
+        {/* Plain text, not Select.Icon: "▾" is a character, and the app's design
+            rules forbid icons outright. ItemIndicator and the scroll buttons are
+            optional too and are deliberately omitted for the same reason —
+            selection stays expressed by text colour. */}
         <span className="text-[10px] text-zinc-400 ml-2">▾</span>
-      </button>
+      </Select.Trigger>
+
       {error && <p className="text-xs text-red-500 mt-1 tracking-wide">Campo obrigatório</p>}
-      {open && (
-        <div className="absolute z-20 left-0 right-0 top-full mt-px border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 max-h-40 overflow-y-auto">
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2 text-xs tracking-widest hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
-                opt.value === value ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-400"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+
+      <Select.Portal>
+        <Select.Content
+          position="popper"
+          sideOffset={1}
+          className="border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950"
+          style={{ width: "var(--radix-select-trigger-width)" }}
+        >
+          <Select.Viewport className="max-h-40 overflow-y-auto">
+            {options.map((opt) => (
+              <Select.Item
+                key={opt.value}
+                value={opt.value}
+                className={`w-full text-left px-3 py-2 text-xs tracking-widest cursor-pointer outline-none data-[highlighted]:bg-zinc-100 dark:data-[highlighted]:bg-zinc-800 transition-colors ${
+                  opt.value === value ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-400"
+                }`}
+              >
+                <Select.ItemText>{opt.label}</Select.ItemText>
+              </Select.Item>
+            ))}
+          </Select.Viewport>
+        </Select.Content>
+      </Select.Portal>
+    </Select.Root>
   );
 }

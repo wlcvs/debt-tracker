@@ -86,8 +86,11 @@ test("statement import review: filter, sort, and manually add a transaction", as
   // Método is required (manual-add-dialog.tsx's confirmManualAdd bails out and
   // flags the field when it's empty). Scoped to the dialog because the review
   // table behind it has a method select of its own on every row.
-  await manualDialog.getByRole("button", { name: "— Método —" }).click();
-  await manualDialog.getByRole("button", { name: "Pix", exact: true }).click();
+  await manualDialog.getByRole("combobox", { name: "Método" }).click();
+  // The trigger is scoped to the dialog (the review table behind it has one per
+  // row), but the options are portalled to document.body — and only one Select
+  // can be open at a time, so an unscoped option lookup is unambiguous.
+  await page.getByRole("option", { name: "Pix" }).click();
   await page.getByRole("button", { name: "Adicionar", exact: true }).click();
 
   await expect(page.getByText(manualTitle, { exact: true })).toBeVisible();

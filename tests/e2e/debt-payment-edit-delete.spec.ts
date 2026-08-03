@@ -18,8 +18,8 @@ test("edit and delete an existing debt", async ({ page }) => {
   await page.getByPlaceholder("TÍTULO").fill(debtTitle);
   await page.locator('input[name="amount"]').fill("100.00");
   await page.locator('input[name="date"]').fill(today);
-  await page.getByRole("button", { name: "— Método —" }).click();
-  await page.getByRole("button", { name: "Pix", exact: true }).click();
+  await page.getByRole("combobox", { name: "Método" }).click();
+  await page.getByRole("option", { name: "Pix" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
 
   let debtRow = page.getByRole("button", { name: new RegExp(debtTitle) });
@@ -66,8 +66,8 @@ test("edit and delete an existing payment", async ({ page }) => {
   await page.getByRole("button", { name: "+ Adicionar pagamento" }).click();
   await page.locator('input[name="amount"]').fill("75.00");
   await page.locator('input[name="date"]').fill(today);
-  await page.getByRole("button", { name: "— Método —" }).click();
-  await page.getByRole("button", { name: "Dinheiro", exact: true }).click();
+  await page.getByRole("combobox", { name: "Método" }).click();
+  await page.getByRole("option", { name: "Dinheiro" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
 
   let paymentRow = page.getByRole("button", { name: /R\$ 75\.00/ });

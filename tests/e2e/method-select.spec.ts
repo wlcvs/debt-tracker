@@ -18,17 +18,17 @@ test("Escape closes only the MethodSelect dropdown, not the whole create-debt fo
   await titleInput.fill("Regression debt");
 
   // Select Pix first so we can assert Escape preserves it, not resets it.
-  // The toggle button's accessible name includes the "▾" glyph ("Pix ▾"),
-  // so a non-exact match is what finds it once selected; exact:true is
-  // reserved for the dropdown's option buttons, whose text is just "Pix".
-  const toggleShowingPix = page.getByRole("button", { name: /^Pix/ });
-  await page.getByRole("button", { name: "— Método —" }).click();
-  await page.getByRole("button", { name: "Pix", exact: true }).click();
-  await expect(toggleShowingPix).toBeVisible();
+  // Radix's Select.Trigger declares role="combobox", which overrides the
+  // implicit button role, so getByRole("button") no longer finds it; its
+  // accessible name still trails the "▾" glyph, hence the loose match.
+  const trigger = page.getByRole("combobox", { name: "Método" });
+  await trigger.click();
+  await page.getByRole("option", { name: "Pix" }).click();
+  await expect(trigger).toContainText("Pix");
 
   // Reopen the dropdown, then dismiss it with Escape.
-  await toggleShowingPix.click();
-  const dinheiroOption = page.getByRole("button", { name: "Dinheiro", exact: true });
+  await trigger.click();
+  const dinheiroOption = page.getByRole("option", { name: "Dinheiro" });
   await expect(dinheiroOption).toBeVisible();
   await page.keyboard.press("Escape");
 
@@ -39,7 +39,18 @@ test("Escape closes only the MethodSelect dropdown, not the whole create-debt fo
   // form's own useDismiss and reset() the whole thing.
   await expect(titleInput).toBeVisible();
   await expect(titleInput).toHaveValue("Regression debt");
-  await expect(toggleShowingPix).toBeVisible();
+  await expect(trigger).toContainText("Pix");
+
+  // Arrow-key navigation, which the hand-rolled dropdown never supported.
+  // Radix moves the highlight inside a setTimeout, so wait for focus to land
+  // before committing — pressing Enter immediately re-selects the current item.
+  await trigger.click();
+  const dinheiro = page.getByRole("option", { name: "Dinheiro" });
+  await expect(dinheiro).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  await expect(dinheiro).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(trigger).toContainText("Dinheiro");
 
   // Cancel the form and clean up the scratch person.
   await page.getByRole("button", { name: "Cancelar" }).click();

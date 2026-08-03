@@ -29,8 +29,8 @@ async function createPersonWithDebt(page: import("@playwright/test").Page, perso
   await page.getByPlaceholder("TÍTULO").fill(debtTitle);
   await page.locator('input[name="amount"]').fill("100.00");
   await page.locator('input[name="date"]').fill(today);
-  await page.getByRole("button", { name: "— Método —" }).click();
-  await page.getByRole("button", { name: "Pix", exact: true }).click();
+  await page.getByRole("combobox", { name: "Método" }).click();
+  await page.getByRole("option", { name: "Pix" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
 
   const debtRow = page.getByRole("button", { name: new RegExp(debtTitle) });
