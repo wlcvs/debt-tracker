@@ -21,12 +21,15 @@ test("create a credit card, see it in MethodSelect, then delete it", async ({ pa
   await page.getByRole("link", { name: personName }).click();
 
   await page.getByRole("button", { name: "+ Adicionar dívida" }).click();
-  await page.getByRole("button", { name: "— Método —" }).click();
-  await expect(page.getByRole("button", { name: cardLabel, exact: true })).toBeVisible();
-  // Click back on the dropdown toggle itself (inside the form, outside
-  // MethodSelect's own open dropdown) to close just the dropdown — NOT
-  // Escape, which also resets the whole form (see task/method-select-escape-guard).
-  await page.getByRole("button", { name: "— Método —" }).click();
+  await page.getByRole("combobox", { name: "Método" }).click();
+  await expect(page.getByRole("option", { name: cardLabel })).toBeVisible();
+  // Escape closes just the dropdown. This used to reset the whole form, which is
+  // why the test previously clicked the trigger again instead — no longer an
+  // option, since Radix takes pointer events away from everything outside an open
+  // Select, and no longer necessary: Radix marks the key handled and useDismiss
+  // stands down. method-select.spec.ts asserts that behaviour directly.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("option", { name: cardLabel })).not.toBeVisible();
   await page.getByRole("button", { name: "Cancelar" }).click(); // close the debt form
 
   // Clean up the scratch person first (no debts were created, so nothing
@@ -63,8 +66,8 @@ test("cannot delete a credit card that has a debt referencing it", async ({ page
   await page.getByPlaceholder("TÍTULO").fill(debtTitle);
   await page.locator('input[name="amount"]').fill("42.00");
   await page.locator('input[name="date"]').fill(today);
-  await page.getByRole("button", { name: "— Método —" }).click();
-  await page.getByRole("button", { name: cardLabel, exact: true }).click();
+  await page.getByRole("combobox", { name: "Método" }).click();
+  await page.getByRole("option", { name: cardLabel }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
   await expect(page.getByRole("button", { name: new RegExp(debtTitle) })).toBeVisible();
 

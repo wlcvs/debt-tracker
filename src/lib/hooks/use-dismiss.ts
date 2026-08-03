@@ -51,6 +51,16 @@ export function useDismiss(
     if (!enabled) return;
 
     function onClickOutside(e: MouseEvent) {
+      // Stand down while a Radix layer that disables outside pointer events is
+      // open (Select, Dialog, …). Such a layer sets body { pointer-events: none }
+      // and takes pointer-events: auto for itself, so a click on its portalled
+      // content — or anywhere else on the page — hit-tests to <html> rather than
+      // to anything inside `ref`. This hook would then read a click that belongs
+      // to that layer as "outside" and dismiss: picking an option from a
+      // MethodSelect would reset the create-debt form around it. The layer owns
+      // that gesture and dismisses itself; a second click reaches us normally.
+      if (document.body.style.pointerEvents === "none") return;
+
       // Uses composedPath() (the path captured at dispatch time), not e.target —
       // a nested dismissable that removes its own DOM node as a side effect of the
       // click that selects it (e.g. a dropdown closing when an option is chosen)
@@ -63,6 +73,12 @@ export function useDismiss(
     }
     function onEscape(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
+      // A Radix DismissableLayer that consumed this Escape marks it handled via
+      // preventDefault() (it deliberately does not stopPropagation, so the event
+      // still reaches this window-level listener). Without this check, dismissing
+      // a MethodSelect dropdown would also reset the create-debt form around it —
+      // the regression method-select.spec.ts guards.
+      if (e.defaultPrevented) return;
       if (escapeCapture) e.stopPropagation();
       onDismissRef.current();
     }
