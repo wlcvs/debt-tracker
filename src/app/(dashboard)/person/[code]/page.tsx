@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getPersonById } from "@/lib/actions/person";
+import { getPersonByAccessCode } from "@/lib/actions/person";
 import { getCreditCards } from "@/lib/actions/credit-card";
 import { EditablePersonHeader } from "@/components/editable-person-header";
 import { ShareButton } from "@/components/share-button";
@@ -10,11 +10,11 @@ import { PersonMonthView } from "@/components/person-month-view";
 export default async function PersonPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ code: string }>;
 }) {
-  const { id } = await params;
+  const { code } = await params;
   const [person, creditCards] = await Promise.all([
-    getPersonById(id),
+    getPersonByAccessCode(code),
     getCreditCards(),
   ]);
 
@@ -30,13 +30,13 @@ export default async function PersonPage({
       <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4 sm:pb-6 flex flex-col gap-3">
         <EditablePersonHeader person={person} />
         <div className="flex items-center gap-3">
-          <ShareButton personId={person.id} />
-          <PersonVisibilityToggle personId={person.id} publicVisible={person.publicVisible} />
+          <ShareButton accessCode={person.accessCode} />
+          <PersonVisibilityToggle accessCode={person.accessCode} publicVisible={person.publicVisible} />
           <PersonActions person={person} />
         </div>
       </div>
 
-      <PersonMonthView personId={person.id} debts={person.debts} payments={person.payments} creditCards={creditCards} />
+      <PersonMonthView accessCode={person.accessCode} debts={person.debts} payments={person.payments} creditCards={creditCards} />
     </div>
   );
 }

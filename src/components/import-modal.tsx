@@ -13,7 +13,7 @@ import { ManualAddDialog } from "@/components/manual-add-dialog";
 import type { EditingCell, Txn } from "@/lib/import-modal-types";
 
 interface Props {
-  people: { id: string; name: string }[];
+  people: { accessCode: string; name: string }[];
   creditCards: { id: string; label: string }[];
   reopenStatementId: string | null;
   cameFromStatements: boolean;

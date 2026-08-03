@@ -14,11 +14,11 @@ const inputClass =
   "bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors";
 
 interface Props {
-  personId: string;
+  accessCode: string;
   creditCards: { id: string; label: string }[];
 }
 
-export function CreateDebtForm({ personId, creditCards }: Props) {
+export function CreateDebtForm({ accessCode, creditCards }: Props) {
   const [open, setOpen] = useState(false);
   const [method, setMethod] = useState("");
   const [methodError, setMethodError] = useState(false);
@@ -106,7 +106,7 @@ export function CreateDebtForm({ personId, creditCards }: Props) {
           }}
           className="mt-3 flex flex-col gap-2"
         >
-          <input type="hidden" name="personId" value={personId} />
+          <input type="hidden" name="personAccessCode" value={accessCode} />
 
           <input type="text" name="title" placeholder="TÍTULO" required className={inputClass} />
           <input type="text" name="description" placeholder="DESCRIÇÃO (opcional)" className={inputClass} />

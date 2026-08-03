@@ -9,7 +9,7 @@ import { amountSchema, dateSchema } from "@/lib/schemas";
 const methodSchema = z.enum(["PIX", "CASH"]).default("CASH");
 
 const createPaymentSchema = z.object({
-  personId: z.string().min(1),
+  personAccessCode: z.string().min(1),
   amount: amountSchema("Amount must be greater than zero"),
   description: z.string().trim().default(""),
   date: dateSchema,
@@ -20,21 +20,23 @@ export async function createPayment(formData: FormData) {
   const userId = await requireUserId();
 
   const parsed = createPaymentSchema.parse({
-    personId: formData.get("personId"),
+    personAccessCode: formData.get("personAccessCode"),
     amount: formData.get("amount"),
     description: formData.get("description") ?? undefined,
     date: formData.get("date"),
     method: formData.get("method") ?? undefined,
   });
 
+  // Doubles as the ownership check and the accessCode -> internal id
+  // translation (see createDebt for the same pattern).
   const person = await prisma.person.findFirst({
-    where: { id: parsed.personId, userId },
+    where: { accessCode: parsed.personAccessCode, userId },
   });
   if (!person) throw new Error("Person not found");
 
   await prisma.payment.create({
     data: {
-      personId: parsed.personId,
+      personId: person.id,
       amount: parsed.amount,
       description: parsed.description,
       date: parsed.date,

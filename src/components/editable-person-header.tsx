@@ -7,7 +7,7 @@ import { formatCurrency } from "@/lib/format-utils";
 
 interface Props {
   person: {
-    id: string;
+    accessCode: string;
     name: string;
     totalOwed: number;
   };
@@ -27,7 +27,7 @@ export function EditablePersonHeader({ person }: Props) {
           action={async (fd) => { await updatePerson(fd); setEditing(false); }}
           className="flex items-center gap-2 flex-wrap"
         >
-          <input type="hidden" name="id" value={person.id} />
+          <input type="hidden" name="accessCode" value={person.accessCode} />
           <input
             type="text"
             name="name"

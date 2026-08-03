@@ -26,13 +26,13 @@ interface Debt {
 }
 
 interface Props {
-  personId: string;
+  accessCode: string;
   debts: Debt[];
   creditCards: { id: string; label: string }[];
   selectedMonth?: string;
 }
 
-export function DebtsSection({ personId, debts, creditCards, selectedMonth }: Props) {
+export function DebtsSection({ accessCode, debts, creditCards, selectedMonth }: Props) {
   const [showFilters, setShowFilters] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -124,7 +124,7 @@ export function DebtsSection({ personId, debts, creditCards, selectedMonth }: Pr
         </ul>
       )}
 
-      <CreateDebtForm personId={personId} creditCards={creditCards} />
+      <CreateDebtForm accessCode={accessCode} creditCards={creditCards} />
     </section>
   );
 }

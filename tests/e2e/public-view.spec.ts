@@ -1,11 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
+import { generateAccessCode } from "@/lib/access-code";
 import { loginAsAdmin } from "./fixtures";
 
-// PublicView (`/public/[code]`) requires no login — the person's own DB id
-// is the access code. Seeds data directly via Prisma (faster and more
-// deterministic than driving the admin UI for multi-month fixtures),
-// matching dismiss-behaviors.spec.ts's beforeAll pattern.
+// PublicView (`/public/[code]`) requires no login — `[code]` is the person's
+// `accessCode` (a random 12-char string), never their DB id. Seeds data
+// directly via Prisma (faster and more deterministic than driving the admin UI
+// for multi-month fixtures), matching dismiss-behaviors.spec.ts's beforeAll
+// pattern.
 
 const RUN_ID = Date.now();
 
@@ -14,6 +16,7 @@ const currentMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth
 const prevMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 10));
 
 let personId: string;
+let accessCode: string;
 const debtATitle = `E2E Public Debt A ${RUN_ID}`;
 const debtBTitle = `E2E Public Debt B Paid ${RUN_ID}`;
 const debtCTitle = `E2E Public Debt C Prev Month ${RUN_ID}`;
@@ -24,9 +27,10 @@ test.beforeAll(async () => {
   const user = await prisma.user.findFirstOrThrow();
 
   const person = await prisma.person.create({
-    data: { userId: user.id, name: `E2E Public View Person ${RUN_ID}` },
+    data: { userId: user.id, name: `E2E Public View Person ${RUN_ID}`, accessCode: generateAccessCode() },
   });
   personId = person.id;
+  accessCode = person.accessCode;
 
   await prisma.debt.createMany({
     data: [
@@ -53,8 +57,8 @@ test.afterAll(async () => {
 
 test("public view: renders without login, filters by month, read-only modals, filters, and installment calculator", async ({ page }) => {
   // No loginAsAdmin() call — this is the whole point of the public route.
-  await page.goto(`/public/${personId}`);
-  await expect(page).toHaveURL(`/public/${personId}`);
+  await page.goto(`/public/${accessCode}`);
+  await expect(page).toHaveURL(`/public/${accessCode}`);
   await expect(page.getByRole("heading", { name: `E2E Public View Person ${RUN_ID}` })).toBeVisible();
   await expect(page.getByText("R$ 70.00")).toBeVisible();
   await expect(page.getByText("R$ 60.00 / R$ 130.00 pago (46%)")).toBeVisible();
@@ -121,7 +125,7 @@ test("public view: 404s when the person's public page is hidden", async ({ page 
   const user = await prisma.user.findFirstOrThrow();
   const hiddenPersonName = `E2E Hidden Person ${RUN_ID}`;
   const hiddenPerson = await prisma.person.create({
-    data: { userId: user.id, name: hiddenPersonName, publicVisible: false },
+    data: { userId: user.id, name: hiddenPersonName, publicVisible: false, accessCode: generateAccessCode() },
   });
 
   // Asserting on rendered content, not response.status(): with loading.tsx
@@ -130,7 +134,7 @@ test("public view: 404s when the person's public page is hidden", async ({ page 
   // src/app/public/[code]/page.tsx. The content itself is still correct
   // (default Next not-found page, no debtor data), which is what matters
   // for not leaking whether a hidden person's id exists.
-  await page.goto(`/public/${hiddenPerson.id}`);
+  await page.goto(`/public/${hiddenPerson.accessCode}`);
   await expect(page.getByText("This page could not be found")).toBeVisible();
   await expect(page.getByText(hiddenPersonName)).not.toBeVisible();
 
@@ -140,11 +144,11 @@ test("public view: 404s when the person's public page is hidden", async ({ page 
 test("dashboard: toggling public visibility blocks and restores the public page", async ({ page, context }) => {
   const user = await prisma.user.findFirstOrThrow();
   const person = await prisma.person.create({
-    data: { userId: user.id, name: `E2E Toggle Visibility Person ${RUN_ID}` },
+    data: { userId: user.id, name: `E2E Toggle Visibility Person ${RUN_ID}`, accessCode: generateAccessCode() },
   });
 
   await loginAsAdmin(page);
-  await page.goto(`/person/${person.id}`);
+  await page.goto(`/person/${person.accessCode}`);
 
   const toggleButton = page.getByRole("button", { name: /PÁGINA PÚBLICA/ });
   await expect(toggleButton).toHaveText("OCULTAR PÁGINA PÚBLICA");
@@ -155,7 +159,7 @@ test("dashboard: toggling public visibility blocks and restores the public page"
   // See the sibling "404s when hidden" test above for why this asserts on
   // content, not response.status().
   const hiddenPage = await context.newPage();
-  await hiddenPage.goto(`/public/${person.id}`);
+  await hiddenPage.goto(`/public/${person.accessCode}`);
   await expect(hiddenPage.getByText("This page could not be found")).toBeVisible();
   await hiddenPage.close();
 
@@ -163,7 +167,7 @@ test("dashboard: toggling public visibility blocks and restores the public page"
   await expect(toggleButton).toHaveText("OCULTAR PÁGINA PÚBLICA");
 
   const visiblePage = await context.newPage();
-  await visiblePage.goto(`/public/${person.id}`);
+  await visiblePage.goto(`/public/${person.accessCode}`);
   await expect(visiblePage.getByRole("heading", { name: `E2E Toggle Visibility Person ${RUN_ID}` })).toBeVisible();
   await visiblePage.close();
 

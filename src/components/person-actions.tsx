@@ -6,15 +6,15 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useConfirmDelete } from "@/lib/hooks/use-confirm-delete";
 
 interface Props {
-  person: { id: string; name: string };
+  person: { accessCode: string; name: string };
 }
 
 export function PersonActions({ person }: Props) {
   const router = useRouter();
-  const { confirming, setConfirming, confirmDelete } = useConfirmDelete<{ id: string; name: string }>(
+  const { confirming, setConfirming, confirmDelete } = useConfirmDelete<{ accessCode: string; name: string }>(
     (p) => {
       const fd = new FormData();
-      fd.append("id", p.id);
+      fd.append("accessCode", p.accessCode);
       return deletePerson(fd);
     },
     () => router.push("/")

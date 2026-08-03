@@ -23,6 +23,7 @@ model Person {
   id            String   @id @default(cuid())
   userId        String
   name          String
+  accessCode    String   @unique
   publicVisible Boolean  @default(true)
   createdAt     DateTime @default(now())
 

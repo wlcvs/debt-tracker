@@ -9,7 +9,7 @@ import { amountSchema, dateSchema } from "@/lib/schemas";
 import { resolveDebtMethod } from "@/lib/debt-method";
 
 const createDebtSchema = z.object({
-  personId: z.string().min(1),
+  personAccessCode: z.string().min(1),
   amount: amountSchema("Amount must be greater than zero"),
   title: z.string().trim().min(1, "Title is required"),
   description: z.string().trim().default(""),
@@ -25,7 +25,7 @@ export async function createDebt(formData: FormData) {
   const userId = await requireUserId();
 
   const parsed = createDebtSchema.parse({
-    personId: formData.get("personId"),
+    personAccessCode: formData.get("personAccessCode"),
     amount: formData.get("amount"),
     title: formData.get("title"),
     description: formData.get("description") ?? undefined,
@@ -37,8 +37,11 @@ export async function createDebt(formData: FormData) {
     paidInstallments: formData.get("paidInstallments") ?? undefined,
   });
 
+  // This lookup already existed as the ownership check; it now doubles as the
+  // accessCode -> internal id translation, so the DB id never has to be sent
+  // to the client just to come back on the next write.
   const person = await prisma.person.findFirst({
-    where: { id: parsed.personId, userId },
+    where: { accessCode: parsed.personAccessCode, userId },
   });
   if (!person) throw new Error("Person not found");
 
@@ -53,7 +56,7 @@ export async function createDebt(formData: FormData) {
       data: amounts.map((amount, i) => {
         const index = i + 1;
         return {
-          personId: parsed.personId,
+          personId: person.id,
           amount,
           title: `${parsed.title} (${index}/${parsed.installments})`,
           description: parsed.description,
@@ -70,7 +73,7 @@ export async function createDebt(formData: FormData) {
   } else {
     await prisma.debt.create({
       data: {
-        personId: parsed.personId,
+        personId: person.id,
         amount: parsed.amount,
         title: parsed.title,
         description: parsed.description,
@@ -175,11 +178,14 @@ export async function getDebtInstallmentGroup(installmentGroupId: string) {
   const debts = await prisma.debt.findMany({
     where: { installmentGroupId, person: { userId } },
     orderBy: { installmentIndex: "asc" },
+    include: { person: { select: { accessCode: true } } },
   });
 
   return debts.map((d) => ({
     id: d.id,
-    personId: d.personId,
+    // The panel feeds this straight back into createPayment — it must be the
+    // accessCode, never d.personId.
+    personAccessCode: d.person.accessCode,
     amount: Number(d.amount),
     title: d.title,
     date: d.date,

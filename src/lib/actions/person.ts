@@ -4,25 +4,26 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireUserId } from "@/lib/auth-utils";
+import { generateAccessCode } from "@/lib/access-code";
 import type { Prisma } from "@/generated/prisma/client";
 
-export async function createPerson(formData: FormData): Promise<{ id: string; name: string }> {
+export async function createPerson(formData: FormData): Promise<{ accessCode: string; name: string }> {
   const userId = await requireUserId();
 
   const name = z.string().trim().min(1, "Name is required").parse(formData.get("name"));
 
   const person = await prisma.person.create({
-    data: { name, userId },
+    data: { name, userId, accessCode: generateAccessCode() },
   });
 
   revalidatePath("/");
 
-  return { id: person.id, name: person.name };
+  return { accessCode: person.accessCode, name: person.name };
 }
 
 export interface PersonWithBalance {
-  id: string;
   name: string;
+  accessCode: string;
   totalOwed: number;
   totalDebt: number;
   totalPaid: number;
@@ -56,10 +57,10 @@ type PersonWithRelations = Prisma.PersonGetPayload<{
 
 // Shared by every reader below (admin list/detail views + the public
 // no-login view) — each independently mapped debts/payments to this same
-// shape and recomputed totalOwed. `id` is omitted here and added back by
-// callers that need it (getDebtorViewById's return shape never included
-// it — it's the public route's fetcher and has no use for the person's id).
-function toPersonWithBalance(person: PersonWithRelations): Omit<PersonWithBalance, "id"> {
+// shape and recomputed totalOwed. Deliberately never carries person.id:
+// the DB id is internal, and every client-facing identifier for a person is
+// their accessCode (see the rule in CLAUDE.md).
+function toPersonWithBalance(person: PersonWithRelations): PersonWithBalance {
   const debts = person.debts.map((d) => ({
     id: d.id,
     amount: Number(d.amount),
@@ -80,6 +81,7 @@ function toPersonWithBalance(person: PersonWithRelations): Omit<PersonWithBalanc
 
   return {
     name: person.name,
+    accessCode: person.accessCode,
     totalOwed,
     totalDebt,
     totalPaid,
@@ -95,34 +97,34 @@ function toPersonWithBalance(person: PersonWithRelations): Omit<PersonWithBalanc
   };
 }
 
-export async function getPersonById(id: string): Promise<PersonWithBalance | null> {
+export async function getPersonByAccessCode(code: string): Promise<PersonWithBalance | null> {
   const userId = await requireUserId();
 
   const person = await prisma.person.findFirst({
-    where: { id, userId },
+    where: { accessCode: code, userId },
     include: { debts: { include: { creditCard: true } }, payments: true },
   });
 
   if (!person) return null;
 
-  return { id: person.id, ...toPersonWithBalance(person) };
+  return toPersonWithBalance(person);
 }
 
 export async function deletePerson(formData: FormData) {
   const userId = await requireUserId();
 
-  const id = z.string().min(1).parse(formData.get("id"));
-  await prisma.person.deleteMany({ where: { id, userId } });
+  const accessCode = z.string().min(1).parse(formData.get("accessCode"));
+  await prisma.person.deleteMany({ where: { accessCode, userId } });
   revalidatePath("/");
 }
 
 export async function updatePerson(formData: FormData) {
   const userId = await requireUserId();
 
-  const id = z.string().min(1).parse(formData.get("id"));
+  const accessCode = z.string().min(1).parse(formData.get("accessCode"));
   const name = z.string().trim().min(1).parse(formData.get("name"));
 
-  await prisma.person.updateMany({ where: { id, userId }, data: { name } });
+  await prisma.person.updateMany({ where: { accessCode, userId }, data: { name } });
   revalidatePath("/");
 }
 
@@ -136,7 +138,7 @@ export interface OverviewStats {
 }
 
 export interface PersonSummary {
-  id: string;
+  accessCode: string;
   name: string;
   totalOwed: number;
 }
@@ -155,9 +157,11 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
   const userId = await requireUserId();
 
   const [people, unpaidDebtSums, paymentSums, totalDebts, paymentAgg] = await Promise.all([
+    // id is selected only to join the groupBy aggregates below — it never
+    // reaches the returned PersonSummary.
     prisma.person.findMany({
       where: { userId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, accessCode: true },
       orderBy: { name: "asc" },
     }),
     prisma.debt.groupBy({
@@ -189,7 +193,7 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
       totalToReceive += totalOwed;
       activeDebtors++;
     }
-    return { id: p.id, name: p.name, totalOwed };
+    return { accessCode: p.accessCode, name: p.name, totalOwed };
   });
 
   return {
@@ -205,9 +209,11 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
   };
 }
 
-export async function getDebtorViewById(id: string) {
+// Resolved by accessCode, never by the person's DB id — the id is internal and
+// never leaves the server at all (see the rule in CLAUDE.md).
+export async function getDebtorViewById(code: string) {
   const person = await prisma.person.findUnique({
-    where: { id, publicVisible: true },
+    where: { accessCode: code, publicVisible: true },
     include: { debts: { include: { creditCard: true } }, payments: true },
   });
 
@@ -219,13 +225,13 @@ export async function getDebtorViewById(id: string) {
 export async function togglePersonPublicVisibility(formData: FormData) {
   const userId = await requireUserId();
 
-  const id = z.string().min(1).parse(formData.get("id"));
+  const accessCode = z.string().min(1).parse(formData.get("accessCode"));
 
-  const person = await prisma.person.findFirst({ where: { id, userId } });
+  const person = await prisma.person.findFirst({ where: { accessCode, userId } });
   if (!person) throw new Error("Person not found");
 
   await prisma.person.update({
-    where: { id },
+    where: { id: person.id },
     data: { publicVisible: !person.publicVisible },
   });
   revalidatePath("/");

@@ -236,13 +236,13 @@ describe("saveImportedTransactions", () => {
   });
 
   it("creates a debt and a payment, skipping foreign and invalid items", async () => {
-    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1" }]);
 
     const result = await saveImportedTransactions([
-      { type: "debt", personId: "p1", amount: "10.00", date: "2026-01-01", title: "T", notes: "N" },
-      { type: "payment", personId: "p1", amount: "5.00", date: "2026-01-02", notes: "P" },
-      { type: "debt", personId: "not-owned", amount: "1", date: "2026-01-01" },
-      { type: "debt", personId: "p1", amount: "garbage", date: "2026-01-01" },
+      { type: "debt", personAccessCode: "CODE1", amount: "10.00", date: "2026-01-01", title: "T", notes: "N" },
+      { type: "payment", personAccessCode: "CODE1", amount: "5.00", date: "2026-01-02", notes: "P" },
+      { type: "debt", personAccessCode: "NOT-OWNED", amount: "1", date: "2026-01-01" },
+      { type: "debt", personAccessCode: "CODE1", amount: "garbage", date: "2026-01-01" },
     ]);
 
     expect(result.created).toBe(2);
@@ -256,10 +256,10 @@ describe("saveImportedTransactions", () => {
   });
 
   it("passes through an explicit PIX/CASH method for a debt", async () => {
-    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1" }]);
 
     await saveImportedTransactions([
-      { type: "debt", personId: "p1", amount: "10.00", date: "2026-01-01", title: "T", method: "CASH" },
+      { type: "debt", personAccessCode: "CODE1", amount: "10.00", date: "2026-01-01", title: "T", method: "CASH" },
     ]);
 
     expect(prismaMock.debt.create).toHaveBeenCalledWith(
@@ -268,10 +268,10 @@ describe("saveImportedTransactions", () => {
   });
 
   it("treats a debt method that isn't PIX/CASH as a credit card id", async () => {
-    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1" }]);
 
     await saveImportedTransactions([
-      { type: "debt", personId: "p1", amount: "10.00", date: "2026-01-01", title: "T", method: "card-1" },
+      { type: "debt", personAccessCode: "CODE1", amount: "10.00", date: "2026-01-01", title: "T", method: "card-1" },
     ]);
 
     expect(prismaMock.debt.create).toHaveBeenCalledWith(
@@ -280,10 +280,10 @@ describe("saveImportedTransactions", () => {
   });
 
   it("passes through an explicit method for a payment", async () => {
-    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1" }]);
 
     await saveImportedTransactions([
-      { type: "payment", personId: "p1", amount: "5.00", date: "2026-01-02", method: "CASH" },
+      { type: "payment", personAccessCode: "CODE1", amount: "5.00", date: "2026-01-02", method: "CASH" },
     ]);
 
     expect(prismaMock.payment.create).toHaveBeenCalledWith(
@@ -292,10 +292,10 @@ describe("saveImportedTransactions", () => {
   });
 
   it("ignores a payment method that isn't PIX/CASH, leaving it to the schema default", async () => {
-    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1" }]);
 
     await saveImportedTransactions([
-      { type: "payment", personId: "p1", amount: "5.00", date: "2026-01-02", method: "card-1" },
+      { type: "payment", personAccessCode: "CODE1", amount: "5.00", date: "2026-01-02", method: "card-1" },
     ]);
 
     expect(prismaMock.payment.create.mock.calls[0][0].data).not.toHaveProperty("method");
@@ -307,11 +307,11 @@ describe("saveImportedTransactions", () => {
   });
 
   it("truncates an overly long description/notes to the schema's max length", async () => {
-    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1" }]);
 
     const longNotes = "n".repeat(600);
     await saveImportedTransactions([
-      { type: "debt", personId: "p1", amount: "10.00", date: "2026-01-01", title: "T", notes: longNotes },
+      { type: "debt", personAccessCode: "CODE1", amount: "10.00", date: "2026-01-01", title: "T", notes: longNotes },
     ]);
 
     expect(prismaMock.debt.create).toHaveBeenCalledWith(
@@ -320,11 +320,11 @@ describe("saveImportedTransactions", () => {
   });
 
   it("falls back the debt title to the description, then to 'Importado' when both are absent", async () => {
-    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1" }]);
 
     await saveImportedTransactions([
-      { type: "debt", personId: "p1", amount: "10.00", date: "2026-01-01", description: "Compra" },
-      { type: "debt", personId: "p1", amount: "20.00", date: "2026-01-02" },
+      { type: "debt", personAccessCode: "CODE1", amount: "10.00", date: "2026-01-01", description: "Compra" },
+      { type: "debt", personAccessCode: "CODE1", amount: "20.00", date: "2026-01-02" },
     ]);
 
     expect(prismaMock.debt.create).toHaveBeenNthCalledWith(
@@ -338,10 +338,10 @@ describe("saveImportedTransactions", () => {
   });
 
   it("skips items with an unparseable date", async () => {
-    prismaMock.person.findMany.mockResolvedValue([{ id: "p1" }]);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1" }]);
 
     const result = await saveImportedTransactions([
-      { type: "debt", personId: "p1", amount: "10.00", date: "not-a-date" },
+      { type: "debt", personAccessCode: "CODE1", amount: "10.00", date: "not-a-date" },
     ]);
 
     expect(result.created).toBe(0);

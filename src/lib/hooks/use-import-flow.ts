@@ -91,9 +91,9 @@ export function useImportFlow({ reopenStatementId, cameFromStatements, onClose, 
   function loadData(data: ImportResultLike) {
     setBank(data.bank);
     setAlgoTxns(
-      data.algorithm.map((t, i) => ({ ...t, index: i, personId: "", type: "ignore" }) as unknown as Txn)
+      data.algorithm.map((t, i) => ({ ...t, index: i, personAccessCode: "", type: "ignore" }) as unknown as Txn)
     );
-    setLLMTxns(data.LLM.map((t, i) => ({ ...t, index: i, personId: "", type: "ignore" }) as unknown as Txn));
+    setLLMTxns(data.LLM.map((t, i) => ({ ...t, index: i, personAccessCode: "", type: "ignore" }) as unknown as Txn));
     setStatementId(data.statementId);
     setStep("review");
   }
@@ -160,10 +160,10 @@ export function useImportFlow({ reopenStatementId, cameFromStatements, onClose, 
   async function save() {
     setStep("saving");
     const items = currentTxns
-      .filter((t) => t.type !== "ignore" && t.personId)
+      .filter((t) => t.type !== "ignore" && t.personAccessCode)
       .map((t) => ({
         type: t.type,
-        personId: t.personId,
+        personAccessCode: t.personAccessCode,
         amount: t.amount,
         date: t.date,
         title: t.title ?? t.description,
