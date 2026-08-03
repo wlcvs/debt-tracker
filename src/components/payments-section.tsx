@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import { EditablePayment } from "@/components/editable-payment";
 import { CreatePaymentForm } from "@/components/create-payment-form";
 import { FilterFields } from "@/components/filter-fields";
@@ -63,21 +64,22 @@ export function PaymentsSection({ personId, payments, selectedMonth }: Props) {
 
   return (
     <section className="flex flex-col gap-4 border border-zinc-300 dark:border-zinc-700 p-4">
-      <div ref={wrapperRef}>
+      <Collapsible.Root open={showFilters} onOpenChange={setShowFilters} ref={wrapperRef}>
         <div className="flex items-center justify-between">
           <p className="text-xs tracking-[0.25em] uppercase text-zinc-400 dark:text-zinc-500">Pagamentos</p>
-          <button
-            type="button"
-            onClick={() => setShowFilters((v) => !v)}
-            className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
-              filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
-            }`}
-          >
-            Filtros
-          </button>
+          <Collapsible.Trigger asChild>
+            <button
+              type="button"
+              className={`text-[10px] tracking-widest uppercase hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer ${
+                filtersActive ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-600"
+              }`}
+            >
+              Filtros
+            </button>
+          </Collapsible.Trigger>
         </div>
 
-        {showFilters && (
+        <Collapsible.Content>
           <div className="mt-3">
             <FilterFields
               search={search}
@@ -97,8 +99,8 @@ export function PaymentsSection({ personId, payments, selectedMonth }: Props) {
               searchPlaceholder="Pesquisar pagamentos..."
             />
           </div>
-        )}
-      </div>
+        </Collapsible.Content>
+      </Collapsible.Root>
 
       {filtered.length > 0 && (
         <ul className="flex flex-col">

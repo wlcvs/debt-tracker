@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 
@@ -30,19 +31,20 @@ export function FilterToolbar(props: FilterToolbarProps) {
   useDismiss(wrapperRef, () => props.setShowFilters(false), { escape: false });
 
   return (
-    <div ref={wrapperRef}>
+    <Collapsible.Root open={props.showFilters} onOpenChange={props.setShowFilters} ref={wrapperRef}>
       <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
-        <button
-          type="button"
-          onClick={() => props.setShowFilters((v) => !v)}
-          className={`text-[10px] tracking-widest uppercase border px-3 py-1.5 transition-colors whitespace-nowrap cursor-pointer ${
-            props.showFilters
-              ? "border-zinc-600 dark:border-zinc-400 text-zinc-700 dark:text-zinc-200"
-              : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-600 dark:hover:border-zinc-400"
-          }`}
-        >
-          Filtros
-        </button>
+        <Collapsible.Trigger asChild>
+          <button
+            type="button"
+            className={`text-[10px] tracking-widest uppercase border px-3 py-1.5 transition-colors whitespace-nowrap cursor-pointer ${
+              props.showFilters
+                ? "border-zinc-600 dark:border-zinc-400 text-zinc-700 dark:text-zinc-200"
+                : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-600 dark:hover:border-zinc-400"
+            }`}
+          >
+            Filtros
+          </button>
+        </Collapsible.Trigger>
         <button
           type="button"
           onClick={props.onOpenManualAdd}
@@ -56,7 +58,7 @@ export function FilterToolbar(props: FilterToolbarProps) {
         </span>
       </div>
 
-      {props.showFilters && (
+      <Collapsible.Content>
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 shrink-0">
           <input
             type="search"
@@ -135,7 +137,7 @@ export function FilterToolbar(props: FilterToolbarProps) {
             Limpar
           </button>
         </div>
-      )}
-    </div>
+      </Collapsible.Content>
+    </Collapsible.Root>
   );
 }

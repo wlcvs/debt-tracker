@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Collapsible from "@radix-ui/react-collapsible";
 import { getStatements, deleteStatement, renameStatement, type StatementSummary } from "@/lib/actions/statement";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDateBR, toDateInputValue, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
@@ -90,7 +91,7 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
               </Dialog.Close>
             </div>
 
-            <div ref={wrapperRef} className="border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+            <Collapsible.Root open={showFilters} onOpenChange={setShowFilters} ref={wrapperRef} className="border-b border-zinc-200 dark:border-zinc-800 shrink-0">
               <div className="flex gap-3 px-6 py-3">
                 <button
                   onClick={onImportNew}
@@ -105,20 +106,21 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
                   placeholder="Filtrar por nome do arquivo…"
                   className="flex-1 min-w-0 truncate bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowFilters((v) => !v)}
-                  className={`shrink-0 text-[10px] tracking-widest uppercase border px-3 py-2 transition-colors whitespace-nowrap cursor-pointer ${
-                    showFilters || dateFrom || dateTo
-                      ? "border-zinc-600 dark:border-zinc-400 text-zinc-700 dark:text-zinc-200"
-                      : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-600 dark:hover:border-zinc-400"
-                  }`}
-                >
-                  Filtros
-                </button>
+                <Collapsible.Trigger asChild>
+                  <button
+                    type="button"
+                    className={`shrink-0 text-[10px] tracking-widest uppercase border px-3 py-2 transition-colors whitespace-nowrap cursor-pointer ${
+                      showFilters || dateFrom || dateTo
+                        ? "border-zinc-600 dark:border-zinc-400 text-zinc-700 dark:text-zinc-200"
+                        : "border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-zinc-600 dark:hover:border-zinc-400"
+                    }`}
+                  >
+                    Filtros
+                  </button>
+                </Collapsible.Trigger>
               </div>
 
-              {showFilters && (
+              <Collapsible.Content>
                 <div className="flex gap-2 px-6 pb-3">
                   <div className="flex-1">
                     <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">De</p>
@@ -150,8 +152,8 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
                     Limpar
                   </button>
                 </div>
-              )}
-            </div>
+              </Collapsible.Content>
+            </Collapsible.Root>
 
             <div className="flex-1 overflow-auto divide-y divide-zinc-100 dark:divide-zinc-800">
               {filtered.length === 0 ? (
