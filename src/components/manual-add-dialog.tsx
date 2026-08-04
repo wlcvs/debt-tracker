@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { saveLLMFeedback } from "@/lib/actions/statement";
 import type { Txn } from "@/lib/import-modal-types";
-import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
+import { DateField } from "@/components/date-field";
+import { parseAmountInput } from "@/lib/format-utils";
 
 interface Props {
   bank: string;
@@ -39,7 +40,7 @@ export function ManualAddDialog({ bank, creditCards, container, onClose, onAdd }
   );
 
   async function confirmManualAdd() {
-    if (!manualDate || !manualTitle || !manualAmount) return;
+    if (!manualDate || !manualTitle || !Number.isFinite(parseAmountInput(manualAmount))) return;
     if (!manualMethod) {
       setManualMethodError(true);
       return;
@@ -51,7 +52,7 @@ export function ManualAddDialog({ bank, creditCards, container, onClose, onAdd }
       description: manualTitle,
       title: manualTitle,
       notes: manualNotes,
-      amount: parseFloat(manualAmount).toFixed(2),
+      amount: parseAmountInput(manualAmount).toFixed(2),
       personAccessCode: "",
       type: "debt",
       method: manualMethod,
@@ -78,24 +79,22 @@ export function ManualAddDialog({ bank, creditCards, container, onClose, onAdd }
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 mb-1.5">Data</label>
-                  <input
-                    type="date"
+                  <DateField
+                    aria-label="Data"
                     required
                     value={manualDate}
-                    onChange={(e) => setManualDate(e.target.value)}
-                    min={DATE_INPUT_MIN}
-                    max={DATE_INPUT_MAX}
-                    className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
+                    onChange={setManualDate}
+                    className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus-within:border-zinc-500 transition-colors"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 mb-1.5">Valor (R$)</label>
-                  <input type="number" step="0.01" min="0.01" required value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors" />
+                  <input type="text" inputMode="decimal" autoComplete="off" aria-label="Valor (R$)" required value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors" />
                 </div>
               </div>
               <div className="mb-4">
                 <label className="block text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 mb-1.5">Título</label>
-                <input type="text" required maxLength={255} value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors" />
+                <input type="text" aria-label="Título" required maxLength={255} value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors" />
               </div>
               <div className="mb-5">
                 <label className="block text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-600 mb-1.5">

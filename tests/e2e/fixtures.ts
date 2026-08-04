@@ -1,4 +1,20 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
+
+/**
+ * Fills a `DateField` (src/components/date-field.tsx) with a YYYY-MM-DD value.
+ *
+ * There is no fillable `<input type="date">` any more — react-aria renders
+ * three contenteditable segments plus two non-interactive inputs sharing the
+ * `name` (a hidden validation sentinel and a `form=""` value carrier), so
+ * `locator('input[name="date"]').fill(...)` silently times out. Focus the day
+ * segment and type the digits; react-aria advances through dd → mm → aaaa.
+ */
+export async function fillDate(scope: Page | Locator, iso: string) {
+  const [year, month, day] = iso.split("-");
+  const daySegment = scope.getByRole("spinbutton", { name: /^dia/ });
+  await daySegment.click();
+  await daySegment.pressSequentially(`${day}${month}${year}`);
+}
 
 /**
  * Drives the real login-form.tsx / signInAction flow (not smoke.sh's curl

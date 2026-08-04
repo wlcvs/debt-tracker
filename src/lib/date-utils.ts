@@ -40,10 +40,10 @@ export function toDateInputValue(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-// Bounds for every native <input type="date"> in the app — without a max,
-// Chrome's date picker lets the year segment accept arbitrarily many
-// digits (e.g. typing a 6-digit year). These are generous enough for any
-// real debt/payment/installment date (installments run up to 60 months
-// out, per create-debt-form.tsx) while still catching fat-fingered input.
+// Bounds for every date field in the app, applied by date-field.tsx — without
+// a max, the year segment accepts arbitrarily many digits (e.g. a 6-digit
+// year). These are generous enough for any real debt/payment/installment date
+// (installments run up to 60 months out, per create-debt-form.tsx) while
+// still catching fat-fingered input.
 export const DATE_INPUT_MIN = "1900-01-01";
 export const DATE_INPUT_MAX = "2100-12-31";

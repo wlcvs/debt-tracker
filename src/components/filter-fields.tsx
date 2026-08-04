@@ -2,7 +2,7 @@
 
 import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import type { PaidFilter, SortDir, SortKey } from "@/lib/hooks/use-list-filter-sort";
-import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
+import { DateField } from "@/components/date-field";
 
 interface FilterFieldsProps {
   search: string;
@@ -38,24 +38,20 @@ export function FilterFields(props: FilterFieldsProps) {
         <div className="flex gap-2">
           <div className="flex-1">
             <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">De</p>
-            <input
-              type="date"
+            <DateField
+              aria-label="De"
               value={props.dateFrom}
-              onChange={(e) => props.setDateFrom?.(e.target.value)}
-              min={DATE_INPUT_MIN}
-              max={DATE_INPUT_MAX}
-              className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
+              onChange={(v) => props.setDateFrom?.(v)}
+              className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus-within:border-zinc-500 dark:focus-within:border-zinc-400 transition-colors"
             />
           </div>
           <div className="flex-1">
             <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Até</p>
-            <input
-              type="date"
+            <DateField
+              aria-label="Até"
               value={props.dateTo}
-              onChange={(e) => props.setDateTo?.(e.target.value)}
-              min={DATE_INPUT_MIN}
-              max={DATE_INPUT_MAX}
-              className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
+              onChange={(v) => props.setDateTo?.(v)}
+              className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus-within:border-zinc-500 dark:focus-within:border-zinc-400 transition-colors"
             />
           </div>
         </div>

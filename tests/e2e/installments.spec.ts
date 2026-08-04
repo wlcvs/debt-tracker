@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./fixtures";
+import { loginAsAdmin, fillDate } from "./fixtures";
 
 test("create a parceled debt, bulk-mark installments paid with a payment, then delete the group", async ({ page }) => {
   const personName = `E2E Installments Person ${Date.now()}`;
@@ -18,7 +18,7 @@ test("create a parceled debt, bulk-mark installments paid with a payment, then d
   await page.getByRole("button", { name: "+ Adicionar dívida" }).click();
   await page.getByPlaceholder("TÍTULO").fill(debtTitle);
   await page.locator('input[name="amount"]').fill("200.00");
-  await page.locator('input[name="date"]').fill(today);
+  await fillDate(page, today);
   await page.getByRole("combobox", { name: "Método" }).click();
   await page.getByRole("option", { name: "Pix" }).click();
   await page.getByRole("checkbox", { name: "Parcelar" }).check();
@@ -51,7 +51,7 @@ test("create a parceled debt, bulk-mark installments paid with a payment, then d
   await expect(page.getByText(`Parcelas — ${debtTitle}`)).toBeVisible();
   await page.getByRole("button", { name: "Selecionar não pagas" }).click();
   await page.getByRole("checkbox", { name: "Registrar pagamento correspondente" }).check();
-  await page.locator('input[type="date"]').last().fill(today);
+  await fillDate(page.getByRole("group", { name: "Data do pagamento" }), today);
   await page.getByRole("button", { name: "Marcar selecionadas como pagas" }).click();
 
   // Both installment rows should now show as paid (strikethrough amount, no "Marcar paga" button left).
@@ -63,7 +63,7 @@ test("create a parceled debt, bulk-mark installments paid with a payment, then d
   await page.getByRole("button", { name: "Fechar" }).click();
 
   // A single lump-sum Payment for the full 200.00 should now exist.
-  await expect(page.getByText("R$ 200.00")).toBeVisible();
+  await expect(page.getByText("R$ 200,00")).toBeVisible();
 
   // Installment 1 (current month, in view) should render as paid (opacity-50).
   await expect(debtRow1).toHaveClass(/opacity-50/);

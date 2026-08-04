@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./fixtures";
+import { loginAsAdmin, fillDate } from "./fixtures";
 
 test("edit and delete an existing debt", async ({ page }) => {
   const personName = `E2E Edit Person ${Date.now()}`;
@@ -17,7 +17,7 @@ test("edit and delete an existing debt", async ({ page }) => {
   await page.getByRole("button", { name: "+ Adicionar dívida" }).click();
   await page.getByPlaceholder("TÍTULO").fill(debtTitle);
   await page.locator('input[name="amount"]').fill("100.00");
-  await page.locator('input[name="date"]').fill(today);
+  await fillDate(page, today);
   await page.getByRole("combobox", { name: "Método" }).click();
   await page.getByRole("option", { name: "Pix" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
@@ -34,7 +34,7 @@ test("edit and delete an existing debt", async ({ page }) => {
 
   debtRow = page.getByRole("button", { name: new RegExp(editedTitle) });
   await expect(debtRow).toBeVisible();
-  await expect(debtRow).toContainText("R$ 150.00");
+  await expect(debtRow).toContainText("R$ 150,00");
 
   // --- Mark as paid, confirm styling, then delete ---
   await debtRow.click();
@@ -65,12 +65,12 @@ test("edit and delete an existing payment", async ({ page }) => {
 
   await page.getByRole("button", { name: "+ Adicionar pagamento" }).click();
   await page.locator('input[name="amount"]').fill("75.00");
-  await page.locator('input[name="date"]').fill(today);
+  await fillDate(page, today);
   await page.getByRole("combobox", { name: "Método" }).click();
   await page.getByRole("option", { name: "Dinheiro" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
 
-  let paymentRow = page.getByRole("button", { name: /R\$ 75\.00/ });
+  let paymentRow = page.getByRole("button", { name: /R\$ 75,00/ });
   await expect(paymentRow).toBeVisible();
 
   // --- Edit: change the amount ---
@@ -79,7 +79,7 @@ test("edit and delete an existing payment", async ({ page }) => {
   await page.locator('input[name="amount"]').fill("90.00");
   await page.getByRole("button", { name: "Salvar" }).click();
 
-  paymentRow = page.getByRole("button", { name: /R\$ 90\.00/ });
+  paymentRow = page.getByRole("button", { name: /R\$ 90,00/ });
   await expect(paymentRow).toBeVisible();
 
   // --- Delete it ---

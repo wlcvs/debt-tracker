@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { FormValidationMessages } from "@/components/form-validation-messages";
+import { LocaleProvider } from "@/components/locale-provider";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -30,7 +31,7 @@ export default function RootLayout({
       </head>
       <body>
         <FormValidationMessages />
-        {children}
+        <LocaleProvider>{children}</LocaleProvider>
         <Analytics />
         <SpeedInsights />
       </body>

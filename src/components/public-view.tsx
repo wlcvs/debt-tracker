@@ -9,7 +9,7 @@ import { useFilteredSortedList } from "@/lib/hooks/use-list-filter-sort";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import type { PersonWithBalance } from "@/lib/actions/person";
 import { getAvailableMonths, getMonthKey, formatDateBR } from "@/lib/date-utils";
-import { formatCurrency, paidPercent } from "@/lib/format-utils";
+import { formatCurrency, paidPercent, amountSearchTexts } from "@/lib/format-utils";
 import { MonthCarousel } from "@/components/month-carousel";
 import { FilterFields } from "@/components/filter-fields";
 import { ModalShell } from "@/components/modal-shell";
@@ -110,7 +110,7 @@ function DebtsList({ debts, onOpen, selectedMonth }: { debts: Debt[]; onOpen: (d
       d.title,
       d.description,
       d.creditCardLabel ?? (d.method ? methodLabel(d.method) : ""),
-      formatCurrency(d.amount).replace(".", ","),
+      ...amountSearchTexts(d.amount),
     ],
   });
 
@@ -224,7 +224,7 @@ function PaymentsList({ payments, onOpen, selectedMonth }: { payments: Payment[]
     selectedMonth,
     getDate: (p) => p.date,
     getAmount: (p) => p.amount,
-    getSearchText: (p) => [p.description, methodLabel(p.method), formatCurrency(p.amount).replace(".", ",")],
+    getSearchText: (p) => [p.description, methodLabel(p.method), ...amountSearchTexts(p.amount)],
   });
 
   const filtersActive = Boolean(showFilters || filterValuesActive);

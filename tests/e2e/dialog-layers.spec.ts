@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./fixtures";
+import { loginAsAdmin, fillDate } from "./fixtures";
 
 // Coverage for the two things the Radix Dialog migration changed about
 // layering, both on a deliberately low-stakes modal (debt-detail-modal).
@@ -28,7 +28,7 @@ async function createPersonWithDebt(page: import("@playwright/test").Page, perso
   await page.getByRole("button", { name: "+ Adicionar dívida" }).click();
   await page.getByPlaceholder("TÍTULO").fill(debtTitle);
   await page.locator('input[name="amount"]').fill("100.00");
-  await page.locator('input[name="date"]').fill(today);
+  await fillDate(page, today);
   await page.getByRole("combobox", { name: "Método" }).click();
   await page.getByRole("option", { name: "Pix" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
