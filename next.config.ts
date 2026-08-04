@@ -28,8 +28,17 @@ const nextConfig: NextConfig = {
   // every route rather than just the dashboard: the statement Server Actions
   // execute on whatever route invoked them, and getting the key wrong is only
   // detectable after a deploy.
+  //
+  // pdf.worker.mjs is here for the same reason — the tracer can't follow the
+  // relative specifier pdf.mjs uses to reach it. The primary fix is the literal
+  // import in src/lib/importers/pdf-text.ts, which the tracer *can* follow;
+  // this entry is a deliberate belt-and-braces, since the failure is only
+  // observable after a production deploy. Keep both.
   outputFileTracingIncludes: {
-    "/**": ["./node_modules/@napi-rs/canvas*/**"],
+    "/**": [
+      "./node_modules/@napi-rs/canvas*/**",
+      "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
+    ],
   },
 };
 
