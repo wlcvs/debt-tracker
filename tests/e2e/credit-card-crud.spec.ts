@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./fixtures";
+import { loginAsAdmin, fillDate } from "./fixtures";
 
 test("create a credit card, see it in MethodSelect, then delete it", async ({ page }) => {
   const cardLabel = `E2E Card ${Date.now()}`;
@@ -65,7 +65,7 @@ test("cannot delete a credit card that has a debt referencing it", async ({ page
   await page.getByRole("button", { name: "+ Adicionar dívida" }).click();
   await page.getByPlaceholder("TÍTULO").fill(debtTitle);
   await page.locator('input[name="amount"]').fill("42.00");
-  await page.locator('input[name="date"]').fill(today);
+  await fillDate(page, today);
   await page.getByRole("combobox", { name: "Método" }).click();
   await page.getByRole("option", { name: cardLabel }).click();
   await page.getByRole("button", { name: "Salvar" }).click();

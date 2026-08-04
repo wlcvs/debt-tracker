@@ -6,7 +6,7 @@ import { EditablePayment } from "@/components/editable-payment";
 import { CreatePaymentForm } from "@/components/create-payment-form";
 import { FilterFields } from "@/components/filter-fields";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
-import { formatCurrency } from "@/lib/format-utils";
+import { amountSearchTexts } from "@/lib/format-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { useFilteredSortedList } from "@/lib/hooks/use-list-filter-sort";
 
@@ -56,7 +56,7 @@ export function PaymentsSection({ accessCode, payments, selectedMonth }: Props) 
     getSearchText: (p) => [
       p.description,
       PAYMENT_METHODS[p.method as PaymentMethodKey] ?? p.method,
-      formatCurrency(p.amount).replace(".", ","),
+      ...amountSearchTexts(p.amount),
     ],
   });
 

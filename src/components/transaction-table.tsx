@@ -4,9 +4,10 @@ import { useMemo, useState, type RefObject } from "react";
 import { PersonSelect } from "@/components/person-select";
 import type { MethodOption } from "@/components/method-select";
 import { PAYMENT_METHODS } from "@/lib/payment-methods";
-import { DATE_INPUT_MIN, DATE_INPUT_MAX, formatDateBR } from "@/lib/date-utils";
+import { formatDateBR } from "@/lib/date-utils";
 import { parseBrAmount } from "@/lib/importers/base";
 import { formatAmount, type EditingCell, type Txn, type TxnType } from "@/lib/import-modal-types";
+import { DateField } from "@/components/date-field";
 
 const PAYMENT_METHOD_OPTIONS: MethodOption[] = Object.entries(PAYMENT_METHODS).map(([value, label]) => ({ value, label }));
 
@@ -173,24 +174,22 @@ export function TransactionTable({
               >
                 <td className="pl-3 pr-1 py-1.5" onClick={(e) => e.stopPropagation()}>
                   {editingCell?.index === t.index && editingCell.field === "date" ? (
-                    <input
+                    <DateField
                       autoFocus
-                      type="date"
+                      aria-label="Data da transação"
                       value={editingValue}
-                      min={DATE_INPUT_MIN}
-                      max={DATE_INPUT_MAX}
-                      onChange={(e) => setEditingValue(e.target.value)}
+                      onChange={setEditingValue}
                       onBlur={commitEditing}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
-                          (e.target as HTMLInputElement).blur();
+                          (e.target as HTMLElement).blur();
                         } else if (e.key === "Escape") {
                           e.preventDefault();
                           cancelEditing();
                         }
                       }}
-                      className="w-full bg-transparent border-b border-zinc-400 dark:border-zinc-500 text-[11px] text-zinc-900 dark:text-zinc-100 focus:outline-none scheme-light dark:scheme-dark"
+                      className="w-full bg-transparent border-b border-zinc-400 dark:border-zinc-500 text-[11px] text-zinc-900 dark:text-zinc-100"
                     />
                   ) : (
                     <span

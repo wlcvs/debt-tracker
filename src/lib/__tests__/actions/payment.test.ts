@@ -61,6 +61,25 @@ describe("createPayment", () => {
     );
   });
 
+  // Same bug as createDebt: a pt-BR keyboard produces "1.234,56", which
+  // z.coerce.number() alone turns into NaN and rejects silently.
+  it("accepts an amount typed with a pt-BR comma", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
+    prismaMock.payment.create.mockResolvedValue({} as never);
+
+    const form = new FormData();
+    form.set("personAccessCode", "CODE1");
+    form.set("amount", "1.234,56");
+    form.set("date", "2025-04-01");
+
+    await createPayment(form);
+
+    expect(prismaMock.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ amount: 1234.56 }) })
+    );
+  });
+
   it("defaults description to empty string when omitted", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);

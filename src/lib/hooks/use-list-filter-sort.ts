@@ -2,14 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { getMonthKey, toDateInputValue } from "@/lib/date-utils";
+import { parseAmountInput } from "@/lib/format-utils";
 
 export type SortKey = "date" | "amount";
 export type SortDir = "asc" | "desc";
 export type PaidFilter = "all" | "paid" | "unpaid";
 
+// isInt means "no decimal separator was typed", which makes the range compare
+// by whole reais (typing 222 still matches 222,70). Goes through
+// parseAmountInput so a thousands separator ("1.234,56") reads the same here
+// as it does everywhere else.
 export function parseAmountFilter(s: string): { val: number; isInt: boolean } {
-  const n = s.replace(",", ".");
-  return { val: parseFloat(n), isInt: !n.includes(".") };
+  return { val: parseAmountInput(s), isInt: !/[.,]/.test(s) };
 }
 
 export function useSort() {

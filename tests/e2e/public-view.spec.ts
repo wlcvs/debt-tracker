@@ -60,8 +60,8 @@ test("public view: renders without login, filters by month, read-only modals, fi
   await page.goto(`/public/${accessCode}`);
   await expect(page).toHaveURL(`/public/${accessCode}`);
   await expect(page.getByRole("heading", { name: `E2E Public View Person ${RUN_ID}` })).toBeVisible();
-  await expect(page.getByText("R$ 70.00")).toBeVisible();
-  await expect(page.getByText("R$ 60.00 / R$ 130.00 pago (46%)")).toBeVisible();
+  await expect(page.getByText("R$ 70,00")).toBeVisible();
+  await expect(page.getByText("R$ 60,00 / R$ 130,00 pago (46%)")).toBeVisible();
 
   // --- Month carousel: current month shows A and B, not C ---
   const debtARow = page.getByRole("button", { name: new RegExp(debtATitle) });
@@ -93,7 +93,7 @@ test("public view: renders without login, filters by month, read-only modals, fi
   // --- Read-only payment modal ---
   await page.getByText(paymentXDescription).click();
   await expect(page.getByText("Pagamento", { exact: true })).toBeVisible();
-  await expect(page.getByRole("paragraph").filter({ hasText: "R$ 40.00" })).toBeVisible();
+  await expect(page.getByRole("paragraph").filter({ hasText: "R$ 40,00" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Editar" })).not.toBeVisible();
   await page.getByRole("button", { name: "Fechar" }).click();
 
@@ -106,7 +106,7 @@ test("public view: renders without login, filters by month, read-only modals, fi
   await expect(debtBRow).toBeVisible();
 
   // --- Installment calculator: presets and +/- stepper ---
-  const monthsInput = page.locator('input[type="number"]');
+  const monthsInput = page.getByLabel("Aumentar meses").locator("xpath=preceding-sibling::input");
   // ToggleGroup type="single" renders role="radio" inside a role="radiogroup",
   // not plain buttons.
   await page.getByRole("radio", { name: "6x" }).click();

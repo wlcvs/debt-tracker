@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
-import { loginAsAdmin } from "./fixtures";
+import { loginAsAdmin, fillDate } from "./fixtures";
 
 // Exercises the statement-import review screen (FilterToolbar + sort +
 // ManualAddDialog) without ever hitting the LLM server: the seeded
@@ -76,13 +76,16 @@ test("statement import review: filter, sort, and manually add a transaction", as
   // --- Manually add a transaction ---
   await page.getByRole("button", { name: "+ Adicionar manualmente" }).click();
   await expect(page.getByText("Adicionar transação manualmente")).toBeVisible();
-  const manualDialog = page.locator("form").filter({ hasText: "DataValor (R$)TítuloDescrição" });
-  await manualDialog.locator('input[type="date"]').fill("2026-01-20");
-  await manualDialog.locator('input[type="number"]').fill("10.00");
-  // The dialog's labels aren't wired via htmlFor (see manual-add-dialog.tsx) —
-  // getByLabel can't resolve them, so target the required text input (Título)
-  // positionally; it's the only required text field, "Descrição" isn't.
-  await manualDialog.locator('input[type="text"]').first().fill(manualTitle);
+  // Scoped by the dialog's own accessible name — filtering the <form> by its
+  // text content used to work, but DateField renders "dd"/"mm"/"aaaa" segments
+  // into that text, so the old hasText no longer matches.
+  const manualDialog = page.getByRole("dialog", { name: "Adicionar transação manualmente" });
+  await fillDate(manualDialog, "2026-01-20");
+  // The dialog's <label>s aren't wired via htmlFor (see manual-add-dialog.tsx),
+  // so the fields carry explicit aria-labels instead — positional lookup broke
+  // once Valor stopped being the only input[type="number"].
+  await manualDialog.getByLabel("Valor (R$)").fill("10,00");
+  await manualDialog.getByLabel("Título").fill(manualTitle);
   // Método is required (manual-add-dialog.tsx's confirmManualAdd bails out and
   // flags the field when it's empty). Scoped to the dialog because the review
   // table behind it has a method select of its own on every row.

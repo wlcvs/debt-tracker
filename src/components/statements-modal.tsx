@@ -5,10 +5,11 @@ import * as Dialog from "@radix-ui/react-dialog";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { getStatements, deleteStatement, renameStatement, type StatementSummary } from "@/lib/actions/statement";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { formatDateBR, toDateInputValue, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
+import { formatDateBR, toDateInputValue } from "@/lib/date-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { useInlineEditGuard } from "@/lib/hooks/use-inline-edit-guard";
 import { useConfirmDelete } from "@/lib/hooks/use-confirm-delete";
+import { DateField } from "@/components/date-field";
 
 interface Props {
   onClose: () => void;
@@ -124,24 +125,20 @@ export function StatementsModal({ onClose, onImportNew, onReopen }: Props) {
                 <div className="flex gap-2 px-6 pb-3">
                   <div className="flex-1">
                     <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">De</p>
-                    <input
-                      type="date"
+                    <DateField
+                      aria-label="De"
                       value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      min={DATE_INPUT_MIN}
-                      max={DATE_INPUT_MAX}
-                      className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
+                      onChange={setDateFrom}
+                      className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus-within:border-zinc-500 dark:focus-within:border-zinc-400 transition-colors"
                     />
                   </div>
                   <div className="flex-1">
                     <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Até</p>
-                    <input
-                      type="date"
+                    <DateField
+                      aria-label="Até"
                       value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      min={DATE_INPUT_MIN}
-                      max={DATE_INPUT_MAX}
-                      className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors"
+                      onChange={setDateTo}
+                      className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 focus-within:border-zinc-500 dark:focus-within:border-zinc-400 transition-colors"
                     />
                   </div>
                   <button

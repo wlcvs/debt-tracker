@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
-import { DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
+import { DateField } from "@/components/date-field";
 
 interface FilterToolbarProps {
   showFilters: boolean;
@@ -67,37 +67,31 @@ export function FilterToolbar(props: FilterToolbarProps) {
             placeholder="Descrição…"
             className="w-36 bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs tracking-wider placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
           />
-          <input
-            type="date"
-            title="Data inicial"
+          <DateField
+            aria-label="Data inicial"
             value={props.filterDateFrom}
-            onChange={(e) => props.setFilterDateFrom(e.target.value)}
-            min={DATE_INPUT_MIN}
-            max={DATE_INPUT_MAX}
-            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors scheme-light dark:scheme-dark"
+            onChange={props.setFilterDateFrom}
+            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus-within:border-zinc-500 transition-colors"
           />
-          <input
-            type="date"
-            title="Data final"
+          <DateField
+            aria-label="Data final"
             value={props.filterDateTo}
-            onChange={(e) => props.setFilterDateTo(e.target.value)}
-            min={DATE_INPUT_MIN}
-            max={DATE_INPUT_MAX}
-            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors scheme-light dark:scheme-dark"
+            onChange={props.setFilterDateTo}
+            className="bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 focus-within:border-zinc-500 transition-colors"
           />
           <input
-            type="number"
-            min="0"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
             placeholder="R$ min"
             value={props.filterAmountMin}
             onChange={(e) => props.setFilterAmountMin(e.target.value)}
             className="w-24 bg-transparent border border-zinc-300 dark:border-zinc-700 px-2 py-1.5 text-xs tracking-wider placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 transition-colors"
           />
           <input
-            type="number"
-            min="0"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
             placeholder="R$ max"
             value={props.filterAmountMax}
             onChange={(e) => props.setFilterAmountMax(e.target.value)}

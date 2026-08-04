@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { getDebtInstallmentGroup, toggleDebtsPaidBulk } from "@/lib/actions/debt";
 import { createPayment } from "@/lib/actions/payment";
-import { formatDateBR, toDateInputValue, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
+import { formatDateBR, toDateInputValue } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format-utils";
 import { Checkbox } from "@/components/checkbox";
 import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { ModalShell } from "@/components/modal-shell";
+import { DateField } from "@/components/date-field";
 
 interface Props {
   installmentGroupId: string;
@@ -172,13 +173,11 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
                       </ToggleGroup.Item>
                     </ToggleGroup.Root>
                     <div className="flex gap-2">
-                      <input
-                        type="date"
+                      <DateField
+                        aria-label="Data do pagamento"
                         value={paymentDate}
-                        onChange={(e) => setPaymentDate(e.target.value)}
-                        min={DATE_INPUT_MIN}
-                        max={DATE_INPUT_MAX}
-                        className="flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
+                        onChange={setPaymentDate}
+                        className="flex-1 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest text-zinc-500 dark:text-zinc-400 focus-within:border-zinc-500 dark:focus-within:border-zinc-400"
                       />
                       <ToggleGroup.Root
                         type="single"
