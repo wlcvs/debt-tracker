@@ -46,7 +46,7 @@ test.beforeAll(async () => {
     ],
   });
   // totalOwed = (100 + 30 unpaid debts) - (40 + 20 payments) = 70
-  // totalDebt = 100 + 30 = 130, totalPaid = 40 + 20 = 60, paidPercent = round(60/130*100) = 46
+  // totalPaid = 40 + 20 = 60
 });
 
 test.afterAll(async () => {
@@ -60,8 +60,11 @@ test("public view: renders without login, filters by month, read-only modals, fi
   await page.goto(`/public/${accessCode}`);
   await expect(page).toHaveURL(`/public/${accessCode}`);
   await expect(page.getByRole("heading", { name: `E2E Public View Person ${RUN_ID}` })).toBeVisible();
+  // Labelled balance block — no progress bar, and never a negative total.
+  await expect(page.getByText("Valor devido")).toBeVisible();
   await expect(page.getByText("R$ 70,00")).toBeVisible();
-  await expect(page.getByText("R$ 60,00 / R$ 130,00 pago (46%)")).toBeVisible();
+  await expect(page.getByText("Valor pago")).toBeVisible();
+  await expect(page.getByText("R$ 60,00")).toBeVisible();
 
   // --- Month carousel: current month shows A and B, not C ---
   const debtARow = page.getByRole("button", { name: new RegExp(debtATitle) });

@@ -62,8 +62,9 @@ test("create a parceled debt, bulk-mark installments paid with a payment, then d
   await page.getByRole("button", { name: "Fechar" }).last().click();
   await page.getByRole("button", { name: "Fechar" }).click();
 
-  // A single lump-sum Payment for the full 200.00 should now exist.
-  await expect(page.getByText("R$ 200,00")).toBeVisible();
+  // A single lump-sum Payment for the full 200.00 should now exist. Scoped to
+  // the payment row — the header's "Valor pago" line shows R$ 200,00 too.
+  await expect(page.getByRole("button", { name: /R\$ 200,00/ })).toBeVisible();
 
   // Installment 1 (current month, in view) should render as paid (opacity-50).
   await expect(debtRow1).toHaveClass(/opacity-50/);

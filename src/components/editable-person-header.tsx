@@ -3,13 +3,14 @@
 import { useRef, useState } from "react";
 import { updatePerson } from "@/lib/actions/person";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
-import { formatCurrency } from "@/lib/format-utils";
+import { BalanceSummary } from "@/components/balance-summary";
 
 interface Props {
   person: {
     accessCode: string;
     name: string;
     totalOwed: number;
+    totalPaid: number;
   };
 }
 
@@ -44,9 +45,7 @@ export function EditablePersonHeader({ person }: Props) {
             Cancelar
           </button>
         </form>
-        <p className="text-xl tracking-tight text-zinc-900 dark:text-white shrink-0">
-          R$ {formatCurrency(person.totalOwed)}
-        </p>
+        <BalanceSummary totalOwed={person.totalOwed} totalPaid={person.totalPaid} size="text-xl" />
       </div>
     );
   }
@@ -60,9 +59,7 @@ export function EditablePersonHeader({ person }: Props) {
       >
         {person.name}
       </h2>
-      <p className="text-xl tracking-tight text-zinc-900 dark:text-white shrink-0">
-        R$ {formatCurrency(person.totalOwed)}
-      </p>
+      <BalanceSummary totalOwed={person.totalOwed} totalPaid={person.totalPaid} size="text-xl" />
     </div>
   );
 }

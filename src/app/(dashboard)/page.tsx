@@ -67,19 +67,10 @@ export default async function OverviewPage() {
               <li key={person.accessCode}>
                 <Link
                   href={`/person/${person.accessCode}`}
-                  className="flex items-baseline justify-between py-2 border-b border-zinc-200 dark:border-zinc-900 text-xs tracking-widest uppercase hover:opacity-70 transition-opacity"
+                  className="block py-2 border-b border-zinc-200 dark:border-zinc-900 text-xs tracking-widest uppercase hover:opacity-70 transition-opacity"
                 >
-                  <span className="text-zinc-700 dark:text-zinc-300 truncate mr-4">
+                  <span className="text-zinc-700 dark:text-zinc-300 truncate">
                     {person.name}
-                  </span>
-                  <span
-                    className={
-                      person.totalOwed > 0
-                        ? "shrink-0 text-zinc-900 dark:text-white"
-                        : "shrink-0 text-zinc-400 dark:text-zinc-600"
-                    }
-                  >
-                    R$ {formatCurrency(person.totalOwed)}
                   </span>
                 </Link>
               </li>

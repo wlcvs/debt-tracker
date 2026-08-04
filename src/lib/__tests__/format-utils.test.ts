@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatCurrency, parseAmountInput, amountSearchTexts, paidPercent } from "@/lib/format-utils";
+import { formatCurrency, parseAmountInput, amountSearchTexts } from "@/lib/format-utils";
 
 describe("formatCurrency", () => {
   it("formats with two decimal places, pt-BR style", () => {
@@ -53,26 +53,5 @@ describe("parseAmountInput", () => {
 describe("amountSearchTexts", () => {
   it("offers both written forms so either separator matches", () => {
     expect(amountSearchTexts(1234.5)).toEqual(["1.234,50", "1234.50"]);
-  });
-});
-
-describe("paidPercent", () => {
-  it("computes a rounded percentage", () => {
-    expect(paidPercent(60, 130)).toBe(46);
-    expect(paidPercent(50, 100)).toBe(50);
-  });
-
-  it("returns 0 when totalDebt is 0 or negative", () => {
-    expect(paidPercent(0, 0)).toBe(0);
-    expect(paidPercent(50, 0)).toBe(0);
-    expect(paidPercent(50, -10)).toBe(0);
-  });
-
-  it("clamps at 100% when overpaid", () => {
-    expect(paidPercent(150, 100)).toBe(100);
-  });
-
-  it("clamps at 0% when negative", () => {
-    expect(paidPercent(-10, 100)).toBe(0);
   });
 });

@@ -17,7 +17,7 @@ This project was also rewritten once in Django (`debt-tracker-django`, a sibling
 | ORM | Prisma 7 (client generated at `src/generated/prisma`) |
 | Auth | Auth.js v5 (next-auth) — Credentials provider + JWT session (admin only) |
 | Styles | Tailwind CSS 4 |
-| UI primitives | Radix UI (dialog, alert-dialog, select, popover, collapsible, toggle-group, progress) |
+| UI primitives | Radix UI (dialog, alert-dialog, select, popover, collapsible, toggle-group) |
 | Date entry | `react-aria-components` (`DateField`) + `@internationalized/date` — the one non-Radix primitive, see "UI patterns" |
 | Tests | Vitest (unit + jsdom component tests) + Playwright (E2E) |
 | Validation | Zod |
