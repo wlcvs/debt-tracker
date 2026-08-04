@@ -157,7 +157,7 @@ describe("createDebt", () => {
     expect(localDateStr(data[2].date as Date)).toBe("2026-03-31");
   });
 
-  it("distributes leftover cents onto the last installments", async () => {
+  it("distributes leftover cents onto the first installments", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
 
@@ -172,7 +172,7 @@ describe("createDebt", () => {
 
     const data = prismaMock.debt.createMany.mock.calls[0][0].data as Array<Record<string, unknown>>;
     const amounts = data.map((d) => d.amount as number);
-    expect(amounts).toEqual([3.33, 3.33, 3.34]);
+    expect(amounts).toEqual([3.34, 3.33, 3.33]);
   });
 
   it("creates installments backward, treating the given date as the last installment", async () => {
@@ -290,6 +290,75 @@ describe("createDebt", () => {
     expect(localDateStr(data[0].date as Date)).toBe("2026-01-31");
     expect(localDateStr(data[1].date as Date)).toBe("2026-02-28");
     expect(localDateStr(data[2].date as Date)).toBe("2026-03-31");
+  });
+
+  // Presence of the field — not its value — is what picks the branch, so that
+  // installments=1 can be a real 1/1 group while an ordinary debt (which never
+  // sends the field) stays ungrouped.
+  it("creates a real 1/1 group when installments=1", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
+
+    const form = new FormData();
+    form.set("personAccessCode", "CODE1");
+    form.set("amount", "685,91");
+    form.set("title", "Cama do Presley");
+    form.set("date", "2026-03-10");
+    form.set("installments", "1");
+    form.set("paidInstallments", JSON.stringify([1]));
+
+    await createDebt(form);
+
+    expect(prismaMock.debt.create).not.toHaveBeenCalled();
+    const data = prismaMock.debt.createMany.mock.calls[0][0].data as Array<Record<string, unknown>>;
+    expect(data).toHaveLength(1);
+    expect(data[0]).toMatchObject({
+      title: "Cama do Presley (1/1)",
+      amount: 685.91,
+      installmentIndex: 1,
+      installmentTotal: 1,
+      paid: true,
+    });
+    expect(data[0].installmentGroupId).toEqual(expect.any(String));
+    expect(localDateStr(data[0].date as Date)).toBe("2026-03-10");
+  });
+
+  it("creates a plain ungrouped debt when installments is omitted", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
+    prismaMock.debt.create.mockResolvedValue({} as never);
+
+    const form = new FormData();
+    form.set("personAccessCode", "CODE1");
+    form.set("amount", "100");
+    form.set("title", "Almoço");
+    form.set("date", "2026-03-10");
+
+    await createDebt(form);
+
+    expect(prismaMock.debt.createMany).not.toHaveBeenCalled();
+    const { data } = prismaMock.debt.create.mock.calls[0][0] as { data: Record<string, unknown> };
+    expect(data.title).toBe("Almoço");
+    expect(data.installmentGroupId).toBeUndefined();
+  });
+
+  // The whole "Salvar não faz nada" bug: z.coerce.number() turns "685,91" into
+  // NaN, the action throws, and the form silently stays open.
+  it("accepts an amount typed with a pt-BR comma", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({ id: "person-1", accessCode: "CODE1" } as never);
+    prismaMock.debt.create.mockResolvedValue({} as never);
+
+    const form = new FormData();
+    form.set("personAccessCode", "CODE1");
+    form.set("amount", "1.234,56");
+    form.set("title", "Sofá");
+    form.set("date", "2026-03-10");
+
+    await createDebt(form);
+
+    const { data } = prismaMock.debt.create.mock.calls[0][0] as { data: Record<string, unknown> };
+    expect(data.amount).toBe(1234.56);
   });
 });
 

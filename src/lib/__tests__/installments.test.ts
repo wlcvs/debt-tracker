@@ -6,8 +6,8 @@ describe("splitInstallmentAmounts", () => {
     expect(splitInstallmentAmounts(300, 3)).toEqual([100, 100, 100]);
   });
 
-  it("puts leftover cents on the last installments", () => {
-    expect(splitInstallmentAmounts(100, 3)).toEqual([33.33, 33.33, 33.34]);
+  it("puts leftover cents on the first installments", () => {
+    expect(splitInstallmentAmounts(100, 3)).toEqual([33.34, 33.33, 33.33]);
   });
 
   it("sums exactly to the original total regardless of rounding", () => {
@@ -30,19 +30,19 @@ describe("splitInstallmentAmounts", () => {
 
   it("preserves sign across installments for a negative total", () => {
     const amounts = splitInstallmentAmounts(-100, 3);
-    expect(amounts).toEqual([-33.34, -33.33, -33.33]);
+    expect(amounts).toEqual([-33.33, -33.33, -33.34]);
     const sum = amounts.reduce((acc, n) => acc + Math.round(n * 100), 0);
     expect(sum).toBe(-10000);
   });
 
-  it("puts a 1-cent remainder only on the last installment (count=4)", () => {
+  it("puts a 1-cent remainder only on the first installment (count=4)", () => {
     // 400.01 -> 40001 cents / 4 = base 10000, remainder 1
-    expect(splitInstallmentAmounts(400.01, 4)).toEqual([100, 100, 100, 100.01]);
+    expect(splitInstallmentAmounts(400.01, 4)).toEqual([100.01, 100, 100, 100]);
   });
 
-  it("puts a 3-cent remainder on the last three installments (count=4)", () => {
+  it("puts a 3-cent remainder on the first three installments (count=4)", () => {
     // 400.03 -> 40003 cents / 4 = base 10000, remainder 3
-    expect(splitInstallmentAmounts(400.03, 4)).toEqual([100, 100.01, 100.01, 100.01]);
+    expect(splitInstallmentAmounts(400.03, 4)).toEqual([100.01, 100.01, 100.01, 100]);
   });
 
   it("sum is invariant for a large count (24)", () => {

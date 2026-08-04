@@ -16,7 +16,11 @@ const createDebtSchema = z.object({
   date: dateSchema,
   debtMethod: z.string().optional(),
   paid: z.coerce.boolean().default(false),
-  installments: z.coerce.number().int().min(1).max(60).default(1),
+  // Deliberately no .default(1): presence, not the value, is what decides
+  // between "one plain debt" and "an installment group". A form that never
+  // opened the Parcelar panel omits the field entirely; one that submits
+  // installments=1 wants a real 1/1 group (title suffix, badge, group id).
+  installments: z.coerce.number().int().min(1).max(60).optional(),
   installmentDirection: z.enum(["forward", "backward"]).default("forward"),
   paidInstallments: z.string().optional(),
 });
@@ -47,8 +51,9 @@ export async function createDebt(formData: FormData) {
 
   const { method, creditCardId } = resolveDebtMethod(parsed.debtMethod);
 
-  if (parsed.installments > 1) {
-    const amounts = splitInstallmentAmounts(parsed.amount, parsed.installments);
+  if (parsed.installments !== undefined) {
+    const total = parsed.installments;
+    const amounts = splitInstallmentAmounts(parsed.amount, total);
     const paidIndexes = new Set<number>(parsed.paidInstallments ? JSON.parse(parsed.paidInstallments) : []);
     const installmentGroupId = crypto.randomUUID();
 
@@ -58,15 +63,15 @@ export async function createDebt(formData: FormData) {
         return {
           personId: person.id,
           amount,
-          title: `${parsed.title} (${index}/${parsed.installments})`,
+          title: `${parsed.title} (${index}/${total})`,
           description: parsed.description,
-          date: installmentDate(parsed.date, index, parsed.installments, parsed.installmentDirection),
+          date: installmentDate(parsed.date, index, total, parsed.installmentDirection),
           method,
           creditCardId,
           paid: paidIndexes.has(index),
           installmentGroupId,
           installmentIndex: index,
-          installmentTotal: parsed.installments,
+          installmentTotal: total,
         };
       }),
     });
