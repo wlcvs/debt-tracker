@@ -1,7 +1,8 @@
 "use client";
 
 import { formatCurrency } from "@/lib/format-utils";
-import { toDateInputValue, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
+import { toDateInputValue } from "@/lib/date-utils";
+import { DateField } from "@/components/date-field";
 
 interface Props {
   amount: number;
@@ -20,19 +21,17 @@ export function AmountDateFields({ amount, date }: Props) {
           name="amount"
           defaultValue={formatCurrency(amount)}
           required
+          autoComplete="off"
           className="w-28 bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-900 dark:text-zinc-300 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
         />
       </div>
       <div className="flex-1">
         <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Data</p>
-        <input
-          type="date"
+        <DateField
           name="date"
           defaultValue={toDateInputValue(date)}
           required
-          min={DATE_INPUT_MIN}
-          max={DATE_INPUT_MAX}
-          className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400"
+          className="w-full bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-wider text-zinc-500 dark:text-zinc-400 focus-within:border-zinc-500 dark:focus-within:border-zinc-400"
         />
       </div>
     </div>

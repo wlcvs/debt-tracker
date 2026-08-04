@@ -40,6 +40,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
   const [showInstallments, setShowInstallments] = useState(false);
   const [method, setMethod] = useState(debt.creditCardId ?? debt.method ?? "");
   const [methodError, setMethodError] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const isInstallment = Boolean(debt.installmentGroupId);
   const { confirming, setConfirming, confirmDelete } = useConfirmDelete<DebtLike>((d) => {
     const fd = new FormData();
@@ -126,8 +127,16 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
               return;
             }
             setMethodError(false);
+            setSubmitError("");
             const fd = new FormData(e.currentTarget);
-            await updateDebt(fd);
+            // A rejected Server Action would otherwise fail silently, leaving
+            // the modal open with no clue why nothing saved.
+            try {
+              await updateDebt(fd);
+            } catch {
+              setSubmitError("Não foi possível salvar. Confira os campos e tente de novo.");
+              return;
+            }
             onClose();
           }}
           className="px-6 py-5 flex flex-col gap-3"
@@ -170,6 +179,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
               error={methodError}
             />
           </div>
+          {submitError && <p className="text-xs text-red-500 tracking-wide">{submitError}</p>}
           <div className="flex justify-between items-center pt-1">
             <div className="flex gap-3">
               <button

@@ -6,9 +6,23 @@ import { MethodSelect, type MethodOption } from "@/components/method-select";
 import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { Checkbox } from "@/components/checkbox";
 import { splitInstallmentAmounts, installmentDate, type InstallmentDirection } from "@/lib/installments";
-import { formatDateBR, DATE_INPUT_MIN, DATE_INPUT_MAX } from "@/lib/date-utils";
-import { formatCurrency } from "@/lib/format-utils";
+import { formatDateBR } from "@/lib/date-utils";
+import { formatCurrency, parseAmountInput } from "@/lib/format-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
+import { DateField } from "@/components/date-field";
+
+const MIN_INSTALLMENTS = 1;
+const MAX_INSTALLMENTS = 60;
+
+// The count is held as raw text so the field can be emptied and retyped.
+// Clamping on every keystroke (the old behaviour) destroyed input: with 21 on
+// screen, one more digit made "219", which snapped to 60 and swallowed every
+// following keystroke. Normalization happens on blur instead.
+function clampInstallments(raw: string): string {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < MIN_INSTALLMENTS) return String(MIN_INSTALLMENTS);
+  return String(Math.min(MAX_INSTALLMENTS, Math.trunc(n)));
+}
 
 const inputClass =
   "bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors";
@@ -24,12 +38,16 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
   const [methodError, setMethodError] = useState(false);
   const [paid, setPaid] = useState(false);
   const [installment, setInstallment] = useState(false);
-  const [installments, setInstallments] = useState(2);
+  const [installmentsInput, setInstallmentsInput] = useState("2");
   const [direction, setDirection] = useState<InstallmentDirection>("forward");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [paidIndexes, setPaidIndexes] = useState<Set<number>>(new Set());
+  const [submitError, setSubmitError] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Numeric view of the text field, for the preview and the submit payload.
+  const installments = Number(clampInstallments(installmentsInput));
 
   useDismiss(wrapperRef, () => reset());
 
@@ -41,7 +59,7 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
 
   const preview = useMemo(() => {
     if (!installment) return [];
-    const total = Number(amount.replace(",", "."));
+    const total = parseAmountInput(amount);
     const baseDate = date ? new Date(`${date}T00:00:00Z`) : null;
     if (!baseDate || Number.isNaN(total) || total <= 0) return [];
     const amounts = splitInstallmentAmounts(total, installments);
@@ -57,11 +75,12 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
     setMethodError(false);
     setPaid(false);
     setInstallment(false);
-    setInstallments(2);
+    setInstallmentsInput("2");
     setDirection("forward");
     setAmount("");
     setDate("");
     setPaidIndexes(new Set());
+    setSubmitError("");
     setOpen(false);
   }
 
@@ -93,6 +112,7 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
               return;
             }
             setMethodError(false);
+            setSubmitError("");
             const fd = new FormData(e.currentTarget);
             if (installment) {
               fd.set("installments", String(installments));
@@ -101,7 +121,14 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
             } else if (paid) {
               fd.set("paid", "on");
             }
-            await createDebt(fd);
+            // Without this, a rejected Server Action leaves the form sitting
+            // there with no feedback — the "Salvar não faz nada" bug.
+            try {
+              await createDebt(fd);
+            } catch {
+              setSubmitError("Não foi possível salvar. Confira os campos e tente de novo.");
+              return;
+            }
             reset();
           }}
           className="mt-3 flex flex-col gap-2"
@@ -118,19 +145,17 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
               name="amount"
               placeholder={installment ? "VALOR TOTAL" : "VALOR"}
               required
+              autoComplete="off"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className={`w-28 ${inputClass}`}
             />
             <div className="flex-1">
-              <input
-                type="date"
+              <DateField
                 name="date"
                 required
-                min={DATE_INPUT_MIN}
-                max={DATE_INPUT_MAX}
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={setDate}
                 className={`w-full ${inputClass} text-zinc-500 dark:text-zinc-400`}
               />
             </div>
@@ -161,12 +186,15 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
               <div className="flex gap-2 items-center">
                 <div>
                   <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Número de parcelas</p>
+                  {/* type="text" rather than "number": the native spinner's
+                      arrow glyphs are icons, which the HUD design forbids. */}
                   <input
-                    type="number"
-                    min={2}
-                    max={60}
-                    value={installments}
-                    onChange={(e) => setInstallments(Math.min(60, Math.max(2, Number(e.target.value) || 2)))}
+                    type="text"
+                    inputMode="numeric"
+                    aria-label="Número de parcelas"
+                    value={installmentsInput}
+                    onChange={(e) => setInstallmentsInput(e.target.value.replace(/\D/g, ""))}
+                    onBlur={() => setInstallmentsInput(clampInstallments(installmentsInput))}
                     className={`w-20 ${inputClass}`}
                   />
                 </div>
@@ -222,6 +250,8 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
           ) : (
             <Checkbox checked={paid} onChange={setPaid} label="Já paga" />
           )}
+
+          {submitError && <p className="text-xs text-red-500 tracking-wide">{submitError}</p>}
 
           <div className="flex gap-3 items-center">
             <button

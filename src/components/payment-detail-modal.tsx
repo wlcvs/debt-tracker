@@ -30,6 +30,7 @@ const METHOD_OPTIONS: MethodOption[] = Object.entries(PAYMENT_METHODS).map(([val
 export function PaymentDetailModal({ payment, onClose }: Props) {
   const [editing, setEditing] = useState(false);
   const [method, setMethod] = useState(payment.method);
+  const [submitError, setSubmitError] = useState("");
   const { confirming, setConfirming, confirmDelete } = useConfirmDelete<PaymentLike>((p) => {
     const fd = new FormData();
     fd.append("id", p.id);
@@ -71,8 +72,16 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
         <form
           onSubmit={async (e) => {
             e.preventDefault();
+            setSubmitError("");
             const fd = new FormData(e.currentTarget);
-            await updatePayment(fd);
+            // A rejected Server Action would otherwise fail silently, leaving
+            // the modal open with no clue why nothing saved.
+            try {
+              await updatePayment(fd);
+            } catch {
+              setSubmitError("Não foi possível salvar. Confira os campos e tente de novo.");
+              return;
+            }
             onClose();
           }}
           className="px-6 py-5 flex flex-col gap-3"
@@ -95,6 +104,7 @@ export function PaymentDetailModal({ payment, onClose }: Props) {
             <p className="text-[10px] tracking-widest uppercase text-zinc-400 mb-1">Método</p>
             <MethodSelect name="method" options={METHOD_OPTIONS} value={method} onChange={setMethod} />
           </div>
+          {submitError && <p className="text-xs text-red-500 tracking-wide">{submitError}</p>}
           <div className="flex justify-between items-center pt-1">
             <div className="flex gap-3">
               <button
