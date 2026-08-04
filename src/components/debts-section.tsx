@@ -6,7 +6,7 @@ import { EditableDebt } from "@/components/editable-debt";
 import { CreateDebtForm } from "@/components/create-debt-form";
 import { FilterFields } from "@/components/filter-fields";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
-import { formatCurrency } from "@/lib/format-utils";
+import { amountSearchTexts } from "@/lib/format-utils";
 import { useDismiss } from "@/lib/hooks/use-dismiss";
 import { useFilteredSortedList } from "@/lib/hooks/use-list-filter-sort";
 
@@ -68,7 +68,7 @@ export function DebtsSection({ accessCode, debts, creditCards, selectedMonth }: 
       d.title,
       d.description,
       d.creditCardLabel ?? (d.method ? PAYMENT_METHODS[d.method as PaymentMethodKey] ?? d.method : ""),
-      formatCurrency(d.amount).replace(".", ","),
+      ...amountSearchTexts(d.amount),
     ],
   });
 
