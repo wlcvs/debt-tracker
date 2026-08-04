@@ -77,7 +77,10 @@ function toPersonWithBalance(person: PersonWithRelations): PersonWithBalance {
   }));
   const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
   const totalDebt = debts.reduce((s, d) => s + (d.paid ? 0 : d.amount), 0);
-  const totalOwed = totalDebt - totalPaid;
+  // Floored at zero: overpaying (or paying when nothing is owed) used to render
+  // as "R$ -300,00" in the header. Nothing is owed is nothing is owed — the
+  // amount already paid is shown on its own line instead.
+  const totalOwed = Math.max(0, totalDebt - totalPaid);
 
   return {
     name: person.name,
@@ -137,10 +140,11 @@ export interface OverviewStats {
   totalPaid: number;
 }
 
+// No balance field: the dashboard list shows names only. The per-person total
+// is still computed below, but only to feed totalToReceive/activeDebtors.
 export interface PersonSummary {
   accessCode: string;
   name: string;
-  totalOwed: number;
 }
 
 export interface DashboardOverview {
@@ -156,31 +160,43 @@ export interface DashboardOverview {
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const userId = await requireUserId();
 
-  const [people, unpaidDebtSums, paymentSums, totalDebts, paymentAgg] = await Promise.all([
-    // id is selected only to join the groupBy aggregates below — it never
-    // reaches the returned PersonSummary.
-    prisma.person.findMany({
-      where: { userId },
-      select: { id: true, name: true, accessCode: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.debt.groupBy({
-      by: ["personId"],
-      where: { person: { userId }, paid: false },
-      _sum: { amount: true },
-    }),
-    prisma.payment.groupBy({
-      by: ["personId"],
-      where: { person: { userId } },
-      _sum: { amount: true },
-    }),
-    prisma.debt.count({ where: { person: { userId } } }),
-    prisma.payment.aggregate({
-      where: { person: { userId } },
-      _sum: { amount: true },
-      _count: true,
-    }),
-  ]);
+  const [people, unpaidDebtSums, paymentSums, standaloneDebts, installmentGroups, paymentAgg] =
+    await Promise.all([
+      // id is selected only to join the groupBy aggregates below — it never
+      // reaches the returned PersonSummary.
+      prisma.person.findMany({
+        where: { userId },
+        select: { id: true, name: true, accessCode: true },
+        orderBy: { name: "asc" },
+      }),
+      // Money stays row-based: each installment row carries its own share of
+      // the purchase, so summing rows is exactly right here.
+      prisma.debt.groupBy({
+        by: ["personId"],
+        where: { person: { userId }, paid: false },
+        _sum: { amount: true },
+      }),
+      prisma.payment.groupBy({
+        by: ["personId"],
+        where: { person: { userId } },
+        _sum: { amount: true },
+      }),
+      // The *count*, unlike the sums, treats a parceled purchase as one debt —
+      // a 10x purchase is one thing the person bought, not ten. Prisma has no
+      // distinct on count(), hence the split; both run inside this Promise.all,
+      // and the group lookup rides the existing @@index([installmentGroupId]).
+      prisma.debt.count({ where: { person: { userId }, installmentGroupId: null } }),
+      prisma.debt.findMany({
+        where: { person: { userId }, installmentGroupId: { not: null } },
+        select: { installmentGroupId: true },
+        distinct: ["installmentGroupId"],
+      }),
+      prisma.payment.aggregate({
+        where: { person: { userId } },
+        _sum: { amount: true },
+        _count: true,
+      }),
+    ]);
 
   const debtByPerson = new Map(unpaidDebtSums.map((d) => [d.personId, Number(d._sum.amount ?? 0)]));
   const paidByPerson = new Map(paymentSums.map((p) => [p.personId, Number(p._sum.amount ?? 0)]));
@@ -193,7 +209,7 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
       totalToReceive += totalOwed;
       activeDebtors++;
     }
-    return { accessCode: p.accessCode, name: p.name, totalOwed };
+    return { accessCode: p.accessCode, name: p.name };
   });
 
   return {
@@ -202,7 +218,7 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
       totalToReceive,
       activeDebtors,
       totalDebtors: people.length,
-      totalDebts,
+      totalDebts: standaloneDebts + installmentGroups.length,
       totalPayments: paymentAgg._count,
       totalPaid: Number(paymentAgg._sum.amount ?? 0),
     },
