@@ -53,7 +53,9 @@ test("add a debt and a payment for a newly created person", async ({ page }) => 
   await page.getByRole("option", { name: "Dinheiro" }).click();
   await page.getByRole("button", { name: "Salvar" }).click();
 
-  await expect(page.getByText("R$ 50,00")).toBeVisible();
+  // Scoped to the payment row: the header's "Valor pago" line now renders
+  // "R$ 50,00" too, which would make a bare getByText ambiguous.
+  await expect(page.getByRole("button", { name: /R\$ 50,00/ })).toBeVisible();
 
   // Clean up the person this test created — through the real UI delete flow,
   // both as cleanup and as incidental coverage of that flow. Without this,

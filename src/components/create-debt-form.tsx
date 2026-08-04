@@ -70,16 +70,23 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
     }));
   }, [installment, amount, date, installments, direction]);
 
+  // Closing the panel unmounts it, which hides the fact that its state
+  // survived — reopening brought back the last count, direction and ticked
+  // installments. Reopening should look exactly like opening it the first time.
+  function resetInstallmentPanel() {
+    setInstallmentsInput("2");
+    setDirection("forward");
+    setPaidIndexes(new Set());
+  }
+
   function reset() {
     setMethod("");
     setMethodError(false);
     setPaid(false);
     setInstallment(false);
-    setInstallmentsInput("2");
-    setDirection("forward");
+    resetInstallmentPanel();
     setAmount("");
     setDate("");
-    setPaidIndexes(new Set());
     setSubmitError("");
     setOpen(false);
   }
@@ -117,7 +124,10 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
             if (installment) {
               fd.set("installments", String(installments));
               fd.set("installmentDirection", direction);
-              fd.set("paidInstallments", JSON.stringify(Array.from(paidIndexes)));
+              // Lowering the count leaves higher indexes ticked but invisible;
+              // without this they'd come back paid if the count went up again.
+              const ticked = Array.from(paidIndexes).filter((i) => i <= installments);
+              fd.set("paidInstallments", JSON.stringify(ticked));
             } else if (paid) {
               fd.set("paid", "on");
             }
@@ -177,6 +187,7 @@ export function CreateDebtForm({ accessCode, creditCards }: Props) {
             onChange={(checked) => {
               setInstallment(checked);
               if (checked) setPaid(false);
+              else resetInstallmentPanel();
             }}
             label="Parcelar"
           />

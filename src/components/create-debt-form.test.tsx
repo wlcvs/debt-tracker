@@ -106,6 +106,57 @@ describe("CreateDebtForm — installment count", () => {
   });
 });
 
+// Unchecking "Parcelar" unmounts the panel but used to leave its state behind,
+// so reopening brought back the previous count, direction and ticked boxes.
+describe("CreateDebtForm — reopening the installment panel", () => {
+  it("restores the default count, direction and ticked installments", async () => {
+    const field = await openInstallmentPanel();
+
+    await userEvent.type(screen.getByPlaceholderText("VALOR TOTAL"), "100,00");
+    await userEvent.type(screen.getByRole("spinbutton", { name: "dia, Data" }), "10032026");
+    await userEvent.clear(field);
+    await userEvent.type(field, "10");
+    await userEvent.tab();
+    await userEvent.click(screen.getByRole("radio", { name: "Meses passados" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /^3\/10 —/ }));
+
+    const parcelar = screen.getByRole("checkbox", { name: /^parcelar$/i });
+    await userEvent.click(parcelar);
+    await userEvent.click(parcelar);
+
+    expect(screen.getByRole("textbox", { name: "Número de parcelas" })).toHaveValue("2");
+    expect(screen.getByRole("radio", { name: "Meses futuros" })).toHaveAttribute("data-state", "on");
+    for (const box of screen.getAllByRole("checkbox", { name: /^\d+\/\d+ —/ })) {
+      expect(box).not.toBeChecked();
+    }
+  });
+
+  it("does not submit a paid index above the current count", async () => {
+    const field = await openInstallmentPanel();
+
+    await userEvent.type(screen.getByPlaceholderText("TÍTULO"), "Cama");
+    await userEvent.type(screen.getByPlaceholderText("VALOR TOTAL"), "100,00");
+    await userEvent.type(screen.getByRole("spinbutton", { name: "dia, Data" }), "10032026");
+    await userEvent.clear(field);
+    await userEvent.type(field, "10");
+    await userEvent.tab();
+    await userEvent.click(screen.getByRole("checkbox", { name: /^9\/10 —/ }));
+
+    // Shrinking the count hides 9/10 without unticking it.
+    await userEvent.clear(field);
+    await userEvent.type(field, "3");
+    await userEvent.tab();
+
+    await userEvent.click(screen.getByRole("combobox"));
+    await userEvent.click(screen.getByRole("option", { name: "Pix" }));
+    await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    const fd = createDebt.mock.calls[0][0] as FormData;
+    expect(fd.get("installments")).toBe("3");
+    expect(JSON.parse(fd.get("paidInstallments") as string)).toEqual([]);
+  });
+});
+
 describe("CreateDebtForm — submit", () => {
   it("shows an inline message instead of failing silently when the action rejects", async () => {
     createDebt.mockRejectedValue(new Error("boom"));
