@@ -218,6 +218,41 @@ OLLAMA_API_KEY=           # only needed when OLLAMA_BASE_URL points at a hosted 
                           # an Authorization: Bearer header (e.g. Groq); unused/no header sent for local Ollama
 ```
 
+## Workflow
+
+**Every change starts as a GitHub issue and lands as a PR that closes it.** The repo used
+to merge `task/*` branches locally with `git merge --no-ff` and had no issues or PRs at
+all; the issue/PR trail is now the point, so this applies to small changes too.
+
+1. `gh issue create` describing the problem being solved.
+2. `git checkout -b task/<kebab-topic>` — `task/*` is the established prefix (`experiment/*`
+   is the secondary one, for throwaway explorations).
+3. Commit as you go, Conventional Commits.
+4. `git push -u origin <branch>`, then `gh pr create` with `Closes #N` in the body so the
+   issue closes automatically on merge.
+5. **Never merge without the admin reviewing first.** Merging to `main` triggers a Vercel
+   deploy, and `build` runs `prisma migrate deploy` against the production Neon database —
+   this is the same rule as "Never deploy without the admin reviewing the feature first"
+   under "Rules", just at the point where it actually fires.
+
+**Everything written for this repo is in English** — issues, PR titles and bodies, commit
+messages, code, identifier names, comments, documentation, file names. The single
+exception is the app's user-facing strings, which are pt-BR (see the Design rule below).
+Both languages therefore coexist inside one file, split by role, not by feature:
+
+```ts
+// The person is only ever unset on the dashboard, where the picker starts empty.
+if (!personAccessCode) { setSubmitError("Selecione o devedor."); return; }
+```
+
+**Radix-first, opportunistically.** "Rules"/"UI patterns" already require Radix for new
+primitives; on top of that, the app is being migrated to Radix wholesale, so **convert a
+hand-rolled primitive when a task already touches its file** rather than leaving it for a
+big-bang refactor. When no Radix primitive fits, say why in a comment — the pattern used
+for `react-aria-components`' `DateField` and for `use-dismiss.ts`. Known remaining debt:
+`editable-person-header.tsx` still hand-rolls a `{open && …}` disclosure instead of using
+`@radix-ui/react-collapsible`.
+
 ## Rules
 
 - **`Person.id` never crosses the server→client boundary.** The client-facing identifier for a
@@ -232,7 +267,7 @@ OLLAMA_API_KEY=           # only needed when OLLAMA_BASE_URL points at a hosted 
 - **PaymentMethod enum** is `PIX | CASH` only — never `CREDIT_CARD`.
 - **Every new env var** must also be added to `.env.example`.
 - **Design:** HUD/monochromatic (grayscale, no accent colors, no emojis). Use uppercase text instead of icons — no icons anywhere in the app, full stop (`"HIDE"` not `👁`, `"Fechar"` not `✕`, `"COPIADO"` not `"COPIADO ✓"`). This includes edit/delete affordances on list rows: no pencil/cross icon buttons, the whole row is a click target that opens a detail modal (view → edit → delete in one place; see `debt-detail-modal.tsx`/`payment-detail-modal.tsx`). Sort-direction indicators use `+`/`-` (ascending/descending), not arrow glyphs (`↑`/`↓`). Browser-supplied glyphs count too: no `type="number"` (spinner arrows) and no `type="date"` (calendar icon) — see "UI patterns" for what to use instead. Light bg is `#e8e8ed`, not white. Dark/light toggle exists — the toggle's own label text (e.g. "Tema escuro") is itself the full click target, not a separate static "Tema" label next to a smaller button. **The UI is in Brazilian Portuguese** — all labels, placeholders, buttons, and messages must be in pt-BR.
-- **Commits:** Conventional Commits in English (`feat:`, `fix:`, `chore:`, etc.).
+- **Commits:** Conventional Commits in English (`feat:`, `fix:`, `chore:`, etc.) — see "Workflow" for the issue/PR flow they live in, and for the English-everywhere rule.
 - **Never deploy** without the admin reviewing the feature first.
 - **Keep it simple** — this is a single-admin personal app; avoid overengineering.
 - **Validate all inputs with Zod** — never use `as string` casts on FormData; always parse with an explicit schema. Use `formData.get("field") ?? undefined` when the field is optional so Zod's `.default()` fires correctly.
