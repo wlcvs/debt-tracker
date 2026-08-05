@@ -54,7 +54,9 @@ export function DebtForm({ personAccessCode, creditCards, onSaved, onCancel, onS
   const [personError, setPersonError] = useState(false);
   const [paid, setPaid] = useState(false);
   const [installment, setInstallment] = useState(false);
-  const [installmentsInput, setInstallmentsInput] = useState("2");
+  // String(MIN_INSTALLMENTS) rather than a literal, so the starting value can't
+  // drift away from the floor clampInstallments normalizes to.
+  const [installmentsInput, setInstallmentsInput] = useState(String(MIN_INSTALLMENTS));
   const [direction, setDirection] = useState<InstallmentDirection>("forward");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -89,7 +91,7 @@ export function DebtForm({ personAccessCode, creditCards, onSaved, onCancel, onS
   // survived — reopening brought back the last count, direction and ticked
   // installments. Reopening should look exactly like opening it the first time.
   function resetInstallmentPanel() {
-    setInstallmentsInput("2");
+    setInstallmentsInput(String(MIN_INSTALLMENTS));
     setDirection("forward");
     setPaidIndexes(new Set());
   }

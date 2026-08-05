@@ -22,7 +22,10 @@ test("create a parceled debt, bulk-mark installments paid with a payment, then d
   await page.getByRole("combobox", { name: "Método" }).click();
   await page.getByRole("option", { name: "Pix" }).click();
   await page.getByRole("checkbox", { name: "Parcelar" }).check();
-  // installments defaults to 2 — leave as-is.
+  // Set explicitly rather than leaning on whatever the field defaults to: every
+  // assertion below is about a two-installment group, so the count is part of
+  // this test's setup, not an incidental default it should break with.
+  await page.getByRole("textbox", { name: "Número de parcelas" }).fill("2");
   await page.getByRole("button", { name: "Salvar" }).click();
 
   // Installment 1 falls in the current month (visible under the month
