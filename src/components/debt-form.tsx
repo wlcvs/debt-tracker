@@ -32,6 +32,9 @@ interface Props {
   creditCards: { id: string; label: string }[];
   onSaved: () => void;
   onCancel: () => void;
+  /** Fires once a submit is actually under way, so a caller showing a "saved"
+   * confirmation can drop it before this attempt decides its own outcome. */
+  onSubmitStart?: () => void;
 }
 
 /**
@@ -45,7 +48,7 @@ interface Props {
  * onSaved(). That matters only in the modal, which stays open for the next entry —
  * the person page unmounts the whole form on save, so nothing is retained there.
  */
-export function DebtForm({ personAccessCode, creditCards, onSaved, onCancel }: Props) {
+export function DebtForm({ personAccessCode, creditCards, onSaved, onCancel, onSubmitStart }: Props) {
   const [method, setMethod] = useState("");
   const [methodError, setMethodError] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -127,6 +130,7 @@ export function DebtForm({ personAccessCode, creditCards, onSaved, onCancel }: P
         }
         setMethodError(false);
         setSubmitError("");
+        onSubmitStart?.();
         const fd = new FormData(e.currentTarget);
         fd.set("personAccessCode", personAccessCode);
         if (installment) {

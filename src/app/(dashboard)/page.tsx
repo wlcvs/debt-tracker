@@ -6,6 +6,7 @@ import { CreditCardList } from "@/components/credit-card-list";
 import { CreatePersonForm } from "@/components/create-person-form";
 import { CreateCreditCardForm } from "@/components/create-credit-card-form";
 import { StatementImportLauncher } from "@/components/statement-import-launcher";
+import { NewEntryLauncher } from "@/components/new-entry-launcher";
 import { formatCurrency } from "@/lib/format-utils";
 
 // Bank statement import (PDF parsing + optional LLM extraction) can take a
@@ -23,7 +24,10 @@ export default async function OverviewPage() {
     <div className="flex flex-col gap-10">
       <div className="flex items-start justify-between gap-4">
         <TotalDisplay total={stats.totalToReceive} />
-        <StatementImportLauncher people={people.map((p) => ({ accessCode: p.accessCode, name: p.name }))} creditCards={creditCards} />
+        <div className="flex items-center gap-2">
+          <NewEntryLauncher people={people} creditCards={creditCards} />
+          <StatementImportLauncher people={people.map((p) => ({ accessCode: p.accessCode, name: p.name }))} creditCards={creditCards} />
+        </div>
       </div>
 
       {/* Stats grid */}

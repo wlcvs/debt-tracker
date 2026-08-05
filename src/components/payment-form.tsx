@@ -16,6 +16,9 @@ interface Props {
   personAccessCode: string;
   onSaved: () => void;
   onCancel: () => void;
+  /** Fires once a submit is actually under way, so a caller showing a "saved"
+   * confirmation can drop it before this attempt decides its own outcome. */
+  onSubmitStart?: () => void;
 }
 
 /**
@@ -26,7 +29,7 @@ interface Props {
  * create-payment-form.tsx used to have) because clearing some of them while keeping
  * the date on save is not something form.reset() can express.
  */
-export function PaymentForm({ personAccessCode, onSaved, onCancel }: Props) {
+export function PaymentForm({ personAccessCode, onSaved, onCancel, onSubmitStart }: Props) {
   const [method, setMethod] = useState("");
   const [methodError, setMethodError] = useState(false);
   const [amount, setAmount] = useState("");
@@ -58,6 +61,7 @@ export function PaymentForm({ personAccessCode, onSaved, onCancel }: Props) {
         }
         setMethodError(false);
         setSubmitError("");
+        onSubmitStart?.();
         const fd = new FormData(e.currentTarget);
         fd.set("personAccessCode", personAccessCode);
         // Without this, a rejected Server Action leaves the form sitting
