@@ -245,11 +245,24 @@ Both languages therefore coexist inside one file, split by role, not by feature:
 if (!personAccessCode) { setSubmitError("Selecione o devedor."); return; }
 ```
 
-**Radix-first, opportunistically.** "Rules"/"UI patterns" already require Radix for new
-primitives; on top of that, the app is being migrated to Radix wholesale, so **convert a
-hand-rolled primitive when a task already touches its file** rather than leaving it for a
-big-bang refactor. When no Radix primitive fits, say why in a comment — the pattern used
-for `react-aria-components`' `DateField` and for `use-dismiss.ts`. Known remaining debt:
+**Look for a library before writing one.** Before building anything, check whether
+something already solves it — first `package.json`, then the ecosystem. This is a
+single-admin personal app; time spent hand-rolling a primitive is time not spent on the
+features, and a hand-rolled one arrives without the focus management, `aria-*`, keyboard
+handling and edge cases a maintained library already covers. The trap is not just "write
+it from scratch" but "not noticing it's already installed":
+`@radix-ui/react-collapsible` was a dependency, used by five components, while two others
+next to them still hand-rolled `{open && …}`. Prefer a dependency already present, then a
+well-maintained one, and only then your own code — and when you do write it yourself, say
+in a comment what you looked at and why it didn't fit.
+
+**Everything new in the UI is built on Radix.** Not a preference — no new primitive gets
+hand-rolled, and there is no "just this once" for a modal, dropdown, disclosure, toggle,
+checkbox, popover or tooltip. On top of that the app is being migrated wholesale, so
+**convert a hand-rolled primitive when a task already touches its file** rather than
+leaving it for a big-bang refactor. When genuinely no Radix primitive fits, say why in a
+comment — the pattern used for `react-aria-components`' `DateField` and for
+`use-dismiss.ts`, the two documented exceptions. Known remaining debt:
 `editable-person-header.tsx` still hand-rolls a `{open && …}` disclosure instead of using
 `@radix-ui/react-collapsible`.
 
