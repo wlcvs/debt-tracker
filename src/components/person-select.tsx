@@ -17,9 +17,33 @@ interface Props {
   placeholder?: string;
   /** Accessible name for the trigger; see the aria-label comment below. */
   label?: string;
+  /**
+   * "sm" (default) is sized for a transaction-table cell. "md" matches the plain
+   * text inputs and MethodSelect, for use as a normal field in a form — at "sm"
+   * it reads as a stray table control next to them.
+   */
+  size?: "sm" | "md";
 }
 
-export function PersonSelect({ people, value, onChange, onPersonCreated, placeholder = "—", label = "Devedor" }: Props) {
+const TRIGGER_SIZE = {
+  sm: "bg-zinc-50 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider",
+  md: "bg-white dark:bg-zinc-950 border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest",
+} as const;
+
+const OPTION_SIZE = {
+  sm: "px-2 py-1 text-[10px] tracking-wider",
+  md: "px-3 py-2 text-xs tracking-wider",
+} as const;
+
+export function PersonSelect({
+  people,
+  value,
+  onChange,
+  onPersonCreated,
+  placeholder = "—",
+  label = "Devedor",
+  size = "sm",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -80,7 +104,7 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
           // "Devedor" caption rendered above it was never associated with it.
           // Same treatment as MethodSelect's trigger.
           aria-label={label}
-          className={`w-full text-left flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider focus:outline-none transition-colors cursor-pointer ${
+          className={`w-full text-left flex justify-between items-center border focus:outline-none transition-colors cursor-pointer ${TRIGGER_SIZE[size]} ${
             selected ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"
           }`}
         >
@@ -161,7 +185,7 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
                   onChange("");
                   closePopover();
                 }}
-                className={`w-full text-left px-2 py-1 text-[10px] tracking-wider truncate hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
+                className={`w-full text-left ${OPTION_SIZE[size]} truncate hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
                   value === "" ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-300"
                 }`}
               >
@@ -175,7 +199,7 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
                     onChange(p.accessCode);
                     closePopover();
                   }}
-                  className={`w-full text-left px-2 py-1 text-[10px] tracking-wider truncate hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
+                  className={`w-full text-left ${OPTION_SIZE[size]} truncate hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${
                     p.accessCode === value ? "text-zinc-900 dark:text-white" : "text-zinc-600 dark:text-zinc-300"
                   }`}
                 >
@@ -185,7 +209,7 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
               <button
                 type="button"
                 onClick={() => setCreating(true)}
-                className="w-full text-left px-2 py-1 text-[10px] tracking-widest uppercase truncate border-t border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                className={`w-full text-left ${OPTION_SIZE[size]} uppercase truncate border-t border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer`}
               >
                 + Novo devedor
               </button>

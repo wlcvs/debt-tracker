@@ -32,6 +32,7 @@ interface Props {
 export function PaymentForm({ personAccessCode, onSaved, onCancel, onSubmitStart }: Props) {
   const [method, setMethod] = useState("");
   const [methodError, setMethodError] = useState(false);
+  const [personError, setPersonError] = useState(false);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [description, setDescription] = useState("");
@@ -52,9 +53,10 @@ export function PaymentForm({ personAccessCode, onSaved, onCancel, onSubmitStart
         e.preventDefault();
         // Unreachable from the person page, where the code is baked into the route.
         if (!personAccessCode) {
-          setSubmitError("Selecione o devedor.");
+          setPersonError(true);
           return;
         }
+        setPersonError(false);
         if (!method) {
           setMethodError(true);
           return;
@@ -120,6 +122,10 @@ export function PaymentForm({ personAccessCode, onSaved, onCancel, onSubmitStart
         error={methodError}
       />
 
+      {/* See DebtForm: the `&& !personAccessCode` clears this on selection. */}
+      {personError && !personAccessCode && (
+        <p className="text-xs text-red-500 tracking-wide">Selecione o devedor.</p>
+      )}
       {submitError && <p className="text-xs text-red-500 tracking-wide">{submitError}</p>}
 
       <div className="flex gap-3 items-center">

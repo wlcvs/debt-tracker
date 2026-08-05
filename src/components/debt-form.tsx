@@ -51,6 +51,7 @@ interface Props {
 export function DebtForm({ personAccessCode, creditCards, onSaved, onCancel, onSubmitStart }: Props) {
   const [method, setMethod] = useState("");
   const [methodError, setMethodError] = useState(false);
+  const [personError, setPersonError] = useState(false);
   const [paid, setPaid] = useState(false);
   const [installment, setInstallment] = useState(false);
   const [installmentsInput, setInstallmentsInput] = useState("2");
@@ -121,9 +122,10 @@ export function DebtForm({ personAccessCode, creditCards, onSaved, onCancel, onS
         e.preventDefault();
         // Unreachable from the person page, where the code is baked into the route.
         if (!personAccessCode) {
-          setSubmitError("Selecione o devedor.");
+          setPersonError(true);
           return;
         }
+        setPersonError(false);
         if (!method) {
           setMethodError(true);
           return;
@@ -288,6 +290,11 @@ export function DebtForm({ personAccessCode, creditCards, onSaved, onCancel, onS
         <Checkbox checked={paid} onChange={setPaid} label="Já paga" />
       )}
 
+      {/* The `&& !personAccessCode` clears this the moment someone is picked,
+          without an effect — same shape as methodError, which resets on change. */}
+      {personError && !personAccessCode && (
+        <p className="text-xs text-red-500 tracking-wide">Selecione o devedor.</p>
+      )}
       {submitError && <p className="text-xs text-red-500 tracking-wide">{submitError}</p>}
 
       <div className="flex gap-3 items-center">

@@ -59,6 +59,7 @@ export function NewEntryModal({ people, creditCards, onClose }: Props) {
               setLocalPeople((prev) => [...prev, person].sort((a, b) => a.name.localeCompare(b.name)))
             }
             placeholder="— Selecione —"
+            size="md"
           />
         </div>
 

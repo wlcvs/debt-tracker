@@ -37,7 +37,8 @@ async function pickPerson(name: string) {
   // "Devedor" is the trigger's aria-label, so it stays findable once a person
   // is chosen — the visible text changes to that person's name.
   await userEvent.click(screen.getByRole("button", { name: "Devedor" }));
-  await userEvent.click(screen.getByRole("button", { name, exact: true }));
+  // A string `name` is already an exact match in getByRole.
+  await userEvent.click(screen.getByRole("button", { name }));
 }
 
 async function pickMethod(label: string) {
@@ -63,6 +64,19 @@ describe("NewEntryModal — debtor is required", () => {
 
     expect(createDebt).not.toHaveBeenCalled();
     expect(await screen.findByText("Selecione o devedor.")).toBeInTheDocument();
+  });
+
+  it("drops the complaint as soon as a debtor is picked", async () => {
+    renderModal();
+
+    await fillDebt({ title: "Cama", amount: "685,91" });
+    await userEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    expect(await screen.findByText("Selecione o devedor.")).toBeInTheDocument();
+
+    await pickPerson("Ana");
+
+    // Stale on screen until the next submit would be its own small bug.
+    expect(screen.queryByText("Selecione o devedor.")).not.toBeInTheDocument();
   });
 
   it("saves once a debtor is picked", async () => {
