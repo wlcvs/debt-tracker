@@ -11,6 +11,15 @@ Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.releasePointerCapture ??= () => {};
 Element.prototype.scrollIntoView ??= () => {};
 
+// Same class of gap: jsdom has no ResizeObserver, and Radix's Checkbox measures its
+// own root (via use-size) to size the hidden input it bubbles form state through.
+// A stub that never reports is enough — nothing under test asserts on that input.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 afterEach(() => {
   cleanup();
 });
