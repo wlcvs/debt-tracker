@@ -34,8 +34,10 @@ function renderModal() {
 }
 
 async function pickPerson(name: string) {
-  await userEvent.click(screen.getByRole("button", { name: /selecione/i }));
-  await userEvent.click(screen.getByRole("button", { name }));
+  // "Devedor" is the trigger's aria-label, so it stays findable once a person
+  // is chosen — the visible text changes to that person's name.
+  await userEvent.click(screen.getByRole("button", { name: "Devedor" }));
+  await userEvent.click(screen.getByRole("button", { name, exact: true }));
 }
 
 async function pickMethod(label: string) {

@@ -15,9 +15,11 @@ interface Props {
   onChange: (value: string) => void;
   onPersonCreated: (person: PersonOption) => void;
   placeholder?: string;
+  /** Accessible name for the trigger; see the aria-label comment below. */
+  label?: string;
 }
 
-export function PersonSelect({ people, value, onChange, onPersonCreated, placeholder = "—" }: Props) {
+export function PersonSelect({ people, value, onChange, onPersonCreated, placeholder = "—", label = "Devedor" }: Props) {
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -73,6 +75,11 @@ export function PersonSelect({ people, value, onChange, onPersonCreated, placeho
       <Popover.Trigger asChild>
         <button
           type="button"
+          // Otherwise this button's name is whatever it currently shows — the
+          // selected person plus the "▾" — so it has no stable identity, and the
+          // "Devedor" caption rendered above it was never associated with it.
+          // Same treatment as MethodSelect's trigger.
+          aria-label={label}
           className={`w-full text-left flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 px-1 py-0.5 text-[10px] tracking-wider focus:outline-none transition-colors cursor-pointer ${
             selected ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400"
           }`}
