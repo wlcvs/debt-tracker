@@ -25,8 +25,13 @@ async function openInstallmentPanel() {
 
 // The old field clamped on every keystroke against a numeric state, so with 21
 // on screen one more digit made "219", snapped to 60, and swallowed everything
-// typed afterwards. It also could not be emptied: "" and "0" both reset to 2.
+// typed afterwards. It also could not be emptied: "" and "0" both snapped back
+// to what was then the default of 2.
 describe("CreateDebtForm — installment count", () => {
+  it("opens at 1", async () => {
+    expect(await openInstallmentPanel()).toHaveValue("1");
+  });
+
   it("does not jump to the max when a digit is typed after a two-digit value", async () => {
     const field = await openInstallmentPanel();
 
@@ -124,7 +129,7 @@ describe("CreateDebtForm — reopening the installment panel", () => {
     await userEvent.click(parcelar);
     await userEvent.click(parcelar);
 
-    expect(screen.getByRole("textbox", { name: "Número de parcelas" })).toHaveValue("2");
+    expect(screen.getByRole("textbox", { name: "Número de parcelas" })).toHaveValue("1");
     expect(screen.getByRole("radio", { name: "Meses futuros" })).toHaveAttribute("data-state", "on");
     for (const box of screen.getAllByRole("checkbox", { name: /^\d+\/\d+ —/ })) {
       expect(box).not.toBeChecked();

@@ -19,8 +19,15 @@ interface Props {
 }
 
 export function MethodSelect({ name, options, value, onChange, error, placeholder = "— Método —", label = "Método" }: Props) {
+  // Select.Root takes `value` straight, never `value || undefined`: passing undefined
+  // makes Radix fall back to uncontrolled and keep its own last selection, so clearing
+  // this back to "" while the component stays mounted would leave Radix still holding
+  // the old method — re-picking it then changes nothing from its point of view and
+  // onValueChange never fires, stranding the caller on "". Radix already treats "" as
+  // "show the placeholder", so the fallback bought nothing. Only reachable where a form
+  // resets without unmounting, which is what NewEntryModal does after every save.
   return (
-    <Select.Root value={value || undefined} onValueChange={onChange}>
+    <Select.Root value={value} onValueChange={onChange}>
       {/* Kept instead of Select.Root's own `name` prop, which would render a
           hidden native <select>. That select only emits a synthetic empty
           <option> when the value is `undefined`; this component's "no method

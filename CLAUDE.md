@@ -171,8 +171,8 @@ Upload a PDF from a card/bank statement at `/dashboard` → "Extratos"; nothing 
 - **Filter/sort panels**: debt and payment lists (`debts-section.tsx`, `payments-section.tsx`, and `public-view.tsx`'s lists) each own local filter state (search, amount range, paid status) and sort state (date/amount, asc/desc) — not shared across sections. Switching to a different sort key always resets direction to `desc`; clicking the same key again toggles it. Amount-range filters compare by `Math.floor(amount)` when the input has no decimal point (e.g. typing `222` should still match `222.70`). Dashboard lists (`debts-section.tsx`/`payments-section.tsx`) also keep a manual `dateFrom`/`dateTo` range filter; `public-view.tsx`'s lists dropped it in favor of the month carousel below.
 - **Month carousel**: `month-carousel.tsx` is a controlled row of month chips (`months: string[]` of `"YYYY-MM"` keys from `date-utils.ts`'s `getAvailableMonths`, `selected`, `onSelect`), reused in two places. In `public-view.tsx`, one carousel sits above both the debts and payments lists and drives both via a single `selectedMonth` — it fully replaced the old date-range filter there. In the dashboard's `/person/[code]`, `person-month-view.tsx` wraps `debts-section.tsx`/`payments-section.tsx` with the same carousel, passed down as an additional (not exclusive) filter — the existing `dateFrom`/`dateTo` inputs still work alongside it. A debt belonging to an installment group shows a small "Parcela i/N" badge next to its title in every list/modal (`editable-debt.tsx`, `debt-detail-modal.tsx`, `public-view.tsx`).
 - **Form validation messages**: native browser validation tooltips are replaced globally by `src/components/form-validation-messages.tsx` (mounted once in the root layout), which listens for the `invalid` event and inserts a styled inline message instead. Don't add per-field error `useState` for basic `required`/type validation in new forms — rely on native `required`/`type` attributes and let this component handle the message; only add custom state for validation native attributes can't express (e.g. the method dropdown's hidden input, which doesn't support `required`).
-- **A Server Action that rejects must never fail silently.** Every form that `await`s an action from an `onSubmit` handler wraps it in `try/catch` and renders an inline pt-BR message (`text-xs text-red-500 tracking-wide`, the same style `form-validation-messages.tsx` uses) — `create-debt-form.tsx`, `create-payment-form.tsx`, `debt-detail-modal.tsx`, `payment-detail-modal.tsx`. Without it a rejected action leaves the form open with no feedback at all, which is indistinguishable from a dead button; that's exactly how the `"685,91"` amount bug stayed hidden.
-- **Numeric text fields are never `type="number"`** — the native spinner's ▲▼ arrows are icons, which the design rules forbid, and hiding them needs per-browser `appearance` CSS. Use `type="text" inputMode="numeric"` with an explicit `aria-label`. Hold the value as a **string** and normalize on `blur`, never on `change`: `create-debt-form.tsx`'s installment count used to clamp every keystroke against numeric state, so with `21` on screen one more digit made `"219"`, snapped to the max of 60, and swallowed everything typed afterwards — and `""`/`"0"` both reset to 2, making the field impossible to clear. `create-debt-form.test.tsx` locks this.
+- **A Server Action that rejects must never fail silently.** Every form that `await`s an action from an `onSubmit` handler wraps it in `try/catch` and renders an inline pt-BR message (`text-xs text-red-500 tracking-wide`, the same style `form-validation-messages.tsx` uses) — `debt-form.tsx`, `payment-form.tsx`, `debt-detail-modal.tsx`, `payment-detail-modal.tsx`. Without it a rejected action leaves the form open with no feedback at all, which is indistinguishable from a dead button; that's exactly how the `"685,91"` amount bug stayed hidden.
+- **Numeric text fields are never `type="number"`** — the native spinner's ▲▼ arrows are icons, which the design rules forbid, and hiding them needs per-browser `appearance` CSS. Use `type="text" inputMode="numeric"` with an explicit `aria-label`. Hold the value as a **string** and normalize on `blur`, never on `change`: `debt-form.tsx`'s installment count used to clamp every keystroke against numeric state, so with `21` on screen one more digit made `"219"`, snapped to the max of 60, and swallowed everything typed afterwards — and `""`/`"0"` both snapped back to what was then the default of 2, making the field impossible to clear. That field now starts at `String(MIN_INSTALLMENTS)` rather than a literal, so its initial value can't drift from the floor `clampInstallments` normalizes to. `create-debt-form.test.tsx` locks all of it.
 - **Route-level loading states**: `(dashboard)/loading.tsx`, `(dashboard)/person/[code]/loading.tsx`, and `public/[code]/loading.tsx` are Next.js's native streaming mechanism — each route's Server Component still does one blocking `Promise.all(...)`/`await` fetch (no manual `<Suspense>` needed, `loading.tsx` wraps the segment automatically), but the fallback streams to the browser instantly while that resolves. Measured impact: FCP/LCP on `/` went from 2.85s to ~0.94s (P75) combining this with the region fix above. `public/[code]/loading.tsx` replicates the page's own header markup, since that route (unlike the dashboard) has no separate layout splitting header from data-dependent content.
   - **Gotcha: breaks `notFound()`'s HTTP status code.** `public/[code]/page.tsx` and `(dashboard)/person/[code]/page.tsx` both call `notFound()` conditionally (`if (!x) notFound()`). With `loading.tsx` present, Next streams the initial 200 response *before* that check resolves, so by the time `notFound()` runs the status is already committed — it can only affect the rendered content (correctly shows the not-found UI), never the response's actual HTTP status, which stays 200. Moving the check into `generateMetadata()` (normally documented as resolving before the body streams) does **not** fix this — confirmed empirically that once `loading.tsx` makes the whole segment streamable, metadata resolution is no longer blocking either. There's no known way to get both instant streaming and a correct 404 status on the same route in this Next.js version; the tradeoff was accepted deliberately (content is still correct — no data leak — which is what the `publicVisible` toggle actually needs). `tests/e2e/public-view.spec.ts` asserts on rendered content, not `response.status()`, for exactly this reason — don't "fix" those assertions back to checking status without re-verifying this limitation still applies to whatever Next.js version is installed at the time.
 - **pdfjs-dist in a "use client" component**: never a plain top-level `import { X } from "pdfjs-dist"` — it evaluates browser-only globals (`DOMMatrix`, etc.) immediately, which crashes SSR. Load it via dynamic `import("pdfjs-dist")` inside a function, and if you need something like `Util` outside that function, cache the loaded module and expose a getter (see `pdf-viewer-controller.ts`'s `getLoadedPdfjs()`) rather than importing it directly elsewhere.
@@ -187,7 +187,7 @@ Upload a PDF from a card/bank statement at `/dashboard` → "Extratos"; nothing 
     - **Escape** — read the edit state directly in `onEscapeKeyDown` and `preventDefault()`. Radix listens for Escape on `document` in the **capture** phase and only arms the topmost layer, so it runs before the input's own `onKeyDown` clears that state.
     - **Outside-click** — you *cannot* read the state there. `react-dialog` hardcodes `deferPointerDownOutside: true` on its DismissableLayer, after spreading the caller's props, so `Dialog.Content` cannot opt out; for a left click that defers the decision from `pointerdown` to `click`. Measured order: `pointerdown → mousedown → blur (the edit commits and clears its state) → mouseup → click → onInteractOutside`. Use `useInlineEditGuard(active)` (`src/lib/hooks/use-inline-edit-guard.ts`), which snapshots the flag on a capture-phase `pointerdown`, and read that ref in `onInteractOutside`.
     - This replaced `useDismissGuard`'s `suppressNext()`, which required every inline edit to call it from *both* `onBlur` and its Escape branch — a rule that was broken more than once. Inline edits are now plain; the knowledge lives in the modal.
-- **`useDismiss` survives for one case only**: an inline region that closes on outside click but is *not* a Radix layer — the six filter panels (`Collapsible` handles their open state and aria, `useDismiss` their outside-click) and the disclosure forms in `create-debt-form.tsx`/`create-payment-form.tsx`/`editable-person-header.tsx`. Radix has no primitive for this (Popover floats in a portal, which would change these layouts). It carries two guards for coexisting with Radix layers, both load-bearing:
+- **`useDismiss` survives for one case only**: an inline region that closes on outside click but is *not* a Radix layer — the six filter panels and the two create-form disclosures (`Collapsible` handles their open state and aria, `useDismiss` their outside-click; see `create-debt-form.tsx`/`create-payment-form.tsx`, which are now nothing but that shell around `debt-form.tsx`/`payment-form.tsx`), plus `editable-person-header.tsx`, still the one hand-rolled `{open && …}` left. Radix has no primitive for this (Popover floats in a portal, which would change these layouts). It carries two guards for coexisting with Radix layers, both load-bearing:
   - It stands down while `document.body.style.pointerEvents === "none"` — an open Select/Dialog takes pointer events away from the page, so the following click hit-tests to `<html>` and would otherwise read as "outside", resetting the form around an open dropdown.
   - It ignores an Escape whose `defaultPrevented` is already set. DismissableLayer marks the key handled that way but deliberately does not `stopPropagation`, so it still reaches this window-level listener. This replaced the old `escapeCapture` option.
   - It compares against `event.composedPath()`, not `event.target`: a click that unmounts its own node (choosing a dropdown option) leaves `event.target` detached by the time a `document`-level listener runs, so `contains(event.target)` wrongly reads as "outside". `composedPath()` is captured at dispatch time and is immune to later DOM mutation.
@@ -218,6 +218,54 @@ OLLAMA_API_KEY=           # only needed when OLLAMA_BASE_URL points at a hosted 
                           # an Authorization: Bearer header (e.g. Groq); unused/no header sent for local Ollama
 ```
 
+## Workflow
+
+**Every change starts as a GitHub issue and lands as a PR that closes it.** The repo used
+to merge `task/*` branches locally with `git merge --no-ff` and had no issues or PRs at
+all; the issue/PR trail is now the point, so this applies to small changes too.
+
+1. `gh issue create` describing the problem being solved.
+2. `git checkout -b task/<kebab-topic>` — `task/*` is the established prefix (`experiment/*`
+   is the secondary one, for throwaway explorations).
+3. Commit as you go, Conventional Commits.
+4. `git push -u origin <branch>`, then `gh pr create` with `Closes #N` in the body so the
+   issue closes automatically on merge.
+5. **Never merge without the admin reviewing first.** Merging to `main` triggers a Vercel
+   deploy, and `build` runs `prisma migrate deploy` against the production Neon database —
+   this is the same rule as "Never deploy without the admin reviewing the feature first"
+   under "Rules", just at the point where it actually fires.
+
+**Everything written for this repo is in English** — issues, PR titles and bodies, commit
+messages, code, identifier names, comments, documentation, file names. The single
+exception is the app's user-facing strings, which are pt-BR (see the Design rule below).
+Both languages therefore coexist inside one file, split by role, not by feature:
+
+```ts
+// The person is only ever unset on the dashboard, where the picker starts empty.
+if (!personAccessCode) { setSubmitError("Selecione o devedor."); return; }
+```
+
+**Look for a library before writing one.** Before building anything, check whether
+something already solves it — first `package.json`, then the ecosystem. This is a
+single-admin personal app; time spent hand-rolling a primitive is time not spent on the
+features, and a hand-rolled one arrives without the focus management, `aria-*`, keyboard
+handling and edge cases a maintained library already covers. The trap is not just "write
+it from scratch" but "not noticing it's already installed":
+`@radix-ui/react-collapsible` was a dependency, used by five components, while two others
+next to them still hand-rolled `{open && …}`. Prefer a dependency already present, then a
+well-maintained one, and only then your own code — and when you do write it yourself, say
+in a comment what you looked at and why it didn't fit.
+
+**Everything new in the UI is built on Radix.** Not a preference — no new primitive gets
+hand-rolled, and there is no "just this once" for a modal, dropdown, disclosure, toggle,
+checkbox, popover or tooltip. On top of that the app is being migrated wholesale, so
+**convert a hand-rolled primitive when a task already touches its file** rather than
+leaving it for a big-bang refactor. When genuinely no Radix primitive fits, say why in a
+comment — the pattern used for `react-aria-components`' `DateField` and for
+`use-dismiss.ts`, the two documented exceptions. Known remaining debt:
+`editable-person-header.tsx` still hand-rolls a `{open && …}` disclosure instead of using
+`@radix-ui/react-collapsible`.
+
 ## Rules
 
 - **`Person.id` never crosses the server→client boundary.** The client-facing identifier for a
@@ -232,7 +280,7 @@ OLLAMA_API_KEY=           # only needed when OLLAMA_BASE_URL points at a hosted 
 - **PaymentMethod enum** is `PIX | CASH` only — never `CREDIT_CARD`.
 - **Every new env var** must also be added to `.env.example`.
 - **Design:** HUD/monochromatic (grayscale, no accent colors, no emojis). Use uppercase text instead of icons — no icons anywhere in the app, full stop (`"HIDE"` not `👁`, `"Fechar"` not `✕`, `"COPIADO"` not `"COPIADO ✓"`). This includes edit/delete affordances on list rows: no pencil/cross icon buttons, the whole row is a click target that opens a detail modal (view → edit → delete in one place; see `debt-detail-modal.tsx`/`payment-detail-modal.tsx`). Sort-direction indicators use `+`/`-` (ascending/descending), not arrow glyphs (`↑`/`↓`). Browser-supplied glyphs count too: no `type="number"` (spinner arrows) and no `type="date"` (calendar icon) — see "UI patterns" for what to use instead. Light bg is `#e8e8ed`, not white. Dark/light toggle exists — the toggle's own label text (e.g. "Tema escuro") is itself the full click target, not a separate static "Tema" label next to a smaller button. **The UI is in Brazilian Portuguese** — all labels, placeholders, buttons, and messages must be in pt-BR.
-- **Commits:** Conventional Commits in English (`feat:`, `fix:`, `chore:`, etc.).
+- **Commits:** Conventional Commits in English (`feat:`, `fix:`, `chore:`, etc.) — see "Workflow" for the issue/PR flow they live in, and for the English-everywhere rule.
 - **Never deploy** without the admin reviewing the feature first.
 - **Keep it simple** — this is a single-admin personal app; avoid overengineering.
 - **Validate all inputs with Zod** — never use `as string` casts on FormData; always parse with an explicit schema. Use `formData.get("field") ?? undefined` when the field is optional so Zod's `.default()` fires correctly.
