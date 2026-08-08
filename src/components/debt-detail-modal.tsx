@@ -38,6 +38,9 @@ const METHOD_LABELS: Record<string, string> = { PIX: "Pix", CASH: "Dinheiro" };
 export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
   const [editing, setEditing] = useState(false);
   const [showInstallments, setShowInstallments] = useState(false);
+  // "Editar compra" and "Ver parcelas" open the same panel; this decides which
+  // of its two faces it lands on.
+  const [installmentsStartInEdit, setInstallmentsStartInEdit] = useState(false);
   const [method, setMethod] = useState(debt.creditCardId ?? debt.method ?? "");
   const [methodError, setMethodError] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -60,6 +63,11 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
 
   const badgeLabel = debt.creditCardLabel ?? (debt.method ? METHOD_LABELS[debt.method] ?? debt.method : null);
 
+  function openInstallments(startInEdit: boolean) {
+    setInstallmentsStartInEdit(startInEdit);
+    setShowInstallments(true);
+  }
+
   return (
     <ModalShell eyebrow="Dívida" onClose={onClose}>
       {!editing ? (
@@ -79,14 +87,16 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
             )}
           </div>
           <div className="flex flex-wrap gap-3 items-center">
-            {!isInstallment && (
-              <button
-                onClick={() => setEditing(true)}
-                className="border border-zinc-600 dark:border-zinc-400 px-5 py-2 text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-              >
-                Editar
-              </button>
-            )}
+            {/* A grouped debt still can't be edited on its own — that's what
+                would leave the group inconsistent. The button is here anyway,
+                pointed at the whole purchase: hiding it made a parceled debt
+                look uneditable on the very screen you go looking. */}
+            <button
+              onClick={() => (isInstallment ? openInstallments(true) : setEditing(true))}
+              className="border border-zinc-600 dark:border-zinc-400 px-5 py-2 text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              {isInstallment ? "Editar compra" : "Editar"}
+            </button>
             <button
               onClick={async () => {
                 const fd = new FormData();
@@ -104,7 +114,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
             </button>
             {isInstallment && (
               <button
-                onClick={() => setShowInstallments(true)}
+                onClick={() => openInstallments(false)}
                 className="border border-zinc-600 dark:border-zinc-400 px-5 py-2 text-xs tracking-widest uppercase text-zinc-700 dark:text-zinc-300 hover:border-zinc-900 dark:hover:border-white hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
               >
                 Ver parcelas
@@ -227,6 +237,7 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
           installmentGroupId={debt.installmentGroupId}
           title={debt.title.replace(/\s*\(\d+\/\d+\)$/, "")}
           creditCards={creditCards}
+          startInEdit={installmentsStartInEdit}
           onClose={() => setShowInstallments(false)}
           // Editing the group rewrites every row, so the single installment
           // this modal is still showing is stale — close it too.

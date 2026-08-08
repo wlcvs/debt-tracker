@@ -44,10 +44,14 @@ test("create a parceled debt, bulk-mark installments paid with a payment, then d
   await page.getByRole("button", { name: /^[A-Za-zç]{3} de \d{2}$/ }).nth(0).click();
   await expect(debtRow1).toBeVisible();
 
-  // --- Grouped debts hide "Editar" and offer "Ver parcelas" instead ---
+  // --- A grouped debt offers "Editar compra" and "Ver parcelas", never a
+  // plain "Editar": one installment can't be edited on its own. exact:true
+  // matters — getByRole's name matches by substring, so a bare "Editar"
+  // would be satisfied by the "Editar compra" button sitting right next to it.
   await debtRow1.click();
   await expect(page.getByText("Dívida", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Editar" })).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Editar", exact: true })).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Editar compra" })).toBeVisible();
   await page.getByRole("button", { name: "Ver parcelas" }).click();
 
   // --- InstallmentGroupPanel: select unpaid, register a single payment, mark paid ---
@@ -131,9 +135,15 @@ test("edit a parceled purchase as a unit: title, total, count and first date", a
   await page.getByRole("button", { name: "Marcar paga" }).first().click();
   await expect(page.getByRole("button", { name: "Marcar paga" })).toHaveCount(1);
 
-  // --- Edit the whole purchase: rename, 200,00 in 2x -> 300,00 in 3x ---
+  // Close only the panel (rendered last, on top), leaving the debt modal open.
+  await page.getByRole("button", { name: "Fechar" }).last().click();
+
+  // --- Edit the whole purchase from the modal's own shortcut, which skips
+  // the installment list entirely. Rename, 200,00 in 2x -> 300,00 in 3x.
   await page.getByRole("button", { name: "Editar compra" }).click();
   await expect(page.getByText(`Editar compra — ${debtTitle}`)).toBeVisible();
+  // Straight into the form — no installment list in between.
+  await expect(page.getByRole("button", { name: "Selecionar não pagas" })).not.toBeVisible();
 
   // Prefilled from the group as it stands.
   await expect(page.getByRole("textbox", { name: "Valor total" })).toHaveValue("200,00");

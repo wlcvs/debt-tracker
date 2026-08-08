@@ -15,6 +15,10 @@ interface Props {
   installmentGroupId: string;
   title: string;
   creditCards: { id: string; label: string }[];
+  /** Open straight into the edit form — the debt modal's "Editar compra"
+   * shortcut. "Ver parcelas" opens on the list instead. Cancelling still
+   * falls back to the list rather than closing everything. */
+  startInEdit?: boolean;
   onClose: () => void;
   /** Fires after the group is edited, so the modal holding the (now stale)
    * single installment can close itself too. */
@@ -35,9 +39,18 @@ export interface Installment {
   installmentTotal: number | null;
 }
 
-export function InstallmentGroupPanel({ installmentGroupId, title, creditCards, onClose, onSaved }: Props) {
+export function InstallmentGroupPanel({
+  installmentGroupId,
+  title,
+  creditCards,
+  startInEdit = false,
+  onClose,
+  onSaved,
+}: Props) {
   const [installments, setInstallments] = useState<Installment[] | null>(null);
-  const [editing, setEditing] = useState(false);
+  // The group loads asynchronously; until it arrives the panel shows its
+  // "Carregando..." state either way, then falls into the form.
+  const [editing, setEditing] = useState(startInEdit);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [registerPayment, setRegisterPayment] = useState(false);
   const [paymentMode, setPaymentMode] = useState<"single" | "perInstallment">("single");
