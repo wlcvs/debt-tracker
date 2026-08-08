@@ -11,10 +11,13 @@ import { loginAsAdmin } from "./fixtures";
 
 const RUN_ID = Date.now();
 
-// balance-summary.tsx renders each figure as `<p><span>LABEL</span><span>R$ …</span></p>`,
-// so the label's parent is the whole row — the only way to assert on a total
-// that also happens to appear on a debt or payment row further down the page.
-const balanceRow = (page: Page, label: string) => page.getByText(label).locator("xpath=..");
+// balance-summary.tsx is a flat two-column grid, so each label's immediate
+// next sibling is its own amount. Resolving it that way is the only reliable
+// way to assert on a total that also appears on a debt or payment row further
+// down the page (and, unlike the grid container, it can't match the *other*
+// row's amount).
+const balanceValue = (page: Page, label: string) =>
+  page.getByText(label).locator("xpath=following-sibling::*[1]");
 
 const now = new Date();
 const currentMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 10));
@@ -52,7 +55,8 @@ test.beforeAll(async () => {
   });
   // All-time: totalOwed = 100 + 30 (unpaid debts only, payments never
   // subtracted) = 130; totalPaid = 40 + 20 = 60.
-  // The header, though, follows the month carousel — see the assertions below.
+  // The summary under the carousel, though, only ever reports the selected
+  // month — see the assertions below.
 });
 
 test.afterAll(async () => {
@@ -66,13 +70,12 @@ test("public view: renders without login, filters by month, read-only modals, fi
   await page.goto(`/public/${accessCode}`);
   await expect(page).toHaveURL(`/public/${accessCode}`);
   await expect(page.getByRole("heading", { name: `E2E Public View Person ${RUN_ID}` })).toBeVisible();
-  // Labelled balance block — no progress bar, and never a negative total.
-  // Scoped to the month the carousel opens on (the current one): debt A is
-  // the only unpaid debt in it (B is paid, C is last month), and payment X is
-  // its only payment. Anchored on the label's own row, since the same amounts
-  // also appear on the debt/payment rows below.
-  await expect(balanceRow(page, "Valor devido")).toHaveText(/R\$ 100,00/);
-  await expect(balanceRow(page, "Valor pago")).toHaveText(/R\$ 40,00/);
+  // Labelled balance block under the carousel — no progress bar, and never a
+  // negative total. Scoped to the month the carousel opens on (the current
+  // one): debt A is the only unpaid debt in it (B is paid, C is last month),
+  // and payment X is its only payment.
+  await expect(balanceValue(page, "Valor devido")).toHaveText("R$ 100,00");
+  await expect(balanceValue(page, "Valor pago")).toHaveText("R$ 40,00");
 
   // --- Month carousel: current month shows A and B, not C ---
   const debtARow = page.getByRole("button", { name: new RegExp(debtATitle) });
@@ -90,8 +93,8 @@ test("public view: renders without login, filters by month, read-only modals, fi
 
   // The balance summary follows the carousel too — it used to stay on the
   // all-time totals while the lists below it moved.
-  await expect(balanceRow(page, "Valor devido")).toHaveText(/R\$ 30,00/);
-  await expect(balanceRow(page, "Valor pago")).toHaveText(/R\$ 20,00/);
+  await expect(balanceValue(page, "Valor devido")).toHaveText("R$ 30,00");
+  await expect(balanceValue(page, "Valor pago")).toHaveText("R$ 20,00");
 
   // Back to current month for the rest of the test.
   await page.getByRole("button", { name: /^[A-Za-zç]{3} de \d{2}$/ }).last().click();

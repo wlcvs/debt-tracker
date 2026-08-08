@@ -2,19 +2,16 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { BalanceSummary } from "./balance-summary";
 
-// The two amounts sit directly on top of each other, so a size mismatch is
-// visible on both the person header and the public page. "Valor pago" used to
-// be hardcoded to text-sm against a text-lg/text-xl "Valor devido".
+// A flat two-column grid: each label is immediately followed by its own value,
+// with no per-row wrapper element.
 function amountFor(label: string): HTMLElement {
-  const row = screen.getByText(label).parentElement;
-  if (!row) throw new Error(`No row found for ${label}`);
-  const amount = row.querySelector("span:last-child");
-  if (!amount) throw new Error(`No amount found for ${label}`);
-  return amount as HTMLElement;
+  const value = screen.getByText(label).nextElementSibling;
+  if (!value) throw new Error(`No amount found next to ${label}`);
+  return value as HTMLElement;
 }
 
 function sizeClassOf(el: HTMLElement): string | undefined {
-  return Array.from(el.classList).find((c) => c.startsWith("text-"));
+  return Array.from(el.classList).find((c) => /^text-(xs|sm|base|lg|xl|\dxl)$/.test(c));
 }
 
 describe("BalanceSummary", () => {
@@ -32,11 +29,37 @@ describe("BalanceSummary", () => {
     expect(sizeClassOf(amountFor("Valor pago"))).toBe("text-xl");
   });
 
-  it("keeps the paid amount dimmer — that, not the size, marks devido as primary", () => {
+  // Pure white against zinc-400 on a near-black background reads as a heavier,
+  // larger figure even at an identical font size — which is what the size fix
+  // was supposed to remove. The label is the only thing separating them now.
+  it("renders both amounts in the same color", () => {
     render(<BalanceSummary totalOwed={1234.5} totalPaid={20} />);
 
-    expect(amountFor("Valor devido")).toHaveClass("text-zinc-900");
-    expect(amountFor("Valor pago")).toHaveClass("text-zinc-500");
+    const owed = amountFor("Valor devido");
+    const paid = amountFor("Valor pago");
+    expect(paid.className).toBe(owed.className);
+    expect(owed).toHaveClass("text-zinc-900");
+  });
+
+  // The old layout right-aligned each row on its own, so unequal widths pushed
+  // the labels out of line. The grid has to hold them in two columns.
+  it("keeps labels and amounts in two columns when the values differ in width", () => {
+    const { container } = render(<BalanceSummary totalOwed={1234.5} totalPaid={20} />);
+
+    const grid = container.firstElementChild!;
+    expect(grid).toHaveClass("grid");
+    // Four flat children — label, value, label, value — is what makes the
+    // columns line up; a per-row wrapper would break it back into two
+    // independent rows.
+    expect(grid.children).toHaveLength(4);
+    expect(Array.from(grid.children).map((c) => c.textContent)).toEqual([
+      "Valor devido",
+      "R$ 1.234,50",
+      "Valor pago",
+      "R$ 20,00",
+    ]);
+    expect(amountFor("Valor devido")).toHaveClass("text-right");
+    expect(amountFor("Valor pago")).toHaveClass("text-right");
   });
 
   it("formats both values in pt-BR", () => {

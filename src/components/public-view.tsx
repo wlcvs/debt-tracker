@@ -46,13 +46,15 @@ export function PublicView({ debtor }: Props) {
 
   return (
     <>
-      <div className="flex items-start justify-between gap-4 mb-8">
-        <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">{debtor.name}</h2>
-        <BalanceSummary totalOwed={monthTotals.totalOwed} totalPaid={monthTotals.totalPaid} />
-      </div>
+      <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white mb-8">{debtor.name}</h2>
 
-      <div className="mb-6">
+      {/* The summary sits under the carousel, not beside the name: these are
+          the selected month's totals, so they belong to the month picker. */}
+      <div className="flex flex-col gap-4 mb-6">
         <MonthCarousel months={months} selected={selectedMonth} onSelect={setSelectedMonth} />
+        <div className="flex justify-end">
+          <BalanceSummary totalOwed={monthTotals.totalOwed} totalPaid={monthTotals.totalPaid} />
+        </div>
       </div>
 
       <DebtsList debts={debtor.debts} onOpen={setOpenDebt} selectedMonth={selectedMonth} />
