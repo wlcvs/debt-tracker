@@ -14,6 +14,7 @@ import {
   toggleDebtPaid,
   toggleDebtsPaidBulk,
   updateDebt,
+  updateDebtInstallmentGroup,
 } from "@/lib/actions/debt";
 
 const mockAuth = vi.mocked(auth);
@@ -410,6 +411,204 @@ describe("deleteDebtInstallmentGroup", () => {
   });
 });
 
+// ── updateDebtInstallmentGroup ───────────────────────────────────────────────
+
+describe("updateDebtInstallmentGroup", () => {
+  // Rows as they'd come back from the ownership findMany, oldest index first.
+  function existingGroup(count: number, paidIndexes: number[] = []) {
+    return Array.from({ length: count }, (_, i) => ({
+      id: `d${i + 1}`,
+      personId: "p1",
+      installmentGroupId: "group-1",
+      installmentIndex: i + 1,
+      installmentTotal: count,
+      paid: paidIndexes.includes(i + 1),
+    }));
+  }
+
+  function groupForm(overrides: Record<string, string> = {}) {
+    const form = new FormData();
+    form.set("installmentGroupId", "group-1");
+    form.set("title", "Supermercado");
+    form.set("description", "");
+    form.set("amount", "300,00");
+    form.set("date", "2026-03-10");
+    form.set("installments", "3");
+    form.set("debtMethod", "PIX");
+    for (const [k, v] of Object.entries(overrides)) form.set(k, v);
+    return form;
+  }
+
+  type UpdateCall = { where: { id: string }; data: Record<string, unknown> };
+  const updateCalls = () => prismaMock.debt.update.mock.calls.map(([arg]) => arg as UpdateCall);
+
+  it("throws when not authenticated", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    await expect(updateDebtInstallmentGroup(new FormData())).rejects.toThrow("Not authenticated");
+  });
+
+  it("scopes the group lookup to the authenticated user", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(3) as never);
+
+    await updateDebtInstallmentGroup(groupForm());
+
+    expect(prismaMock.debt.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { installmentGroupId: "group-1", person: { userId: "user-1" } },
+      })
+    );
+  });
+
+  // A group belonging to someone else comes back empty from that same
+  // ownership-scoped query, so it can't be edited.
+  it("throws when the group does not exist or belongs to another user", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue([] as never);
+
+    await expect(updateDebtInstallmentGroup(groupForm())).rejects.toThrow("Installment group not found");
+    expect(prismaMock.debt.update).not.toHaveBeenCalled();
+    expect(prismaMock.debt.createMany).not.toHaveBeenCalled();
+  });
+
+  it("rewrites every row's amount, title suffix and date from the new total", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(3) as never);
+
+    await updateDebtInstallmentGroup(groupForm());
+
+    const calls = updateCalls();
+    expect(calls).toHaveLength(3);
+    expect(calls.map((c) => c.where)).toEqual([{ id: "d1" }, { id: "d2" }, { id: "d3" }]);
+    expect(calls.map((c) => c.data.amount)).toEqual([100, 100, 100]);
+    expect(calls.map((c) => c.data.title)).toEqual([
+      "Supermercado (1/3)",
+      "Supermercado (2/3)",
+      "Supermercado (3/3)",
+    ]);
+    expect(calls.map((c) => localDateStr(c.data.date as Date))).toEqual([
+      "2026-03-10",
+      "2026-04-10",
+      "2026-05-10",
+    ]);
+    expect(calls.every((c) => c.data.installmentTotal === 3)).toBe(true);
+  });
+
+  // Same split rule as createDebt: the leftover cents go on the first
+  // installments (685,91 in 10x -> 68,60 + 9x 68,59).
+  it("puts the leftover cent on the first installments", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(10) as never);
+
+    await updateDebtInstallmentGroup(groupForm({ amount: "685,91", installments: "10" }));
+
+    const amounts = updateCalls().map((c) => c.data.amount);
+    expect(amounts[0]).toBe(68.6);
+    expect(amounts.slice(1)).toEqual(Array(9).fill(68.59));
+    expect(amounts.reduce((s: number, a) => s + (a as number), 0)).toBeCloseTo(685.91, 2);
+  });
+
+  // The whole reason surviving rows are updated in place instead of dropped
+  // and recreated.
+  it("never touches the paid flag of a surviving installment", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(3, [1, 2]) as never);
+
+    await updateDebtInstallmentGroup(groupForm());
+
+    expect(updateCalls().every((c) => !("paid" in c.data))).toBe(true);
+  });
+
+  it("deletes only the extra rows when the count shrinks", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(5) as never);
+
+    await updateDebtInstallmentGroup(groupForm({ installments: "2", amount: "200,00" }));
+
+    expect(updateCalls().map((c) => c.where)).toEqual([{ id: "d1" }, { id: "d2" }]);
+    expect(prismaMock.debt.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ["d3", "d4", "d5"] } },
+    });
+    expect(prismaMock.debt.createMany).not.toHaveBeenCalled();
+  });
+
+  it("appends unpaid rows to the same group when the count grows", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(2, [1]) as never);
+
+    await updateDebtInstallmentGroup(groupForm({ installments: "4", amount: "400,00" }));
+
+    expect(updateCalls()).toHaveLength(2);
+    expect(prismaMock.debt.deleteMany).not.toHaveBeenCalled();
+
+    const created = (prismaMock.debt.createMany.mock.calls[0][0] as { data: Record<string, unknown>[] }).data;
+    expect(created).toHaveLength(2);
+    expect(created.map((r) => r.installmentIndex)).toEqual([3, 4]);
+    expect(created.map((r) => r.title)).toEqual(["Supermercado (3/4)", "Supermercado (4/4)"]);
+    expect(created.every((r) => r.paid === false)).toBe(true);
+    expect(created.every((r) => r.installmentGroupId === "group-1")).toBe(true);
+    expect(created.every((r) => r.personId === "p1")).toBe(true);
+    expect(created.map((r) => localDateStr(r.date as Date))).toEqual(["2026-05-10", "2026-06-10"]);
+  });
+
+  it("resolves a credit card id into creditCardId with a null method", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(2) as never);
+
+    await updateDebtInstallmentGroup(groupForm({ debtMethod: "card-9", installments: "2", amount: "200,00" }));
+
+    const [{ data }] = updateCalls();
+    expect(data.creditCardId).toBe("card-9");
+    expect(data.method).toBeNull();
+  });
+
+  it("parses a pt-BR amount rather than producing NaN", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(2) as never);
+
+    await updateDebtInstallmentGroup(groupForm({ amount: "1.234,56", installments: "2" }));
+
+    const amounts = updateCalls().map((c) => c.data.amount);
+    expect(amounts).toEqual([617.28, 617.28]);
+  });
+
+  it("rejects an empty title", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(2) as never);
+
+    await expect(updateDebtInstallmentGroup(groupForm({ title: "   " }))).rejects.toThrow();
+  });
+
+  it("rejects a count outside 1..60", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(2) as never);
+
+    await expect(updateDebtInstallmentGroup(groupForm({ installments: "0" }))).rejects.toThrow();
+    await expect(updateDebtInstallmentGroup(groupForm({ installments: "61" }))).rejects.toThrow();
+  });
+
+  it("rejects a zero amount", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(2) as never);
+
+    await expect(updateDebtInstallmentGroup(groupForm({ amount: "0" }))).rejects.toThrow();
+  });
+
+  // addMonthsClamped: Jan 31 + 1 month lands on Feb 28, not Mar 3.
+  it("clamps a day-of-month overflow when stepping the dates", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue(existingGroup(3) as never);
+
+    await updateDebtInstallmentGroup(groupForm({ date: "2026-01-31", installments: "3" }));
+
+    expect(updateCalls().map((c) => localDateStr(c.data.date as Date))).toEqual([
+      "2026-01-31",
+      "2026-02-28",
+      "2026-03-31",
+    ]);
+  });
+});
+
 // ── updateDebt ────────────────────────────────────────────────────────────────
 
 describe("updateDebt", () => {
@@ -600,6 +799,55 @@ describe("getDebtInstallmentGroup", () => {
     });
     expect(result).toHaveLength(1);
     expect(result[0].amount).toBe(50);
+  });
+
+  // The panel's edit form prefills the whole purchase from this payload.
+  it("returns the description and method the edit form prefills from", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue([
+      {
+        id: "d1",
+        person: { accessCode: "CODE1" },
+        amount: 50,
+        title: "X (1/2)",
+        description: "Compra do mês",
+        method: null,
+        creditCardId: "card-9",
+        date: new Date("2026-01-01"),
+        paid: false,
+        installmentIndex: 1,
+        installmentTotal: 2,
+      },
+    ] as never);
+
+    const [installment] = await getDebtInstallmentGroup("group-1");
+    expect(installment.description).toBe("Compra do mês");
+    expect(installment.method).toBeNull();
+    expect(installment.creditCardId).toBe("card-9");
+  });
+
+  it("never exposes the person's DB id, only their access code", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.debt.findMany.mockResolvedValue([
+      {
+        id: "d1",
+        personId: "p1",
+        person: { accessCode: "CODE1" },
+        amount: 50,
+        title: "X (1/2)",
+        description: "",
+        method: "PIX",
+        creditCardId: null,
+        date: new Date("2026-01-01"),
+        paid: false,
+        installmentIndex: 1,
+        installmentTotal: 2,
+      },
+    ] as never);
+
+    const [installment] = await getDebtInstallmentGroup("group-1");
+    expect(installment).not.toHaveProperty("personId");
+    expect(installment.personAccessCode).toBe("CODE1");
   });
 
   it("returns an empty array when no debts match the group", async () => {

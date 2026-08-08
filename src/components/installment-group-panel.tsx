@@ -9,26 +9,49 @@ import { Checkbox } from "@/components/checkbox";
 import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { ModalShell } from "@/components/modal-shell";
 import { DateField } from "@/components/date-field";
+import { InstallmentGroupForm } from "@/components/installment-group-form";
 
 interface Props {
   installmentGroupId: string;
   title: string;
+  creditCards: { id: string; label: string }[];
+  /** Open straight into the edit form. This is the *only* way to reach it —
+   * the debt modal's "Editar compra". "Ver parcelas" opens the list instead,
+   * and cancelling the form falls back to that list rather than closing
+   * everything. */
+  startInEdit?: boolean;
   onClose: () => void;
+  /** Fires after the group is edited, so the modal holding the (now stale)
+   * single installment can close itself too. */
+  onSaved?: () => void;
 }
 
-interface Installment {
+export interface Installment {
   id: string;
   personAccessCode: string;
   amount: number;
   title: string;
+  description: string;
+  method: string | null;
+  creditCardId: string | null;
   date: string;
   paid: boolean;
   installmentIndex: number | null;
   installmentTotal: number | null;
 }
 
-export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Props) {
+export function InstallmentGroupPanel({
+  installmentGroupId,
+  title,
+  creditCards,
+  startInEdit = false,
+  onClose,
+  onSaved,
+}: Props) {
   const [installments, setInstallments] = useState<Installment[] | null>(null);
+  // The group loads asynchronously; until it arrives the panel shows its
+  // "Carregando..." state either way, then falls into the form.
+  const [editing, setEditing] = useState(startInEdit);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [registerPayment, setRegisterPayment] = useState(false);
   const [paymentMode, setPaymentMode] = useState<"single" | "perInstallment">("single");
@@ -95,6 +118,24 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
     }
   }
 
+  if (installments && editing) {
+    return (
+      <ModalShell eyebrow={`Editar compra — ${title}`} onClose={onClose} maxWidthClassName="max-w-md">
+        <InstallmentGroupForm
+          installmentGroupId={installmentGroupId}
+          title={title}
+          installments={installments}
+          creditCards={creditCards}
+          onCancel={() => setEditing(false)}
+          onSaved={() => {
+            onSaved?.();
+            onClose();
+          }}
+        />
+      </ModalShell>
+    );
+  }
+
   return (
     <ModalShell eyebrow={`Parcelas — ${title}`} onClose={onClose} maxWidthClassName="max-w-md">
         <div className="px-6 py-5 flex flex-col gap-4">
@@ -102,6 +143,9 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
             <p className="text-xs text-zinc-400">Carregando...</p>
           ) : (
             <>
+              {/* No "Editar compra" here — the debt modal's button is the one
+                  way in, via startInEdit. This list is for ticking installments
+                  off, and a second door to the same form only crowded it. */}
               <div className="flex justify-between items-center">
                 <button
                   type="button"
