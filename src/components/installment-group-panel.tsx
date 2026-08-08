@@ -9,26 +9,35 @@ import { Checkbox } from "@/components/checkbox";
 import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { ModalShell } from "@/components/modal-shell";
 import { DateField } from "@/components/date-field";
+import { InstallmentGroupForm } from "@/components/installment-group-form";
 
 interface Props {
   installmentGroupId: string;
   title: string;
+  creditCards: { id: string; label: string }[];
   onClose: () => void;
+  /** Fires after the group is edited, so the modal holding the (now stale)
+   * single installment can close itself too. */
+  onSaved?: () => void;
 }
 
-interface Installment {
+export interface Installment {
   id: string;
   personAccessCode: string;
   amount: number;
   title: string;
+  description: string;
+  method: string | null;
+  creditCardId: string | null;
   date: string;
   paid: boolean;
   installmentIndex: number | null;
   installmentTotal: number | null;
 }
 
-export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Props) {
+export function InstallmentGroupPanel({ installmentGroupId, title, creditCards, onClose, onSaved }: Props) {
   const [installments, setInstallments] = useState<Installment[] | null>(null);
+  const [editing, setEditing] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [registerPayment, setRegisterPayment] = useState(false);
   const [paymentMode, setPaymentMode] = useState<"single" | "perInstallment">("single");
@@ -95,6 +104,24 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
     }
   }
 
+  if (installments && editing) {
+    return (
+      <ModalShell eyebrow={`Editar compra — ${title}`} onClose={onClose} maxWidthClassName="max-w-md">
+        <InstallmentGroupForm
+          installmentGroupId={installmentGroupId}
+          title={title}
+          installments={installments}
+          creditCards={creditCards}
+          onCancel={() => setEditing(false)}
+          onSaved={() => {
+            onSaved?.();
+            onClose();
+          }}
+        />
+      </ModalShell>
+    );
+  }
+
   return (
     <ModalShell eyebrow={`Parcelas — ${title}`} onClose={onClose} maxWidthClassName="max-w-md">
         <div className="px-6 py-5 flex flex-col gap-4">
@@ -103,6 +130,13 @@ export function InstallmentGroupPanel({ installmentGroupId, title, onClose }: Pr
           ) : (
             <>
               <div className="flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="text-xs tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  Editar compra
+                </button>
                 <button
                   type="button"
                   onClick={selectUnpaid}

@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { splitInstallmentAmounts, installmentDate } from "@/lib/installments";
+import {
+  splitInstallmentAmounts,
+  installmentDate,
+  buildInstallments,
+  clampInstallments,
+  MAX_INSTALLMENTS,
+  MIN_INSTALLMENTS,
+} from "@/lib/installments";
 
 describe("splitInstallmentAmounts", () => {
   it("splits an evenly divisible total equally", () => {
@@ -106,5 +113,53 @@ describe("installmentDate", () => {
   it("backward: crosses a year boundary (base in February)", () => {
     const base = new Date(Date.UTC(2026, 1, 15));
     expect(installmentDate(base, 1, 3, "backward")).toEqual(new Date(Date.UTC(2025, 11, 15)));
+  });
+});
+
+describe("buildInstallments", () => {
+  it("pairs each split amount with its own date", () => {
+    const base = new Date(Date.UTC(2026, 2, 10));
+    expect(buildInstallments(300, 3, base)).toEqual([
+      { index: 1, amount: 100, date: new Date(Date.UTC(2026, 2, 10)) },
+      { index: 2, amount: 100, date: new Date(Date.UTC(2026, 3, 10)) },
+      { index: 3, amount: 100, date: new Date(Date.UTC(2026, 4, 10)) },
+    ]);
+  });
+
+  it("defaults to forward, and honours backward when asked", () => {
+    const base = new Date(Date.UTC(2026, 2, 10));
+    expect(buildInstallments(200, 2, base)[0].date).toEqual(new Date(Date.UTC(2026, 2, 10)));
+    expect(buildInstallments(200, 2, base, "backward")[0].date).toEqual(new Date(Date.UTC(2026, 1, 10)));
+  });
+
+  // The whole point of the shared helper: the create form's preview, the group
+  // edit form's preview and both server actions must agree row for row.
+  it("matches splitInstallmentAmounts and installmentDate exactly", () => {
+    const base = new Date(Date.UTC(2026, 0, 31));
+    const rows = buildInstallments(685.91, 10, base);
+    expect(rows.map((r) => r.amount)).toEqual(splitInstallmentAmounts(685.91, 10));
+    expect(rows.map((r) => r.date)).toEqual(
+      rows.map((r) => installmentDate(base, r.index, 10, "forward"))
+    );
+  });
+});
+
+describe("clampInstallments", () => {
+  it("keeps a value already inside the range", () => {
+    expect(clampInstallments("12")).toBe("12");
+  });
+
+  it("floors anything below the minimum, including empty and zero", () => {
+    for (const raw of ["", "0", "-3", "abc"]) {
+      expect(clampInstallments(raw)).toBe(String(MIN_INSTALLMENTS));
+    }
+  });
+
+  it("caps at the maximum", () => {
+    expect(clampInstallments("219")).toBe(String(MAX_INSTALLMENTS));
+  });
+
+  it("truncates a fractional count rather than rounding", () => {
+    expect(clampInstallments("3.9")).toBe("3");
   });
 });

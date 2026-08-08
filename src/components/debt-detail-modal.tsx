@@ -226,7 +226,11 @@ export function DebtDetailModal({ debt, creditCards, onClose }: Props) {
         <InstallmentGroupPanel
           installmentGroupId={debt.installmentGroupId}
           title={debt.title.replace(/\s*\(\d+\/\d+\)$/, "")}
+          creditCards={creditCards}
           onClose={() => setShowInstallments(false)}
+          // Editing the group rewrites every row, so the single installment
+          // this modal is still showing is stale — close it too.
+          onSaved={onClose}
         />
       )}
     </ModalShell>

@@ -5,23 +5,15 @@ import { createDebt } from "@/lib/actions/debt";
 import { MethodSelect, type MethodOption } from "@/components/method-select";
 import * as ToggleGroup from "@radix-ui/react-toggle-group";
 import { Checkbox } from "@/components/checkbox";
-import { splitInstallmentAmounts, installmentDate, type InstallmentDirection } from "@/lib/installments";
+import {
+  buildInstallments,
+  clampInstallments,
+  MIN_INSTALLMENTS,
+  type InstallmentDirection,
+} from "@/lib/installments";
 import { formatDateBR } from "@/lib/date-utils";
 import { formatCurrency, parseAmountInput } from "@/lib/format-utils";
 import { DateField } from "@/components/date-field";
-
-const MIN_INSTALLMENTS = 1;
-const MAX_INSTALLMENTS = 60;
-
-// The count is held as raw text so the field can be emptied and retyped.
-// Clamping on every keystroke (the old behaviour) destroyed input: with 21 on
-// screen, one more digit made "219", which snapped to 60 and swallowed every
-// following keystroke. Normalization happens on blur instead.
-function clampInstallments(raw: string): string {
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < MIN_INSTALLMENTS) return String(MIN_INSTALLMENTS);
-  return String(Math.min(MAX_INSTALLMENTS, Math.trunc(n)));
-}
 
 const inputClass =
   "bg-transparent border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-xs tracking-widest placeholder:text-zinc-400 dark:placeholder:text-zinc-600 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors";
@@ -79,12 +71,7 @@ export function DebtForm({ personAccessCode, creditCards, onSaved, onCancel, onS
     const total = parseAmountInput(amount);
     const baseDate = date ? new Date(`${date}T00:00:00Z`) : null;
     if (!baseDate || Number.isNaN(total) || total <= 0) return [];
-    const amounts = splitInstallmentAmounts(total, installments);
-    return amounts.map((value, i) => ({
-      index: i + 1,
-      amount: value,
-      date: installmentDate(baseDate, i + 1, installments, direction),
-    }));
+    return buildInstallments(total, installments, baseDate, direction);
   }, [installment, amount, date, installments, direction]);
 
   // Closing the panel unmounts it, which hides the fact that its state
