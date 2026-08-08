@@ -44,11 +44,17 @@ export function PersonDetailView({ person, creditCards }: Props) {
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4 sm:pb-6 flex flex-col gap-3">
-        <EditablePersonHeader person={person} />
+        {/* Excluir devedor rides the name's row rather than the actions row
+            below: three buttons of different heights wrapped badly on a narrow
+            viewport, and the destructive one reads better against the name it
+            would delete. */}
+        <div className="flex items-start justify-between gap-4">
+          <EditablePersonHeader person={person} />
+          <PersonActions person={person} />
+        </div>
         <div className="flex items-center gap-3">
           <ShareButton accessCode={accessCode} />
           <PersonVisibilityToggle accessCode={accessCode} publicVisible={person.publicVisible} />
-          <PersonActions person={person} />
         </div>
       </div>
 
@@ -57,8 +63,8 @@ export function PersonDetailView({ person, creditCards }: Props) {
           rather than to the person's name. */}
       <div className="flex flex-col gap-4">
         <MonthCarousel months={months} selected={selectedMonth} onSelect={setSelectedMonth} />
-        <div className="flex justify-end">
-          <BalanceSummary totalOwed={monthTotals.totalOwed} totalPaid={monthTotals.totalPaid} size="text-xl" />
+        <div className="flex justify-start">
+          <BalanceSummary totalOwed={monthTotals.totalOwed} totalPaid={monthTotals.totalPaid} />
         </div>
       </div>
 

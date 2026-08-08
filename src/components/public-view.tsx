@@ -52,7 +52,7 @@ export function PublicView({ debtor }: Props) {
           the selected month's totals, so they belong to the month picker. */}
       <div className="flex flex-col gap-4 mb-6">
         <MonthCarousel months={months} selected={selectedMonth} onSelect={setSelectedMonth} />
-        <div className="flex justify-end">
+        <div className="flex justify-start">
           <BalanceSummary totalOwed={monthTotals.totalOwed} totalPaid={monthTotals.totalPaid} />
         </div>
       </div>

@@ -15,18 +15,15 @@ function sizeClassOf(el: HTMLElement): string | undefined {
 }
 
 describe("BalanceSummary", () => {
-  it("renders both amounts at the default size", () => {
+  // Every cell runs at the debtor name's size, labels included — a label at
+  // text-[10px] disappeared beside its own number.
+  it("renders labels and amounts at one size", () => {
     render(<BalanceSummary totalOwed={1234.5} totalPaid={20} />);
 
-    expect(sizeClassOf(amountFor("Valor devido"))).toBe("text-lg");
-    expect(sizeClassOf(amountFor("Valor pago"))).toBe("text-lg");
-  });
-
-  it("applies the size prop to both amounts, not just the owed one", () => {
-    render(<BalanceSummary totalOwed={1234.5} totalPaid={20} size="text-xl" />);
-
-    expect(sizeClassOf(amountFor("Valor devido"))).toBe("text-xl");
-    expect(sizeClassOf(amountFor("Valor pago"))).toBe("text-xl");
+    for (const label of ["Valor devido", "Valor pago"]) {
+      expect(sizeClassOf(screen.getByText(label))).toBe("text-lg");
+      expect(sizeClassOf(amountFor(label))).toBe("text-lg");
+    }
   });
 
   // Pure white against zinc-400 on a near-black background reads as a heavier,
