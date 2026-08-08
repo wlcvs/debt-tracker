@@ -15,9 +15,10 @@ interface Props {
   installmentGroupId: string;
   title: string;
   creditCards: { id: string; label: string }[];
-  /** Open straight into the edit form — the debt modal's "Editar compra"
-   * shortcut. "Ver parcelas" opens on the list instead. Cancelling still
-   * falls back to the list rather than closing everything. */
+  /** Open straight into the edit form. This is the *only* way to reach it —
+   * the debt modal's "Editar compra". "Ver parcelas" opens the list instead,
+   * and cancelling the form falls back to that list rather than closing
+   * everything. */
   startInEdit?: boolean;
   onClose: () => void;
   /** Fires after the group is edited, so the modal holding the (now stale)
@@ -142,14 +143,10 @@ export function InstallmentGroupPanel({
             <p className="text-xs text-zinc-400">Carregando...</p>
           ) : (
             <>
+              {/* No "Editar compra" here — the debt modal's button is the one
+                  way in, via startInEdit. This list is for ticking installments
+                  off, and a second door to the same form only crowded it. */}
               <div className="flex justify-between items-center">
-                <button
-                  type="button"
-                  onClick={() => setEditing(true)}
-                  className="text-xs tracking-widest uppercase text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
-                >
-                  Editar compra
-                </button>
                 <button
                   type="button"
                   onClick={selectUnpaid}

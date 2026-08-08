@@ -135,6 +135,10 @@ test("edit a parceled purchase as a unit: title, total, count and first date", a
   await page.getByRole("button", { name: "Marcar paga" }).first().click();
   await expect(page.getByRole("button", { name: "Marcar paga" })).toHaveCount(1);
 
+  // The list is for ticking installments off, nothing else: the only way to
+  // the purchase form is the debt modal's button, used below.
+  await expect(page.getByRole("button", { name: "Editar compra" })).toHaveCount(0);
+
   // Close only the panel (rendered last, on top), leaving the debt modal open.
   await page.getByRole("button", { name: "Fechar" }).last().click();
 
