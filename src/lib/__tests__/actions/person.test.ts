@@ -213,6 +213,8 @@ describe("getPersonByAccessCode", () => {
     expect(result!.accessCode).toBe("CODE1");
   });
 
+  // Payments are never subtracted from totalOwed: marking a debt paid is the
+  // only thing that clears it. See src/lib/balance.ts.
   it("returns person with correct balance", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     prismaMock.person.findFirst.mockResolvedValue({
@@ -226,7 +228,8 @@ describe("getPersonByAccessCode", () => {
     } as never);
 
     const result = await getPersonByAccessCode("p1");
-    expect(result!.totalOwed).toBe(300);
+    expect(result!.totalOwed).toBe(400);
+    expect(result!.totalPaid).toBe(100);
     expect(result!.debts).toHaveLength(2);
   });
 
@@ -246,8 +249,7 @@ describe("getPersonByAccessCode", () => {
     expect(result!.totalOwed).toBe(100);
   });
 
-  // Paying with nothing owed used to render as "R$ -300,00" in the header.
-  it("floors totalOwed at zero when payments exceed the debt", async () => {
+  it("reports a payment with nothing owed without going negative", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     prismaMock.person.findFirst.mockResolvedValue({
       id: "p1",
@@ -259,6 +261,26 @@ describe("getPersonByAccessCode", () => {
     const result = await getPersonByAccessCode("p1");
     expect(result!.totalOwed).toBe(0);
     expect(result!.totalPaid).toBe(300);
+  });
+
+  // The bug behind issue #5: an installment marked paid *and* its matching
+  // payment registered used to deduct the same money twice, so an open debt
+  // could still show up as R$ 0,00 owed.
+  it("does not double-count an installment that is both paid and covered by a payment", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findFirst.mockResolvedValue({
+      id: "p1",
+      name: "Tati",
+      debts: [
+        { id: "d1", amount: 100, title: "1/2", description: "", paid: true, date: new Date() },
+        { id: "d2", amount: 100, title: "2/2", description: "", paid: false, date: new Date() },
+      ],
+      payments: [{ id: "pay1", amount: 100, date: new Date(), method: "PIX" }],
+    } as never);
+
+    const result = await getPersonByAccessCode("p1");
+    expect(result!.totalOwed).toBe(100);
+    expect(result!.totalPaid).toBe(100);
   });
 });
 
@@ -276,7 +298,6 @@ describe("getDashboardOverview", () => {
     prismaMock.debt.groupBy.mockResolvedValue([
       { personId: "p1", _sum: { amount: 500 } },
     ] as never);
-    prismaMock.payment.groupBy.mockResolvedValue([] as never);
     prismaMock.debt.count.mockResolvedValue(1);
     prismaMock.debt.findMany.mockResolvedValue([] as never);
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: null }, _count: 0 } as never);
@@ -297,7 +318,6 @@ describe("getDashboardOverview", () => {
     // paid: false in the groupBy's where filters the paid debt out entirely,
     // so it never contributes a _sum row — only the unfiltered count sees it.
     prismaMock.debt.groupBy.mockResolvedValue([] as never);
-    prismaMock.payment.groupBy.mockResolvedValue([] as never);
     prismaMock.debt.count.mockResolvedValue(1);
     prismaMock.debt.findMany.mockResolvedValue([] as never);
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: null }, _count: 0 } as never);
@@ -314,7 +334,6 @@ describe("getDashboardOverview", () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1", name: "João" }] as never);
     prismaMock.debt.groupBy.mockResolvedValue([{ personId: "p1", _sum: { amount: 785.91 } }] as never);
-    prismaMock.payment.groupBy.mockResolvedValue([] as never);
     // One standalone debt...
     prismaMock.debt.count.mockResolvedValue(1);
     // ...plus 10 rows collapsing to a single distinct group.
@@ -326,15 +345,13 @@ describe("getDashboardOverview", () => {
     expect(stats.totalToReceive).toBe(785.91);
   });
 
-  it("does not count a fully-paid debtor as active", async () => {
+  // A debtor stops being active when their debts are marked paid — which the
+  // groupBy's `paid: false` filter already takes care of — not when payments
+  // happen to add up to the same figure.
+  it("does not count a debtor whose debts are all marked paid as active", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1", name: "João" }] as never);
-    prismaMock.debt.groupBy.mockResolvedValue([
-      { personId: "p1", _sum: { amount: 200 } },
-    ] as never);
-    prismaMock.payment.groupBy.mockResolvedValue([
-      { personId: "p1", _sum: { amount: 300 } },
-    ] as never);
+    prismaMock.debt.groupBy.mockResolvedValue([] as never);
     prismaMock.debt.count.mockResolvedValue(1);
     prismaMock.debt.findMany.mockResolvedValue([] as never);
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: 300 }, _count: 1 } as never);
@@ -345,11 +362,40 @@ describe("getDashboardOverview", () => {
     expect(stats.totalPaid).toBe(300);
   });
 
+  // Same model as the person page: payments are reported on their own line,
+  // never subtracted from what is still owed. Registering a payment without
+  // marking the debt paid used to shrink totalToReceive here while the person
+  // page still listed the debt as open.
+  it("does not subtract payments from totalToReceive", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1", name: "João" }] as never);
+    prismaMock.debt.groupBy.mockResolvedValue([{ personId: "p1", _sum: { amount: 200 } }] as never);
+    prismaMock.debt.count.mockResolvedValue(1);
+    prismaMock.debt.findMany.mockResolvedValue([] as never);
+    prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: 300 }, _count: 1 } as never);
+
+    const { stats } = await getDashboardOverview();
+    expect(stats.totalToReceive).toBe(200);
+    expect(stats.activeDebtors).toBe(1);
+    expect(stats.totalPaid).toBe(300);
+  });
+
+  it("never queries payments grouped per person", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    prismaMock.person.findMany.mockResolvedValue([] as never);
+    prismaMock.debt.groupBy.mockResolvedValue([] as never);
+    prismaMock.debt.count.mockResolvedValue(0);
+    prismaMock.debt.findMany.mockResolvedValue([] as never);
+    prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: null }, _count: 0 } as never);
+
+    await getDashboardOverview();
+    expect(prismaMock.payment.groupBy).not.toHaveBeenCalled();
+  });
+
   it("returns a person with no debts/payments as not active", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     prismaMock.person.findMany.mockResolvedValue([{ id: "p1", accessCode: "CODE1", name: "João" }] as never);
     prismaMock.debt.groupBy.mockResolvedValue([] as never);
-    prismaMock.payment.groupBy.mockResolvedValue([] as never);
     prismaMock.debt.count.mockResolvedValue(0);
     prismaMock.debt.findMany.mockResolvedValue([] as never);
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: null }, _count: 0 } as never);
@@ -378,7 +424,8 @@ describe("getDebtorViewById", () => {
 
     const result = await getDebtorViewById("valid-id");
     expect(result!.name).toBe("Maria");
-    expect(result!.totalOwed).toBe(150);
+    expect(result!.totalOwed).toBe(200);
+    expect(result!.totalPaid).toBe(50);
   });
 
   it("excludes paid debts from totalOwed", async () => {
@@ -395,7 +442,7 @@ describe("getDebtorViewById", () => {
     expect(result!.totalOwed).toBe(200);
   });
 
-  it("floors totalOwed at zero on the public view too", async () => {
+  it("reports a payment with nothing owed on the public view too", async () => {
     prismaMock.person.findUnique.mockResolvedValue({
       name: "Tati",
       debts: [],
