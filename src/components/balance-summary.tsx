@@ -3,7 +3,7 @@ import { formatCurrency } from "@/lib/format-utils";
 interface Props {
   totalOwed: number;
   totalPaid: number;
-  /** Tailwind size class for the owed value — the admin header runs one step
+  /** Tailwind size class for both values — the admin header runs one step
    *  larger than the public one. */
   size?: string;
 }
@@ -11,6 +11,11 @@ interface Props {
 // Shared by the person detail header and the public view so the two can't
 // drift. Both rows are always rendered: the labels make "R$ 0,00" read as a
 // settled balance rather than missing data.
+//
+// The two amounts sit directly on top of each other, so they share one size —
+// the paid one used to be hardcoded to text-sm against an owed value of
+// text-lg/text-xl. What still marks "devido" as the primary figure is the
+// dimmer color on "pago", not a smaller type size.
 export function BalanceSummary({ totalOwed, totalPaid, size = "text-lg" }: Props) {
   return (
     <div className="shrink-0 flex flex-col items-end gap-0.5">
@@ -26,7 +31,7 @@ export function BalanceSummary({ totalOwed, totalPaid, size = "text-lg" }: Props
         <span className="text-[10px] tracking-widest uppercase text-zinc-400 dark:text-zinc-500">
           Valor pago
         </span>
-        <span className="text-sm tracking-tight text-zinc-500 dark:text-zinc-400">
+        <span className={`${size} tracking-tight text-zinc-500 dark:text-zinc-400`}>
           R$ {formatCurrency(totalPaid)}
         </span>
       </p>
