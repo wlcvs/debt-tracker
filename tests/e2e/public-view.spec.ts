@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
 import { generateAccessCode } from "@/lib/access-code";
 import { loginAsAdmin } from "./fixtures";
@@ -10,6 +10,11 @@ import { loginAsAdmin } from "./fixtures";
 // pattern.
 
 const RUN_ID = Date.now();
+
+// balance-summary.tsx renders each figure as `<p><span>LABEL</span><span>R$ …</span></p>`,
+// so the label's parent is the whole row — the only way to assert on a total
+// that also happens to appear on a debt or payment row further down the page.
+const balanceRow = (page: Page, label: string) => page.getByText(label).locator("xpath=..");
 
 const now = new Date();
 const currentMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 10));
@@ -45,8 +50,9 @@ test.beforeAll(async () => {
       { personId, description: paymentYDescription, amount: 20, date: prevMonthDate, method: "CASH" },
     ],
   });
-  // totalOwed = (100 + 30 unpaid debts) - (40 + 20 payments) = 70
-  // totalPaid = 40 + 20 = 60
+  // All-time: totalOwed = 100 + 30 (unpaid debts only, payments never
+  // subtracted) = 130; totalPaid = 40 + 20 = 60.
+  // The header, though, follows the month carousel — see the assertions below.
 });
 
 test.afterAll(async () => {
@@ -61,10 +67,12 @@ test("public view: renders without login, filters by month, read-only modals, fi
   await expect(page).toHaveURL(`/public/${accessCode}`);
   await expect(page.getByRole("heading", { name: `E2E Public View Person ${RUN_ID}` })).toBeVisible();
   // Labelled balance block — no progress bar, and never a negative total.
-  await expect(page.getByText("Valor devido")).toBeVisible();
-  await expect(page.getByText("R$ 70,00")).toBeVisible();
-  await expect(page.getByText("Valor pago")).toBeVisible();
-  await expect(page.getByText("R$ 60,00")).toBeVisible();
+  // Scoped to the month the carousel opens on (the current one): debt A is
+  // the only unpaid debt in it (B is paid, C is last month), and payment X is
+  // its only payment. Anchored on the label's own row, since the same amounts
+  // also appear on the debt/payment rows below.
+  await expect(balanceRow(page, "Valor devido")).toHaveText(/R\$ 100,00/);
+  await expect(balanceRow(page, "Valor pago")).toHaveText(/R\$ 40,00/);
 
   // --- Month carousel: current month shows A and B, not C ---
   const debtARow = page.getByRole("button", { name: new RegExp(debtATitle) });
@@ -79,6 +87,11 @@ test("public view: renders without login, filters by month, read-only modals, fi
   await expect(debtCRow).toBeVisible();
   await expect(debtARow).not.toBeVisible();
   await expect(page.getByText(paymentYDescription)).toBeVisible();
+
+  // The balance summary follows the carousel too — it used to stay on the
+  // all-time totals while the lists below it moved.
+  await expect(balanceRow(page, "Valor devido")).toHaveText(/R\$ 30,00/);
+  await expect(balanceRow(page, "Valor pago")).toHaveText(/R\$ 20,00/);
 
   // Back to current month for the rest of the test.
   await page.getByRole("button", { name: /^[A-Za-zç]{3} de \d{2}$/ }).last().click();
@@ -109,19 +122,21 @@ test("public view: renders without login, filters by month, read-only modals, fi
   await expect(debtBRow).toBeVisible();
 
   // --- Installment calculator: presets and +/- stepper ---
+  // Deliberately on the all-time owed total (130), not the month's: it
+  // simulates paying off the whole balance.
   const monthsInput = page.getByLabel("Aumentar meses").locator("xpath=preceding-sibling::input");
   // ToggleGroup type="single" renders role="radio" inside a role="radiogroup",
   // not plain buttons.
   await page.getByRole("radio", { name: "6x" }).click();
   await expect(monthsInput).toHaveValue("6");
-  await expect(page.getByText("R$ 11,67")).toBeVisible(); // 70 / 6
+  await expect(page.getByText("R$ 21,67")).toBeVisible(); // 130 / 6
 
   await page.getByRole("button", { name: "Aumentar meses" }).click();
   await expect(monthsInput).toHaveValue("7");
   await page.getByRole("button", { name: "Diminuir meses" }).click();
   await page.getByRole("button", { name: "Diminuir meses" }).click();
   await expect(monthsInput).toHaveValue("5");
-  await expect(page.getByText("R$ 14,00")).toBeVisible(); // 70 / 5
+  await expect(page.getByText("R$ 26,00")).toBeVisible(); // 130 / 5
 });
 
 test("public view: 404s when the person's public page is hidden", async ({ page }) => {

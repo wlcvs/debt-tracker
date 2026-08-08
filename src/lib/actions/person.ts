@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireUserId } from "@/lib/auth-utils";
 import { generateAccessCode } from "@/lib/access-code";
+import { balanceTotals } from "@/lib/balance";
 import type { Prisma } from "@/generated/prisma/client";
 
 export async function createPerson(formData: FormData): Promise<{ accessCode: string; name: string }> {
@@ -24,8 +25,8 @@ export async function createPerson(formData: FormData): Promise<{ accessCode: st
 export interface PersonWithBalance {
   name: string;
   accessCode: string;
+  /** Sum of the debts still marked unpaid — payments are never subtracted from it. */
   totalOwed: number;
-  totalDebt: number;
   totalPaid: number;
   publicVisible: boolean;
   debts: {
@@ -75,28 +76,25 @@ function toPersonWithBalance(person: PersonWithRelations): PersonWithBalance {
     installmentIndex: d.installmentIndex,
     installmentTotal: d.installmentTotal,
   }));
-  const totalPaid = person.payments.reduce((s, p) => s + Number(p.amount), 0);
-  const totalDebt = debts.reduce((s, d) => s + (d.paid ? 0 : d.amount), 0);
-  // Floored at zero: overpaying (or paying when nothing is owed) used to render
-  // as "R$ -300,00" in the header. Nothing is owed is nothing is owed — the
-  // amount already paid is shown on its own line instead.
-  const totalOwed = Math.max(0, totalDebt - totalPaid);
+  const payments = person.payments.map((p) => ({
+    id: p.id,
+    amount: Number(p.amount),
+    description: p.description,
+    date: p.date,
+    method: p.method,
+  }));
+  // All-time totals. The person and public pages recompute these client-side
+  // for the month picked in the carousel, from the same helper.
+  const { totalOwed, totalPaid } = balanceTotals(debts, payments);
 
   return {
     name: person.name,
     accessCode: person.accessCode,
     totalOwed,
-    totalDebt,
     totalPaid,
     publicVisible: person.publicVisible,
     debts,
-    payments: person.payments.map((p) => ({
-      id: p.id,
-      amount: Number(p.amount),
-      description: p.description,
-      date: p.date,
-      method: p.method,
-    })),
+    payments,
   };
 }
 
@@ -160,7 +158,7 @@ export interface DashboardOverview {
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const userId = await requireUserId();
 
-  const [people, unpaidDebtSums, paymentSums, standaloneDebts, installmentGroups, paymentAgg] =
+  const [people, unpaidDebtSums, standaloneDebts, installmentGroups, paymentAgg] =
     await Promise.all([
       // id is selected only to join the groupBy aggregates below — it never
       // reaches the returned PersonSummary.
@@ -170,15 +168,12 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
         orderBy: { name: "asc" },
       }),
       // Money stays row-based: each installment row carries its own share of
-      // the purchase, so summing rows is exactly right here.
+      // the purchase, so summing rows is exactly right here. Payments are not
+      // grouped per person at all — see balance.ts for why nothing is
+      // subtracted from this.
       prisma.debt.groupBy({
         by: ["personId"],
         where: { person: { userId }, paid: false },
-        _sum: { amount: true },
-      }),
-      prisma.payment.groupBy({
-        by: ["personId"],
-        where: { person: { userId } },
         _sum: { amount: true },
       }),
       // The *count*, unlike the sums, treats a parceled purchase as one debt —
@@ -199,12 +194,11 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
     ]);
 
   const debtByPerson = new Map(unpaidDebtSums.map((d) => [d.personId, Number(d._sum.amount ?? 0)]));
-  const paidByPerson = new Map(paymentSums.map((p) => [p.personId, Number(p._sum.amount ?? 0)]));
 
   let totalToReceive = 0;
   let activeDebtors = 0;
   const peopleSummary = people.map((p) => {
-    const totalOwed = (debtByPerson.get(p.id) ?? 0) - (paidByPerson.get(p.id) ?? 0);
+    const totalOwed = debtByPerson.get(p.id) ?? 0;
     if (totalOwed > 0) {
       totalToReceive += totalOwed;
       activeDebtors++;

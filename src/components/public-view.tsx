@@ -8,6 +8,7 @@ import { useFilteredSortedList } from "@/lib/hooks/use-list-filter-sort";
 import { PAYMENT_METHODS, type PaymentMethodKey } from "@/lib/payment-methods";
 import type { PersonWithBalance } from "@/lib/actions/person";
 import { getAvailableMonths, getMonthKey, formatDateBR } from "@/lib/date-utils";
+import { balanceTotals } from "@/lib/balance";
 import { formatCurrency, amountSearchTexts } from "@/lib/format-utils";
 import { MonthCarousel } from "@/components/month-carousel";
 import { FilterFields } from "@/components/filter-fields";
@@ -15,7 +16,7 @@ import { ModalShell } from "@/components/modal-shell";
 import { BalanceSummary } from "@/components/balance-summary";
 import { Badge } from "@/components/badge";
 
-type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "totalDebt" | "totalPaid" | "debts" | "payments">;
+type DebtorView = Pick<PersonWithBalance, "name" | "totalOwed" | "debts" | "payments">;
 
 interface Props {
   debtor: DebtorView;
@@ -36,11 +37,18 @@ export function PublicView({ debtor }: Props) {
   );
   const [selectedMonth, setSelectedMonth] = useState(() => getMonthKey(new Date()));
 
+  // The two lists below follow the carousel, so the summary above them has to
+  // as well — an all-time total there never matched what was on screen.
+  const monthTotals = useMemo(
+    () => balanceTotals(debtor.debts, debtor.payments, selectedMonth),
+    [debtor.debts, debtor.payments, selectedMonth]
+  );
+
   return (
     <>
       <div className="flex items-start justify-between gap-4 mb-8">
         <h2 className="text-lg tracking-widest uppercase text-zinc-900 dark:text-white">{debtor.name}</h2>
-        <BalanceSummary totalOwed={debtor.totalOwed} totalPaid={debtor.totalPaid} />
+        <BalanceSummary totalOwed={monthTotals.totalOwed} totalPaid={monthTotals.totalPaid} />
       </div>
 
       <div className="mb-6">
@@ -50,6 +58,8 @@ export function PublicView({ debtor }: Props) {
       <DebtsList debts={debtor.debts} onOpen={setOpenDebt} selectedMonth={selectedMonth} />
       <div className="border-t border-zinc-300 dark:border-zinc-700 mb-8" />
       <PaymentsList payments={debtor.payments} onOpen={setOpenPayment} selectedMonth={selectedMonth} />
+      {/* All-time, not monthTotals: this simulates paying off the whole
+          balance, which doesn't change with the month being browsed. */}
       {debtor.totalOwed > 0 && <InstallmentCalculator balance={debtor.totalOwed} />}
 
       {openDebt && <PublicDebtModal debt={openDebt} onClose={() => setOpenDebt(null)} />}

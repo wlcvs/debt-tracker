@@ -9,12 +9,13 @@ interface Props {
   person: {
     accessCode: string;
     name: string;
-    totalOwed: number;
-    totalPaid: number;
   };
+  /** Scoped to the month selected in person-detail-view.tsx, not all-time. */
+  totalOwed: number;
+  totalPaid: number;
 }
 
-export function EditablePersonHeader({ person }: Props) {
+export function EditablePersonHeader({ person, totalOwed, totalPaid }: Props) {
   const [editing, setEditing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -45,7 +46,7 @@ export function EditablePersonHeader({ person }: Props) {
             Cancelar
           </button>
         </form>
-        <BalanceSummary totalOwed={person.totalOwed} totalPaid={person.totalPaid} size="text-xl" />
+        <BalanceSummary totalOwed={totalOwed} totalPaid={totalPaid} size="text-xl" />
       </div>
     );
   }
@@ -59,7 +60,7 @@ export function EditablePersonHeader({ person }: Props) {
       >
         {person.name}
       </h2>
-      <BalanceSummary totalOwed={person.totalOwed} totalPaid={person.totalPaid} size="text-xl" />
+      <BalanceSummary totalOwed={totalOwed} totalPaid={totalPaid} size="text-xl" />
     </div>
   );
 }
